@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import User
-from backend.schemas import ActionResponse, LogResponse, MeResponse
+from backend.schemas import ActionResponse, LogResponse, MeResponse, TitleRequest
 from backend.services.auth_service import get_current_user
-from backend.services.game_service import breakthrough, explore, me_payload, train
+from backend.services.game_service import breakthrough, explore, me_payload, set_title, train
 
 router = APIRouter(tags=["game"])
 
@@ -42,6 +42,15 @@ def breakthrough_action(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     return breakthrough(db, current_user)
+
+
+@router.post("/character/title", response_model=ActionResponse)
+def set_character_title(
+    payload: TitleRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    return set_title(db, current_user, payload.title)
 
 
 @router.get("/logs", response_model=list[LogResponse])

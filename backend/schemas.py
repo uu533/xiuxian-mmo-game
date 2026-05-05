@@ -24,6 +24,9 @@ class InventoryResponse(BaseModel):
 
 
 class CharacterResponse(BaseModel):
+    title: str
+    unlocked_titles: list[str]
+    life_status: str
     realm: str
     cultivation: int
     cultivation_cap: int
@@ -53,6 +56,10 @@ class ActionResponse(BaseModel):
     message: str
     character: CharacterResponse
     inventory: list[InventoryResponse]
+
+
+class TitleRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=24)
 
 
 class LogResponse(BaseModel):

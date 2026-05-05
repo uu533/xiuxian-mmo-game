@@ -4,7 +4,7 @@ from datetime import timedelta
 from sqlalchemy.orm import Session
 
 from backend.models import Character, InventoryItem, Log, User, utc_now
-from backend.services.realm_service import current_index, current_step, is_major_breakthrough, next_step, normalize_realm
+from backend.services.realm_service import current_index, current_step, is_major_breakthrough, next_step, normalize_realm, normalize_title, unlocked_titles
 from backend.services.spiritual_root_service import root_rate
 
 ITEM_POOL = ["止血草", "聚气散", "玄铁碎片", "妖兽内丹", "残破玉简", "清心符"]
@@ -23,8 +23,12 @@ def add_log(db: Session, user_id: int, content: str) -> None:
 
 def character_payload(character: Character) -> dict:
     normalize_realm(character)
+    normalize_title(character)
     recover_action_points(character)
     return {
+        "title": character.title,
+        "unlocked_titles": unlocked_titles(character.realm),
+        "life_status": "陨落" if character.hp <= 0 else "存活",
         "realm": character.realm,
         "cultivation": character.cultivation,
         "cultivation_cap": character.cultivation_cap,
@@ -55,6 +59,25 @@ def me_payload(user: User) -> dict:
         "character": character_payload(user.character),
         "inventory": inventory_payload(user),
     }
+
+
+def set_title(db: Session, user: User, title: str) -> dict:
+    character = user.character
+    normalize_title(character)
+    available = unlocked_titles(character.realm)
+    if title not in available:
+        message = f"称号「{title}」尚未解锁。"
+        add_log(db, user.id, message)
+        db.commit()
+        return {"message": message, "character": character_payload(character), "inventory": inventory_payload(user)}
+
+    character.title = title
+    character.updated_at = utc_now()
+    message = f"你将称号改为「{title}」。"
+    add_log(db, user.id, message)
+    db.commit()
+    db.refresh(character)
+    return {"message": message, "character": character_payload(character), "inventory": inventory_payload(user)}
 
 
 def add_item(db: Session, user_id: int, name: str, quantity: int = 1) -> None:

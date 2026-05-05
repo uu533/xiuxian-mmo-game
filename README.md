@@ -83,6 +83,8 @@ http://你的局域网IP:5173/frontend/index.html
 - 难度：结丹后期冲击元婴成功率显著降低；元婴之后每个小境界的修为需求和突破难度都会大幅提升。
 - 灵根：金木水火土单一属性为天灵根，双属性为双灵根，三属性为三灵根，四属性为伪灵根，五属性为杂灵根；雷、冰、光、暗为异灵根。
 - 修炼速度：天灵根最快，杂灵根最慢，异灵根速度约等同三灵根。角色页灵根旁的 `?` 可查看简明说明。
+- 称号：角色名后可挂称号；炼气期默认解锁师兄/师姐，结丹期解锁道人、真人、老祖、真君、尊者，元婴与化神继续解锁更高称号。
+- 气血：气血是生命值，前端会标注 `0 则死亡` 并显示当前生命状态。
 - 行动：打坐修炼、外出探索、突破境界、查看角色、查看日志。
 - 行动力：上限 100，每 10 分钟自然恢复 5 点。打坐消耗 10 点，探索消耗 15 点，突破消耗 30 点。
 - 年龄：不再随每次指令直接增加，累计消耗 1000 点行动力才增长 1 岁。寿元表示寿元上限，突破境界会提升寿元上限。
@@ -95,7 +97,7 @@ http://你的局域网IP:5173/frontend/index.html
 核心表：
 
 - `users`：`id`, `username`, `password_hash`, `created_at`
-- `characters`：`user_id`, `realm`, `cultivation`, `cultivation_cap`, `spiritual_root`, `age`, `lifespan`, `hp`, `mana`, `attack`, `defense`, `inner_demon`, `luck`, `spirit_stones`, `action_points`, `max_action_points`, `action_spent_total`, `age_progress`, `last_action_recovered_at`
+- `characters`：`user_id`, `title`, `realm`, `cultivation`, `cultivation_cap`, `spiritual_root`, `age`, `lifespan`, `hp`, `mana`, `attack`, `defense`, `inner_demon`, `luck`, `spirit_stones`, `action_points`, `max_action_points`, `action_spent_total`, `age_progress`, `last_action_recovered_at`
 - `logs`：`user_id`, `content`, `created_at`
 
 扩展表：

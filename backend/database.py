@@ -36,6 +36,7 @@ def create_tables() -> None:
 
 def ensure_character_columns() -> None:
     columns = {
+        "title": "VARCHAR(24) NOT NULL DEFAULT '师兄'",
         "action_points": "INTEGER NOT NULL DEFAULT 100",
         "max_action_points": "INTEGER NOT NULL DEFAULT 100",
         "action_spent_total": "INTEGER NOT NULL DEFAULT 0",

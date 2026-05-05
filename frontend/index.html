@@ -309,6 +309,31 @@
         overflow-wrap: anywhere;
       }
 
+      .title-editor {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #10231f;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .title-editor span {
+        color: #c8d2c1;
+        font-size: 12px;
+      }
+
+      .title-editor select {
+        min-height: 36px;
+        border: 1px solid rgba(204, 223, 202, 0.2);
+        border-radius: 8px;
+        padding: 0 8px;
+        color: #f6eed9;
+        background: #0b1815;
+      }
+
       .root-line {
         display: flex;
         align-items: center;
@@ -530,6 +555,13 @@
                 <h2 id="player-title">角色</h2>
                 <button id="logout-btn" class="danger">退出</button>
               </div>
+              <div class="title-editor">
+                <div>
+                  <strong id="full-title-name">云游散修 师兄</strong>
+                  <span>称号随境界解锁，可随时更换</span>
+                </div>
+                <select id="title-select" title="选择称号"></select>
+              </div>
               <div id="character-grid" class="stats-grid"></div>
             </div>
           </div>
@@ -592,6 +624,8 @@
       const recentLogs = document.getElementById("recent-logs");
       const inventory = document.getElementById("inventory");
       const playerTitle = document.getElementById("player-title");
+      const fullTitleName = document.getElementById("full-title-name");
+      const titleSelect = document.getElementById("title-select");
       const rootHelp = document.getElementById("root-help");
       const rootCurrent = document.getElementById("root-current");
 
@@ -647,21 +681,24 @@
       function renderCharacter(data) {
         currentUser = data;
         const c = data.character;
-        document.getElementById("hero-name").textContent = data.username;
+        document.getElementById("hero-name").textContent = `${data.username} ${c.title}`;
         document.getElementById("hero-realm").textContent = `${c.realm}`;
         document.getElementById("hero-subtitle").textContent = `${c.spiritual_root} · ${c.age}岁`;
         document.getElementById("hero-pill").textContent = `行动力 ${c.action_points}/${c.max_action_points}`;
         document.getElementById("res-cultivation").textContent = `${c.cultivation} / ${c.cultivation_cap}`;
         document.getElementById("res-stones").textContent = c.spirit_stones;
         document.getElementById("res-action").textContent = `${c.action_points} / ${c.max_action_points}`;
-        document.getElementById("res-hp").textContent = c.hp;
+        document.getElementById("res-hp").textContent = `${c.hp} · ${c.life_status}`;
         document.getElementById("train-rate").textContent = `10分钟恢复5点 · ${1000 - c.age_progress}点后长1岁`;
         document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
         document.getElementById("train-btn").disabled = c.action_points < 10;
         document.getElementById("explore-btn").disabled = c.action_points < 15;
         document.getElementById("breakthrough-btn").disabled = c.action_points < 30;
 
-        playerTitle.textContent = `角色：${data.username}`;
+        playerTitle.textContent = `角色：${data.username} ${c.title}`;
+        fullTitleName.textContent = `${data.username} ${c.title}`;
+        titleSelect.innerHTML = c.unlocked_titles.map((title) => `<option value="${title}">${title}</option>`).join("");
+        titleSelect.value = c.title;
         const stats = [
           ["境界", c.realm],
           ["修为", `${c.cultivation} / ${c.cultivation_cap}`],
@@ -670,7 +707,8 @@
           ["寿元", c.lifespan],
           ["行动力", `${c.action_points} / ${c.max_action_points}`],
           ["年龄进度", `${c.age_progress} / 1000`],
-          ["气血", c.hp],
+          ["气血", `${c.hp}（0则死亡）`],
+          ["生命状态", c.life_status],
           ["法力", c.mana],
           ["攻击", c.attack],
           ["防御", c.defense],
@@ -743,6 +781,16 @@
         await loadMe();
       }
 
+      async function changeTitle(title) {
+        showToast("");
+        const data = await request("/character/title", {
+          method: "POST",
+          body: JSON.stringify({ title }),
+        });
+        showToast(data.message);
+        await loadMe();
+      }
+
       document.getElementById("register-btn").addEventListener("click", () => {
         auth("/register").catch((error) => showToast(error.message));
       });
@@ -776,6 +824,10 @@
 
       document.getElementById("refresh-btn").addEventListener("click", () => {
         loadMe().catch((error) => showToast(error.message));
+      });
+
+      titleSelect.addEventListener("change", () => {
+        changeTitle(titleSelect.value).catch((error) => showToast(error.message));
       });
 
       document.getElementById("close-root-help").addEventListener("click", () => {

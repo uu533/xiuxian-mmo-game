@@ -29,6 +29,7 @@ class Character(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, index=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(24), default="师兄", nullable=False)
     realm: Mapped[str] = mapped_column(String(24), default="炼气一层", nullable=False)
     cultivation: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     cultivation_cap: Mapped[int] = mapped_column(Integer, default=80, nullable=False)

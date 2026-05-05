@@ -45,6 +45,13 @@ REALM_STEPS: list[RealmStep] = [
 REALMS = [step.name for step in REALM_STEPS]
 STARTING_REALM = REALMS[0]
 STARTING_CULTIVATION_CAP = REALM_STEPS[0].cultivation_cap
+TITLE_UNLOCKS = {
+    0: ["师兄", "师姐"],
+    1: ["师兄", "师姐", "师叔", "师伯", "前辈"],
+    2: ["师兄", "师姐", "师叔", "师伯", "前辈", "道人", "真人", "老祖", "真君", "尊者"],
+    3: ["师兄", "师姐", "师叔", "师伯", "前辈", "道人", "真人", "老祖", "真君", "尊者", "大修士", "元君", "天君", "法王", "上人"],
+    4: ["师兄", "师姐", "师叔", "师伯", "前辈", "道人", "真人", "老祖", "真君", "尊者", "大修士", "元君", "天君", "法王", "上人", "道尊", "神君", "圣君", "尊上"],
+}
 
 LEGACY_REALM_MAP = {
     "炼气": "炼气一层",
@@ -96,3 +103,14 @@ def realm_tier(name: str) -> int:
 
 def is_major_breakthrough(from_name: str, to_name: str) -> bool:
     return realm_tier(to_name) > realm_tier(from_name)
+
+
+def unlocked_titles(realm_name: str) -> list[str]:
+    return TITLE_UNLOCKS[realm_tier(realm_name)]
+
+
+def normalize_title(character: Character) -> None:
+    normalize_realm(character)
+    available = unlocked_titles(character.realm)
+    if not character.title or character.title not in available:
+        character.title = available[0]

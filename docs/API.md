@@ -72,7 +72,10 @@ Authorization: Bearer <token>
 ```json
 {
   "username": "player01",
-  "character": {
+    "character": {
+    "title": "师兄",
+    "unlocked_titles": ["师兄", "师姐"],
+    "life_status": "存活",
     "realm": "炼气一层",
     "cultivation": 0,
     "cultivation_cap": 100,
@@ -93,6 +96,43 @@ Authorization: Bearer <token>
   },
   "inventory": []
 }
+```
+
+## POST /character/title
+
+修改角色称号。称号必须已经被当前境界解锁。
+
+请求示例：
+
+```json
+{
+  "title": "师姐"
+}
+```
+
+返回示例：
+
+```json
+{
+  "message": "你将称号改为「师姐」。",
+  "character": {
+    "title": "师姐",
+    "unlocked_titles": ["师兄", "师姐"],
+    "life_status": "存活",
+    "realm": "炼气一层"
+  },
+  "inventory": []
+}
+```
+
+称号解锁：
+
+```text
+炼气期：师兄、师姐
+筑基期：师叔、师伯、前辈
+结丹期：道人、真人、老祖、真君、尊者
+元婴期：大修士、元君、天君、法王、上人
+化神期：道尊、神君、圣君、尊上
 ```
 
 ## 灵根规则

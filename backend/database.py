@@ -39,25 +39,40 @@ def ensure_character_columns() -> None:
         "title": "VARCHAR(24) NOT NULL DEFAULT '师兄'",
         "sect_name": "VARCHAR(64)",
         "sect_branch": "VARCHAR(64)",
-        "action_points": "INTEGER NOT NULL DEFAULT 100",
-        "max_action_points": "INTEGER NOT NULL DEFAULT 100",
-        "action_spent_total": "INTEGER NOT NULL DEFAULT 0",
-        "age_progress": "INTEGER NOT NULL DEFAULT 0",
-        "last_action_recovered_at": "DATETIME",
+        "cultivation_method_attack_bonus": "INTEGER NOT NULL DEFAULT 0",
+        "cultivation_method_defense_bonus": "INTEGER NOT NULL DEFAULT 0",
+        "cultivation_method_mana_bonus": "INTEGER NOT NULL DEFAULT 0",
+        "magic_treasure_attack_bonus": "INTEGER NOT NULL DEFAULT 0",
+        "magic_treasure_defense_bonus": "INTEGER NOT NULL DEFAULT 0",
+        "magic_treasure_mana_bonus": "INTEGER NOT NULL DEFAULT 0",
     }
     with engine.begin() as conn:
         existing = {row[1] for row in conn.execute(text("PRAGMA table_info(characters)")).fetchall()}
         for name, definition in columns.items():
             if name not in existing:
                 conn.execute(text(f"ALTER TABLE characters ADD COLUMN {name} {definition}"))
-        conn.execute(
-            text(
-                """
-                UPDATE characters
-                SET last_action_recovered_at = COALESCE(last_action_recovered_at, CURRENT_TIMESTAMP)
-                """
-            )
-        )
+    drop_deprecated_action_columns()
+
+
+def drop_deprecated_action_columns() -> None:
+    deprecated = [
+        "action_points",
+        "max_action_points",
+        "action_spent_total",
+        "age_progress",
+        "last_action_recovered_at",
+        "attack",
+        "defense",
+    ]
+    with engine.begin() as conn:
+        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(characters)")).fetchall()}
+        for name in deprecated:
+            if name in existing:
+                try:
+                    conn.execute(text(f"ALTER TABLE characters DROP COLUMN {name}"))
+                except Exception:
+                    # Older SQLite builds may not support DROP COLUMN. The ORM no longer reads these fields.
+                    pass
 
 
 def migrate_realms() -> None:

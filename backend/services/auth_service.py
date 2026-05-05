@@ -45,9 +45,7 @@ def create_user(db: Session, username: str, password: str) -> User:
         spiritual_root=root.name,
         luck=root.base_luck + secrets.randbelow(9),
         hp=100 + secrets.randbelow(16),
-        mana=60 + secrets.randbelow(16),
-        attack=12 + secrets.randbelow(5),
-        defense=6 + secrets.randbelow(4),
+        mana=100,
     )
     db.add(character)
     db.add(Log(user_id=user.id, content=f"你觉醒「{root.name}」，踏上修仙之路。{root.description}"))
@@ -79,4 +77,3 @@ def get_current_user(
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token 无效")
     return token.user
-

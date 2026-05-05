@@ -5,7 +5,16 @@ from backend.database import get_db
 from backend.models import User
 from backend.schemas import ActionResponse, LogResponse, MeResponse, TitleRequest
 from backend.services.auth_service import get_current_user
-from backend.services.game_service import breakthrough, explore, me_payload, set_title, train
+from backend.services.game_service import (
+    breakthrough,
+    explore,
+    meditate_restore_mana,
+    me_payload,
+    pill_restore_mana,
+    set_title,
+    spirit_stone_restore_mana,
+    train,
+)
 
 router = APIRouter(tags=["game"])
 
@@ -42,6 +51,30 @@ def breakthrough_action(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     return breakthrough(db, current_user)
+
+
+@router.post("/action/meditate", response_model=ActionResponse)
+def meditate_action(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    return meditate_restore_mana(db, current_user)
+
+
+@router.post("/action/spirit-stone", response_model=ActionResponse)
+def spirit_stone_action(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    return spirit_stone_restore_mana(db, current_user)
+
+
+@router.post("/action/pill", response_model=ActionResponse)
+def pill_action(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    return pill_restore_mana(db, current_user)
 
 
 @router.post("/character/title", response_model=ActionResponse)

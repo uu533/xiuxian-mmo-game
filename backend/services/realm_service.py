@@ -71,6 +71,7 @@ def normalize_realm(character: Character) -> None:
     current = current_step(character)
     if character.cultivation_cap < current.cultivation_cap:
         character.cultivation_cap = current.cultivation_cap
+    character.lifespan = lifespan_cap(character.realm)
 
 
 def current_index(character: Character) -> int:
@@ -114,3 +115,63 @@ def normalize_title(character: Character) -> None:
     available = unlocked_titles(character.realm)
     if not character.title or character.title not in available:
         character.title = available[0]
+
+
+def lifespan_cap(realm_name: str) -> int:
+    if realm_name in {"炼气一层", "炼气二层", "炼气三层", "炼气四层", "炼气五层"}:
+        return 100
+    if realm_name.startswith("炼气"):
+        return 130
+    if realm_name.startswith("筑基"):
+        return 200
+    if realm_name.startswith("结丹"):
+        return 500
+    if realm_name.startswith("元婴"):
+        return 1000
+    return 3000
+
+
+def base_combat_stats(realm_name: str) -> tuple[int, int]:
+    if realm_name.startswith("炼气"):
+        return qi_refining_attack_defense(realm_name), qi_refining_attack_defense(realm_name)
+    if realm_name == "筑基初期":
+        return 80, 80
+    if realm_name == "筑基中期":
+        return 100, 100
+    if realm_name == "筑基后期":
+        return 120, 120
+    if realm_name == "结丹初期":
+        return 180, 180
+    if realm_name == "结丹中期":
+        return 220, 220
+    if realm_name == "结丹后期":
+        return 260, 260
+
+    index = REALMS.index(realm_name)
+    nascent_index = REALMS.index("元婴初期")
+    base = 500 + (index - nascent_index) * 240
+    return base, base
+
+
+def base_mana_cap(realm_name: str) -> int:
+    attack, _defense = base_combat_stats(realm_name)
+    return max(100, attack * 12)
+
+
+def qi_refining_attack_defense(realm_name: str) -> int:
+    level_text = realm_name.removeprefix("炼气").removesuffix("层")
+    level = {
+        "一": 1,
+        "二": 2,
+        "三": 3,
+        "四": 4,
+        "五": 5,
+        "六": 6,
+        "七": 7,
+        "八": 8,
+        "九": 9,
+        "十": 10,
+        "十一": 11,
+        "十二": 12,
+    }.get(level_text, 1)
+    return level * 5

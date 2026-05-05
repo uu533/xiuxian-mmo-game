@@ -249,6 +249,10 @@
         padding: 0 8px;
       }
 
+      .recovery-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .list {
         display: grid;
         gap: 8px;
@@ -403,6 +407,38 @@
         line-height: 1.45;
       }
 
+      .bag-grid {
+        display: grid;
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .bag-slot {
+        aspect-ratio: 1;
+        min-width: 0;
+        border: 1px solid rgba(204, 223, 202, 0.14);
+        border-radius: 6px;
+        padding: 4px;
+        display: grid;
+        align-content: space-between;
+        background: #10231f;
+        color: #f6eed9;
+        font-size: 11px;
+        line-height: 1.15;
+        overflow: hidden;
+      }
+
+      .bag-slot.empty-slot {
+        color: rgba(200, 210, 193, 0.35);
+        background: rgba(16, 35, 31, 0.52);
+      }
+
+      .bag-slot strong,
+      .bag-slot span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .auth-card {
         margin-top: -12px;
       }
@@ -519,7 +555,7 @@
         <section class="resource-strip">
           <div class="stat"><span>修为</span><strong id="res-cultivation">0 / 0</strong></div>
           <div class="stat"><span>灵石</span><strong id="res-stones">0</strong></div>
-          <div class="stat"><span>行动力</span><strong id="res-action">0 / 100</strong></div>
+          <div class="stat"><span>法力</span><strong id="res-mana">0 / 0</strong></div>
           <div class="stat"><span>气血</span><strong id="res-hp">0</strong></div>
         </section>
 
@@ -534,9 +570,14 @@
               </div>
               <div class="bar"><span id="cultivation-bar" style="width: 0%"></span></div>
               <div class="action-grid">
-                <button id="train-btn">打坐-10</button>
-                <button id="explore-btn">探索-15</button>
-                <button id="breakthrough-btn">突破-30</button>
+                <button id="train-btn">修炼-12</button>
+                <button id="explore-btn">探索-18</button>
+                <button id="breakthrough-btn">突破-35</button>
+              </div>
+              <div class="action-grid recovery-grid">
+                <button id="meditate-btn" class="secondary">调息</button>
+                <button id="spirit-stone-btn" class="secondary">吸灵石</button>
+                <button id="pill-btn" class="secondary">服丹药</button>
               </div>
             </div>
 
@@ -684,16 +725,18 @@
         document.getElementById("hero-name").textContent = `${data.username} ${c.title}`;
         document.getElementById("hero-realm").textContent = `${c.realm}`;
         document.getElementById("hero-subtitle").textContent = `${c.spiritual_root} · ${c.age}岁 · ${c.identity_status}`;
-        document.getElementById("hero-pill").textContent = `行动力 ${c.action_points}/${c.max_action_points}`;
+        document.getElementById("hero-pill").textContent = `法力 ${c.mana}/${c.max_mana}`;
         document.getElementById("res-cultivation").textContent = `${c.cultivation} / ${c.cultivation_cap}`;
         document.getElementById("res-stones").textContent = c.spirit_stones;
-        document.getElementById("res-action").textContent = `${c.action_points} / ${c.max_action_points}`;
+        document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
         document.getElementById("res-hp").textContent = `${c.hp} · ${c.life_status}`;
-        document.getElementById("train-rate").textContent = `10分钟恢复5点 · ${1000 - c.age_progress}点后长1岁`;
+        document.getElementById("train-rate").textContent = `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
         document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
-        document.getElementById("train-btn").disabled = c.action_points < 10;
-        document.getElementById("explore-btn").disabled = c.action_points < 15;
-        document.getElementById("breakthrough-btn").disabled = c.action_points < 30;
+        document.getElementById("train-btn").disabled = c.mana < 12;
+        document.getElementById("explore-btn").disabled = c.mana < 18;
+        document.getElementById("breakthrough-btn").disabled = c.mana < 35;
+        document.getElementById("spirit-stone-btn").disabled = c.spirit_stones < 10 || c.mana >= c.max_mana;
+        document.getElementById("pill-btn").disabled = !data.inventory.some((item) => item.name === "回灵丹" && item.quantity > 0) || c.mana >= c.max_mana;
 
         playerTitle.textContent = `角色：${data.username} ${c.title}`;
         fullTitleName.textContent = `${data.username} ${c.title}`;
@@ -707,15 +750,12 @@
           ["身份", c.identity_status],
           ["宗门地位", c.sect_position],
           ["寿元", c.lifespan],
-          ["行动力", `${c.action_points} / ${c.max_action_points}`],
-          ["年龄进度", `${c.age_progress} / 1000`],
           ["气血", `${c.hp}（0则死亡）`],
           ["生命状态", c.life_status],
-          ["法力", c.mana],
-          ["攻击", c.attack],
-          ["防御", c.defense],
-          ["心魔", c.inner_demon],
-          ["气运", c.luck],
+          ["法力", `${c.mana} / ${c.max_mana}`],
+          ["攻击", `${c.attack}（基础${c.attack_base}+加成${c.attack_bonus}）`],
+          ["防御", `${c.defense}（基础${c.defense_base}+加成${c.defense_bonus}）`],
+          ["法力加成", c.mana_bonus],
           ["灵石", c.spirit_stones],
         ];
         grid.innerHTML = stats
@@ -734,16 +774,14 @@
           });
         }
 
-        if (data.inventory.length === 0) {
-          inventory.innerHTML = `<div class="empty">暂无物品</div>`;
-        } else {
-          inventory.innerHTML = data.inventory
-            .map(
-              (item) =>
-                `<div class="row"><div><strong>${item.name}</strong><span>数量 ${item.quantity}</span></div><button disabled>已入库</button></div>`
-            )
-            .join("");
-        }
+        inventory.innerHTML = `<div class="bag-grid">${data.inventory
+          .map((item) => {
+            if (!item.name) {
+              return `<div class="bag-slot empty-slot"><span>${item.slot_index}</span></div>`;
+            }
+            return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span></div>`;
+          })
+          .join("")}</div>`;
       }
 
       async function loadMe() {
@@ -822,6 +860,18 @@
 
       document.getElementById("breakthrough-btn").addEventListener("click", () => {
         doAction("/action/breakthrough").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("meditate-btn").addEventListener("click", () => {
+        doAction("/action/meditate").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("spirit-stone-btn").addEventListener("click", () => {
+        doAction("/action/spirit-stone").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("pill-btn").addEventListener("click", () => {
+        doAction("/action/pill").catch((error) => showToast(error.message));
       });
 
       document.getElementById("refresh-btn").addEventListener("click", () => {

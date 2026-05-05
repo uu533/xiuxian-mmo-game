@@ -19,7 +19,8 @@ class TokenResponse(BaseModel):
 
 
 class InventoryResponse(BaseModel):
-    name: str
+    slot_index: int
+    name: str | None
     quantity: int
 
 
@@ -39,15 +40,15 @@ class CharacterResponse(BaseModel):
     lifespan: int
     hp: int
     mana: int
+    max_mana: int
     attack: int
     defense: int
-    inner_demon: int
-    luck: int
     spirit_stones: int
-    action_points: int
-    max_action_points: int
-    action_spent_total: int
-    age_progress: int
+    attack_base: int
+    defense_base: int
+    attack_bonus: int
+    defense_bonus: int
+    mana_bonus: int
 
 
 class MeResponse(BaseModel):

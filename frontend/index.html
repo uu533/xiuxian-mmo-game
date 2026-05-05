@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>太虚问道</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+        background: #08110f;
+        color: #f6eed9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        background: #08110f;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        min-height: 40px;
+        padding: 0 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: #17130c;
+        background: #e5c568;
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      button.secondary {
+        color: #e9eadf;
+        background: #314039;
+      }
+
+      button.danger {
+        color: #ffece5;
+        background: #9b3d31;
+      }
+
+      button:disabled {
+        color: #a9a293;
+        background: #314039;
+        cursor: not-allowed;
+      }
+
+      input {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid rgba(204, 223, 202, 0.2);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: #f6eed9;
+        background: #10231f;
+        outline: none;
+      }
+
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        color: #c8d2c1;
+        font-size: 13px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 560px;
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: env(safe-area-inset-top) 14px calc(92px + env(safe-area-inset-bottom));
+        background:
+          linear-gradient(180deg, rgba(8, 17, 15, 0.08) 0%, rgba(8, 17, 15, 0.72) 42%, #08110f 100%),
+          radial-gradient(circle at 78% 10%, rgba(238, 214, 143, 0.9) 0 34px, rgba(238, 214, 143, 0.1) 35px, transparent 70px),
+          linear-gradient(135deg, #183b32 0%, #10231f 46%, #08110f 100%);
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      .shell::before {
+        content: "";
+        position: absolute;
+        inset: 135px 0 auto;
+        height: 210px;
+        background:
+          linear-gradient(135deg, transparent 0 16%, #07100e 16% 28%, transparent 28%),
+          linear-gradient(45deg, transparent 0 22%, #102b25 22% 37%, transparent 37%),
+          linear-gradient(135deg, transparent 0 40%, #173c32 40% 58%, transparent 58%);
+        opacity: 0.72;
+        pointer-events: none;
+      }
+
+      .hero,
+      .resource-strip,
+      .content,
+      .tabs,
+      .toast {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero {
+        min-height: 220px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 22px 0 14px;
+      }
+
+      .identity span,
+      .panel-title span,
+      .stat span,
+      .row span,
+      .row em,
+      .realm-pill {
+        color: #c8d2c1;
+      }
+
+      .identity h1 {
+        margin: 6px 0 4px;
+        font-size: 38px;
+        line-height: 1;
+        letter-spacing: 0;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.48);
+      }
+
+      .identity p {
+        margin: 0;
+        color: #e5c568;
+        font-weight: 800;
+      }
+
+      .realm-pill {
+        border: 1px solid rgba(229, 197, 104, 0.45);
+        border-radius: 999px;
+        padding: 8px 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(8, 17, 15, 0.62);
+        backdrop-filter: blur(6px);
+        font-size: 12px;
+      }
+
+      .resource-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .stat {
+        min-height: 58px;
+        padding: 10px;
+        border: 1px solid rgba(204, 223, 202, 0.12);
+        border-radius: 8px;
+        background: rgba(12, 30, 26, 0.88);
+        display: grid;
+        gap: 3px;
+      }
+
+      .stat strong {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-size: 18px;
+      }
+
+      .toast {
+        margin: 10px 0;
+        padding: 10px 12px;
+        border-left: 3px solid #d95f45;
+        border-radius: 8px;
+        background: rgba(73, 28, 25, 0.92);
+        color: #ffe7dd;
+        font-weight: 800;
+      }
+
+      .content {
+        display: grid;
+        gap: 10px;
+      }
+
+      .panel {
+        border: 1px solid rgba(204, 223, 202, 0.12);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(11, 24, 21, 0.94);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .panel-title h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .panel-title span {
+        font-size: 12px;
+        text-align: right;
+      }
+
+      .bar {
+        width: 100%;
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #263a33;
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #64c7a6, #e5c568, #d95f45);
+      }
+
+      .action-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .action-grid button {
+        width: 100%;
+        min-width: 0;
+        padding: 0 8px;
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .row {
+        min-height: 58px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 8px;
+        background: #10231f;
+      }
+
+      .row div {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+
+      .row strong,
+      .row span,
+      .row em {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .row span,
+      .row em {
+        font-size: 12px;
+        font-style: normal;
+        line-height: 1.35;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .mini-stat {
+        min-height: 64px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #10231f;
+        display: grid;
+        gap: 5px;
+      }
+
+      .mini-stat span {
+        color: #c8d2c1;
+        font-size: 12px;
+      }
+
+      .mini-stat strong {
+        overflow-wrap: anywhere;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 8px;
+      }
+
+      .timeline p {
+        margin: 0;
+        padding: 9px 10px;
+        border-radius: 8px;
+        background: #10231f;
+        color: #dbe5d5;
+        line-height: 1.45;
+      }
+
+      .auth-card {
+        margin-top: -12px;
+      }
+
+      .auth-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .empty {
+        min-height: 58px;
+        display: grid;
+        place-content: center;
+        border: 1px dashed rgba(200, 210, 193, 0.24);
+        border-radius: 8px;
+        color: #c8d2c1;
+      }
+
+      .tabs {
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: min(560px, 100%);
+        padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        background: rgba(8, 17, 15, 0.94);
+        border-top: 1px solid rgba(204, 223, 202, 0.12);
+        backdrop-filter: blur(10px);
+      }
+
+      .tabs button {
+        min-height: 54px;
+        padding: 6px 4px;
+        display: grid;
+        gap: 2px;
+        color: #c8d2c1;
+        background: transparent;
+      }
+
+      .tabs button.active {
+        color: #15130c;
+        background: #e5c568;
+      }
+
+      .tab-icon {
+        font-size: 19px;
+        line-height: 1;
+      }
+
+      .tabs span {
+        font-size: 12px;
+      }
+
+      @media (min-width: 720px) {
+        .shell {
+          border-left: 1px solid rgba(204, 223, 202, 0.1);
+          border-right: 1px solid rgba(204, 223, 202, 0.1);
+        }
+      }
+
+      @media (max-width: 380px) {
+        .identity h1 {
+          font-size: 32px;
+        }
+
+        .hero {
+          align-items: flex-start;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        .row button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="identity">
+          <span id="hero-name">云游散修</span>
+          <h1 id="hero-realm">太虚问道</h1>
+          <p id="hero-subtitle">多人在线修仙文字游戏</p>
+        </div>
+        <div class="realm-pill" id="hero-pill">联网存档</div>
+      </section>
+
+      <section id="auth-section" class="panel auth-card">
+        <div class="panel-title">
+          <h2>登录 / 注册</h2>
+          <span>一人一档</span>
+        </div>
+        <label for="username">用户名</label>
+        <input id="username" autocomplete="username" placeholder="至少 3 个字符" />
+        <label for="password">密码</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="至少 6 个字符" />
+        <div class="auth-actions">
+          <button id="register-btn">注册</button>
+          <button id="login-btn" class="secondary">登录</button>
+        </div>
+      </section>
+
+      <section id="game-ui" class="hidden">
+        <section class="resource-strip">
+          <div class="stat"><span>修为</span><strong id="res-cultivation">0 / 0</strong></div>
+          <div class="stat"><span>灵石</span><strong id="res-stones">0</strong></div>
+          <div class="stat"><span>气血</span><strong id="res-hp">0</strong></div>
+          <div class="stat"><span>法力</span><strong id="res-mana">0</strong></div>
+        </section>
+
+        <div id="message" class="toast hidden"></div>
+
+        <section class="content">
+          <div id="tab-cultivation" class="tab-panel">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>太虚吐纳</h2>
+                <span id="train-rate">后端结算</span>
+              </div>
+              <div class="bar"><span id="cultivation-bar" style="width: 0%"></span></div>
+              <div class="action-grid">
+                <button id="train-btn">打坐</button>
+                <button id="explore-btn">探索</button>
+                <button id="breakthrough-btn">突破</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-title">
+                <h2>最近游历</h2>
+                <span>实时日志</span>
+              </div>
+              <div id="recent-logs" class="timeline"></div>
+            </div>
+          </div>
+
+          <div id="tab-character" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2 id="player-title">角色</h2>
+                <button id="logout-btn" class="danger">退出</button>
+              </div>
+              <div id="character-grid" class="stats-grid"></div>
+            </div>
+          </div>
+
+          <div id="tab-bag" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>背包</h2>
+                <span>探索所得</span>
+              </div>
+              <div id="inventory" class="list"></div>
+            </div>
+          </div>
+
+          <div id="tab-logs" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>日志</h2>
+                <button id="refresh-btn" class="secondary">刷新</button>
+              </div>
+              <div id="logs" class="timeline"></div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <nav id="tabs" class="tabs hidden" aria-label="玩法导航">
+        <button class="active" data-tab="cultivation"><span class="tab-icon">✦</span><span>修炼</span></button>
+        <button data-tab="character"><span class="tab-icon">◇</span><span>角色</span></button>
+        <button data-tab="bag"><span class="tab-icon">▣</span><span>背包</span></button>
+        <button data-tab="logs"><span class="tab-icon">☰</span><span>日志</span></button>
+      </nav>
+    </main>
+
+    <script>
+      const API_HOST = window.location.hostname || "127.0.0.1";
+      const API_BASE = `http://${API_HOST}:8000`;
+      const tokenKey = "xiuxian_mmo_token";
+
+      const authSection = document.getElementById("auth-section");
+      const gameUi = document.getElementById("game-ui");
+      const tabs = document.getElementById("tabs");
+      const message = document.getElementById("message");
+      const grid = document.getElementById("character-grid");
+      const logs = document.getElementById("logs");
+      const recentLogs = document.getElementById("recent-logs");
+      const inventory = document.getElementById("inventory");
+      const playerTitle = document.getElementById("player-title");
+
+      let currentUser = null;
+
+      function getToken() {
+        return localStorage.getItem(tokenKey);
+      }
+
+      function setToken(token) {
+        localStorage.setItem(tokenKey, token);
+      }
+
+      function clearToken() {
+        localStorage.removeItem(tokenKey);
+      }
+
+      function showToast(text) {
+        message.textContent = text || "";
+        message.classList.toggle("hidden", !text);
+      }
+
+      async function request(path, options = {}) {
+        const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+        const token = getToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const response = await fetch(`${API_BASE}${path}`, {
+          ...options,
+          headers,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || "请求失败");
+        }
+        return data;
+      }
+
+      function showGame(loggedIn) {
+        authSection.classList.toggle("hidden", loggedIn);
+        gameUi.classList.toggle("hidden", !loggedIn);
+        tabs.classList.toggle("hidden", !loggedIn);
+      }
+
+      function setTab(tab) {
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.add("hidden"));
+        document.getElementById(`tab-${tab}`).classList.remove("hidden");
+        document.querySelectorAll(".tabs button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.tab === tab);
+        });
+      }
+
+      function renderCharacter(data) {
+        currentUser = data;
+        const c = data.character;
+        document.getElementById("hero-name").textContent = data.username;
+        document.getElementById("hero-realm").textContent = `${c.realm}`;
+        document.getElementById("hero-subtitle").textContent = `${c.spiritual_root} · ${c.age}岁`;
+        document.getElementById("hero-pill").textContent = `寿元 ${c.lifespan}`;
+        document.getElementById("res-cultivation").textContent = `${c.cultivation} / ${c.cultivation_cap}`;
+        document.getElementById("res-stones").textContent = c.spirit_stones;
+        document.getElementById("res-hp").textContent = c.hp;
+        document.getElementById("res-mana").textContent = c.mana;
+        document.getElementById("train-rate").textContent = `心魔 ${c.inner_demon} · 气运 ${c.luck}`;
+        document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+
+        playerTitle.textContent = `角色：${data.username}`;
+        const stats = [
+          ["境界", c.realm],
+          ["修为", `${c.cultivation} / ${c.cultivation_cap}`],
+          ["灵根", c.spiritual_root],
+          ["年龄", c.age],
+          ["寿元", c.lifespan],
+          ["气血", c.hp],
+          ["法力", c.mana],
+          ["攻击", c.attack],
+          ["防御", c.defense],
+          ["心魔", c.inner_demon],
+          ["气运", c.luck],
+          ["灵石", c.spirit_stones],
+        ];
+        grid.innerHTML = stats
+          .map(([label, value]) => `<div class="mini-stat"><span>${label}</span><strong>${value}</strong></div>`)
+          .join("");
+
+        if (data.inventory.length === 0) {
+          inventory.innerHTML = `<div class="empty">暂无物品</div>`;
+        } else {
+          inventory.innerHTML = data.inventory
+            .map(
+              (item) =>
+                `<div class="row"><div><strong>${item.name}</strong><span>数量 ${item.quantity}</span></div><button disabled>已入库</button></div>`
+            )
+            .join("");
+        }
+      }
+
+      async function loadMe() {
+        const data = await request("/me");
+        renderCharacter(data);
+        await loadLogs();
+        showGame(true);
+      }
+
+      async function loadLogs() {
+        const data = await request("/logs?limit=30");
+        const items = data.length
+          ? data.map((log) => `<p><small>${new Date(log.created_at).toLocaleString()}</small><br />${log.content}</p>`).join("")
+          : `<div class="empty">暂无日志</div>`;
+        logs.innerHTML = items;
+        recentLogs.innerHTML = data.slice(0, 5).length
+          ? data.slice(0, 5).map((log) => `<p>${log.content}</p>`).join("")
+          : `<div class="empty">暂无游历记录</div>`;
+      }
+
+      async function auth(path) {
+        showToast("");
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const data = await request(path, {
+          method: "POST",
+          body: JSON.stringify({ username, password }),
+        });
+        setToken(data.token);
+        await loadMe();
+      }
+
+      async function doAction(path) {
+        showToast("");
+        const data = await request(path, { method: "POST", body: "{}" });
+        showToast(data.message);
+        await loadMe();
+      }
+
+      document.getElementById("register-btn").addEventListener("click", () => {
+        auth("/register").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("login-btn").addEventListener("click", () => {
+        auth("/login").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        clearToken();
+        currentUser = null;
+        showToast("");
+        showGame(false);
+        document.getElementById("hero-name").textContent = "云游散修";
+        document.getElementById("hero-realm").textContent = "太虚问道";
+        document.getElementById("hero-subtitle").textContent = "多人在线修仙文字游戏";
+        document.getElementById("hero-pill").textContent = "联网存档";
+      });
+
+      document.getElementById("train-btn").addEventListener("click", () => {
+        doAction("/action/train").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("explore-btn").addEventListener("click", () => {
+        doAction("/action/explore").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("breakthrough-btn").addEventListener("click", () => {
+        doAction("/action/breakthrough").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("refresh-btn").addEventListener("click", () => {
+        loadMe().catch((error) => showToast(error.message));
+      });
+
+      document.querySelectorAll(".tabs button").forEach((button) => {
+        button.addEventListener("click", () => setTab(button.dataset.tab));
+      });
+
+      if (getToken()) {
+        loadMe().catch(() => {
+          clearToken();
+          showGame(false);
+        });
+      }
+    </script>
+  </body>
+</html>

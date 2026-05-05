@@ -4,8 +4,8 @@ from datetime import timedelta
 from sqlalchemy.orm import Session
 
 from backend.models import Character, InventoryItem, Log, User, utc_now
-from backend.services.auth_service import root_rate
 from backend.services.realm_service import current_index, current_step, is_major_breakthrough, next_step, normalize_realm
+from backend.services.spiritual_root_service import root_rate
 
 ITEM_POOL = ["止血草", "聚气散", "玄铁碎片", "妖兽内丹", "残破玉简", "清心符"]
 

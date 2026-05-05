@@ -8,6 +8,7 @@ from pathlib import Path
 BASE_URL = "http://127.0.0.1:8000"
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "game.db"
+VALID_ROOT_SUFFIXES = ("天灵根", "双灵根", "三灵根", "伪灵根", "杂灵根", "异灵根")
 
 
 def request(path, method="GET", token=None, payload=None):
@@ -70,6 +71,7 @@ def main():
     assert me_b["username"] == player_b
     assert me_a["character"]["realm"] == "炼气一层"
     assert me_a["character"]["cultivation_cap"] == 80
+    assert me_a["character"]["spiritual_root"].endswith(VALID_ROOT_SUFFIXES)
     assert me_a["character"]["spirit_stones"] == 100
     assert me_b["character"]["spirit_stones"] == 100
     assert me_a["character"]["action_points"] == 100

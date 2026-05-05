@@ -8,14 +8,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import AuthToken, Character, Log, User
 from backend.services.realm_service import STARTING_CULTIVATION_CAP, STARTING_REALM
-
-SPIRITUAL_ROOTS = [
-    ("天灵根", 1.45, 42),
-    ("双灵根", 1.25, 50),
-    ("三灵根", 1.05, 56),
-    ("四灵根", 0.9, 62),
-    ("五行杂灵根", 0.78, 70),
-]
+from backend.services.spiritual_root_service import random_spiritual_root
 
 
 def hash_password(password: str) -> str:
@@ -40,7 +33,7 @@ def create_user(db: Session, username: str, password: str) -> User:
     if exists:
         raise HTTPException(status_code=400, detail="用户名已存在")
 
-    root_name, _rate, luck = secrets.choice(SPIRITUAL_ROOTS)
+    root = random_spiritual_root()
     user = User(username=username, password_hash=hash_password(password))
     db.add(user)
     db.flush()
@@ -49,15 +42,15 @@ def create_user(db: Session, username: str, password: str) -> User:
         user_id=user.id,
         realm=STARTING_REALM,
         cultivation_cap=STARTING_CULTIVATION_CAP,
-        spiritual_root=root_name,
-        luck=luck + secrets.randbelow(9),
+        spiritual_root=root.name,
+        luck=root.base_luck + secrets.randbelow(9),
         hp=100 + secrets.randbelow(16),
         mana=60 + secrets.randbelow(16),
         attack=12 + secrets.randbelow(5),
         defense=6 + secrets.randbelow(4),
     )
     db.add(character)
-    db.add(Log(user_id=user.id, content=f"你觉醒「{root_name}」，踏上修仙之路。"))
+    db.add(Log(user_id=user.id, content=f"你觉醒「{root.name}」，踏上修仙之路。{root.description}"))
     db.commit()
     db.refresh(user)
     return user
@@ -87,9 +80,3 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token 无效")
     return token.user
 
-
-def root_rate(root: str) -> float:
-    for name, rate, _luck in SPIRITUAL_ROOTS:
-        if name == root:
-            return rate
-    return 1.0

@@ -309,6 +309,61 @@
         overflow-wrap: anywhere;
       }
 
+      .root-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .help-btn {
+        width: 24px;
+        height: 24px;
+        min-height: 24px;
+        padding: 0;
+        border-radius: 50%;
+        color: #15130c;
+        background: #e5c568;
+        font-size: 14px;
+      }
+
+      .root-help {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        background: rgba(3, 8, 7, 0.72);
+      }
+
+      .root-help-card {
+        width: min(460px, 100%);
+        border: 1px solid rgba(229, 197, 104, 0.35);
+        border-radius: 8px;
+        padding: 14px;
+        background: #0b1815;
+        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.44);
+      }
+
+      .root-help-card h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .root-help-card p {
+        margin: 0 0 10px;
+        color: #dbe5d5;
+        line-height: 1.55;
+      }
+
+      .root-help-card ul {
+        margin: 0 0 12px;
+        padding-left: 18px;
+        color: #c8d2c1;
+        line-height: 1.6;
+      }
+
       .timeline {
         display: grid;
         gap: 8px;
@@ -507,6 +562,20 @@
         <button data-tab="bag"><span class="tab-icon">▣</span><span>背包</span></button>
         <button data-tab="logs"><span class="tab-icon">☰</span><span>日志</span></button>
       </nav>
+
+      <div id="root-help" class="root-help hidden" role="dialog" aria-modal="true" aria-labelledby="root-help-title">
+        <div class="root-help-card">
+          <h2 id="root-help-title">灵根资质说明</h2>
+          <p id="root-current"></p>
+          <ul>
+            <li>金木水火土中单一属性为天灵根，修炼速度最快。</li>
+            <li>两个属性为双灵根，三个属性为三灵根。</li>
+            <li>四个属性为伪灵根，五行俱全为杂灵根，杂灵根修炼最慢。</li>
+            <li>雷、冰、光、暗为异灵根，修炼速度约等同三灵根。</li>
+          </ul>
+          <button id="close-root-help">知道了</button>
+        </div>
+      </div>
     </main>
 
     <script>
@@ -523,6 +592,8 @@
       const recentLogs = document.getElementById("recent-logs");
       const inventory = document.getElementById("inventory");
       const playerTitle = document.getElementById("player-title");
+      const rootHelp = document.getElementById("root-help");
+      const rootCurrent = document.getElementById("root-current");
 
       let currentUser = null;
 
@@ -594,7 +665,7 @@
         const stats = [
           ["境界", c.realm],
           ["修为", `${c.cultivation} / ${c.cultivation_cap}`],
-          ["灵根", c.spiritual_root],
+          ["灵根", c.spiritual_root, true],
           ["年龄", c.age],
           ["寿元", c.lifespan],
           ["行动力", `${c.action_points} / ${c.max_action_points}`],
@@ -608,8 +679,20 @@
           ["灵石", c.spirit_stones],
         ];
         grid.innerHTML = stats
-          .map(([label, value]) => `<div class="mini-stat"><span>${label}</span><strong>${value}</strong></div>`)
+          .map(([label, value, hasHelp]) => {
+            const valueHtml = hasHelp
+              ? `<div class="root-line"><strong>${value}</strong><button class="help-btn" id="root-help-btn" title="查看灵根说明">?</button></div>`
+              : `<strong>${value}</strong>`;
+            return `<div class="mini-stat"><span>${label}</span>${valueHtml}</div>`;
+          })
           .join("");
+        const helpButton = document.getElementById("root-help-btn");
+        if (helpButton) {
+          helpButton.addEventListener("click", () => {
+            rootCurrent.textContent = `当前灵根：${currentUser.character.spiritual_root}`;
+            rootHelp.classList.remove("hidden");
+          });
+        }
 
         if (data.inventory.length === 0) {
           inventory.innerHTML = `<div class="empty">暂无物品</div>`;
@@ -693,6 +776,16 @@
 
       document.getElementById("refresh-btn").addEventListener("click", () => {
         loadMe().catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("close-root-help").addEventListener("click", () => {
+        rootHelp.classList.add("hidden");
+      });
+
+      rootHelp.addEventListener("click", (event) => {
+        if (event.target === rootHelp) {
+          rootHelp.classList.add("hidden");
+        }
       });
 
       document.querySelectorAll(".tabs button").forEach((button) => {

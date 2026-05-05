@@ -27,6 +27,10 @@ class CharacterResponse(BaseModel):
     title: str
     unlocked_titles: list[str]
     life_status: str
+    sect_name: str | None
+    sect_branch: str | None
+    sect_position: str
+    identity_status: str
     realm: str
     cultivation: int
     cultivation_cap: int

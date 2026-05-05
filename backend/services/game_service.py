@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from backend.models import Character, InventoryItem, Log, User, utc_now
 from backend.services.realm_service import current_index, current_step, is_major_breakthrough, next_step, normalize_realm, normalize_title, unlocked_titles
+from backend.services.sect_service import identity_status, sect_position
 from backend.services.spiritual_root_service import root_rate
 
 ITEM_POOL = ["止血草", "聚气散", "玄铁碎片", "妖兽内丹", "残破玉简", "清心符"]
@@ -29,6 +30,10 @@ def character_payload(character: Character) -> dict:
         "title": character.title,
         "unlocked_titles": unlocked_titles(character.realm),
         "life_status": "陨落" if character.hp <= 0 else "存活",
+        "sect_name": character.sect_name,
+        "sect_branch": character.sect_branch,
+        "sect_position": sect_position(character),
+        "identity_status": identity_status(character),
         "realm": character.realm,
         "cultivation": character.cultivation,
         "cultivation_cap": character.cultivation_cap,

@@ -76,6 +76,10 @@ Authorization: Bearer <token>
     "title": "师兄",
     "unlocked_titles": ["师兄", "师姐"],
     "life_status": "存活",
+    "sect_name": null,
+    "sect_branch": null,
+    "sect_position": "散修",
+    "identity_status": "散修",
     "realm": "炼气一层",
     "cultivation": 0,
     "cultivation_cap": 100,
@@ -109,6 +113,42 @@ Authorization: Bearer <token>
   "title": "师姐"
 }
 ```
+
+## 身份状态与宗门地位
+
+角色未加入宗门时：
+
+```json
+{
+  "identity_status": "散修",
+  "sect_position": "散修"
+}
+```
+
+角色有宗门时，前端会在年龄后显示：
+
+```text
+宗门名 · 宗门地位
+```
+
+宗门地位规则：
+
+```text
+炼气一至四层：外门弟子
+炼气五至九层：内门弟子
+炼气十至十二层：亲传弟子
+筑基初期：外门执事
+筑基中期：内门执事
+筑基后期：副掌门
+结丹初期：XX峰/XX宫长老
+结丹中期：普通长老、高阶长老
+结丹后期：核心长老、名义长老、供奉长老
+元婴初期：太上长老
+元婴中期：大长老
+元婴后期：宗门领袖
+```
+
+`掌门` 属于宗门唯一职位，后续会在完整宗门系统中做竞争或任命逻辑。
 
 返回示例：
 

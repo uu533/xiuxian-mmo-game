@@ -57,6 +57,20 @@ def force_realm(username, realm, cultivation_cap=17000, action_points=100):
         conn.commit()
 
 
+def force_sect(username, sect_name="青云宗", sect_branch="天剑峰"):
+    with sqlite3.connect(DB_PATH) as conn:
+        user_id = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()[0]
+        conn.execute(
+            """
+            UPDATE characters
+            SET sect_name = ?, sect_branch = ?
+            WHERE user_id = ?
+            """,
+            (sect_name, sect_branch, user_id),
+        )
+        conn.commit()
+
+
 def force_age_progress(username, age_progress, action_points=100):
     with sqlite3.connect(DB_PATH) as conn:
         user_id = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()[0]
@@ -88,6 +102,8 @@ def main():
     assert me_a["character"]["title"] in ("师兄", "师姐")
     assert "师姐" in me_a["character"]["unlocked_titles"]
     assert me_a["character"]["life_status"] == "存活"
+    assert me_a["character"]["identity_status"] == "散修"
+    assert me_a["character"]["sect_position"] == "散修"
     assert me_a["character"]["spiritual_root"].endswith(VALID_ROOT_SUFFIXES)
     assert me_a["character"]["spirit_stones"] == 100
     assert me_b["character"]["spirit_stones"] == 100
@@ -111,6 +127,10 @@ def main():
     assert "尚未解锁" in locked_title["message"]
 
     force_realm(player_a, "结丹初期")
+    force_sect(player_a)
+    sect_member = request("/me", token=token_a)
+    assert sect_member["character"]["identity_status"] == "青云宗 · 天剑峰长老"
+    assert sect_member["character"]["sect_position"] == "天剑峰长老"
     unlocked_title = request("/character/title", "POST", token=token_a, payload={"title": "真人"})
     assert unlocked_title["character"]["title"] == "真人"
 

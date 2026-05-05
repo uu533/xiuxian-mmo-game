@@ -13,6 +13,8 @@ class InventorySlotResponse(BaseModel):
     grade: int | None
     quantity: int
     stackable: bool
+    rarity: str | None = None
+    level: int | None = None
 
 
 InventoryResponse = InventorySlotResponse

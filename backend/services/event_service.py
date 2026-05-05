@@ -3,9 +3,12 @@ import random
 from sqlalchemy.orm import Session
 
 from backend.configs.events import EXPLORE_EVENTS
+from backend.configs.drop_tables import DROP_ROLLS_BY_EVENT_TYPE
+from backend.configs.opportunities import LUCKY_EVENT_CONFIG, LUCKY_EVENTS
 from backend.models import Character
-from backend.services.calc_service import get_final_attack, get_final_defense
-from backend.services.inventory_service import add_item_to_main_bag
+from backend.services.calc_service import get_battle_power_bonus, get_explore_reward_bonus, get_final_attack, get_final_defense
+from backend.services.drop_service import grant_drop_items
+from backend.services.realm_service import next_realm_config
 from backend.utils.random_utils import weighted_choice
 
 
@@ -23,55 +26,55 @@ def pick_explore_event(character: Character) -> dict:
     return weighted_choice(EXPLORE_EVENTS, event_weight)
 
 
-def resolve_explore_event(db: Session, character: Character) -> dict:
+def resolve_explore_event(db: Session, character: Character, params: dict | None = None) -> dict:
+    params = params or {}
+    lucky = resolve_lucky_event(db, character, params.get("force_lucky_code"))
+    if lucky:
+        return lucky
+
     event = pick_explore_event(character)
     rewards: list[dict] = []
     messages: list[str] = []
+    extra_logs: list[dict] = []
     data: dict = {"event": event["code"], "event_type": event["type"], "rewards": []}
 
     if event["type"] == "reward_spirit_stones":
-        amount = _roll_range(event["rewards"]["spirit_stones"]) + character.hidden_luck // 5
+        amount = int((_roll_range(event["rewards"]["spirit_stones"]) + character.hidden_luck // 5) * (1 + get_explore_reward_bonus(character)))
         character.spirit_stones += amount
         rewards.append({"type": "spirit_stones", "quantity": amount})
         messages.append(f"你发现一处废弃矿脉，获得 {amount} 灵石。")
 
     elif event["type"] == "reward_item":
-        for item_reward in event["rewards"].get("items", []):
-            quantity = _roll_range(item_reward["quantity"])
-            ok, msg, reward = add_item_to_main_bag(db, character, item_reward["code"], quantity)
-            messages.append(msg)
-            if ok and reward:
-                rewards.append({"type": "item", **reward})
+        drop_rewards, drop_messages = grant_drop_items(db, character, _rolls_for_event(event))
+        rewards.extend(drop_rewards)
+        messages.extend(drop_messages)
+        extra_logs.append({"type": "drop", "content": "探索获得掉落：" + "，".join(item["name"] for item in drop_rewards), "data": {"drop_items": [item["code"] for item in drop_rewards]}})
 
     elif event["type"] == "battle":
         battle_result = resolve_battle(character)
         data["battle"] = battle_result
         messages.append(battle_result["message"])
         if battle_result["won"]:
-            amount = _roll_range(event["rewards"].get("spirit_stones", [20, 50]))
+            amount = int(_roll_range(event["rewards"].get("spirit_stones", [20, 50])) * (1 + get_explore_reward_bonus(character)))
             character.spirit_stones += amount
             rewards.append({"type": "spirit_stones", "quantity": amount})
             messages.append(f"战后搜得 {amount} 灵石。")
-            for item_reward in event["rewards"].get("items", []):
-                if random.random() <= item_reward.get("chance", 1):
-                    quantity = _roll_range(item_reward["quantity"])
-                    ok, msg, reward = add_item_to_main_bag(db, character, item_reward["code"], quantity)
-                    messages.append(msg)
-                    if ok and reward:
-                        rewards.append({"type": "item", **reward})
+            drop_rewards, drop_messages = grant_drop_items(db, character, _rolls_for_event(event))
+            rewards.extend(drop_rewards)
+            messages.extend(drop_messages)
+            if drop_rewards:
+                extra_logs.append({"type": "drop", "content": "战斗获得掉落：" + "，".join(item["name"] for item in drop_rewards), "data": {"drop_items": [item["code"] for item in drop_rewards]}})
 
     elif event["type"] == "hidden_opportunity":
-        amount = _roll_range(event["rewards"].get("spirit_stones", [0, 0]))
+        amount = int(_roll_range(event["rewards"].get("spirit_stones", [0, 0])) * (1 + get_explore_reward_bonus(character)))
         if amount:
             character.spirit_stones += amount
             rewards.append({"type": "spirit_stones", "quantity": amount})
-        for item_reward in event["rewards"].get("items", []):
-            quantity = _roll_range(item_reward["quantity"])
-            ok, msg, reward = add_item_to_main_bag(db, character, item_reward["code"], quantity)
-            messages.append(msg)
-            if ok and reward:
-                rewards.append({"type": "item", **reward})
+        drop_rewards, drop_messages = grant_drop_items(db, character, _rolls_for_event(event))
+        rewards.extend(drop_rewards)
+        messages.extend(drop_messages)
         messages.insert(0, f"你遇到机缘「{event['name']}」。")
+        extra_logs.append({"type": "lucky", "content": f"你遇到机缘「{event['name']}」。", "data": {"event": event["code"], "drop_items": [item["code"] for item in drop_rewards]}})
 
     elif event["type"] == "trap":
         damage = _roll_range(event["risks"].get("hp_damage", [1, 1]))
@@ -82,15 +85,62 @@ def resolve_explore_event(db: Session, character: Character) -> dict:
         messages.append("你在山野间寻觅许久，空手而归。")
 
     data["rewards"] = rewards
-    return {"event": event, "message": " ".join(messages), "rewards": rewards, "data": data}
+    return {"event": event, "message": " ".join(messages), "rewards": rewards, "data": data, "extra_logs": extra_logs}
+
+
+def resolve_lucky_event(db: Session, character: Character, force_lucky_code: str | None = None) -> dict | None:
+    chance = min(
+        LUCKY_EVENT_CONFIG["max_rate"],
+        LUCKY_EVENT_CONFIG["base_rate"] + character.hidden_luck * LUCKY_EVENT_CONFIG["luck_factor"],
+    )
+    if not force_lucky_code and random.random() > chance:
+        return None
+
+    event = next((item for item in LUCKY_EVENTS if item["code"] == force_lucky_code), None)
+    if not event:
+        event = weighted_choice(LUCKY_EVENTS, lambda item: item["weight"])
+    rewards: list[dict] = []
+    messages = [f"机缘降临：{event['description']}"]
+    data = {"event": event["code"], "event_type": event["type"], "lucky_rate": chance, "rewards": rewards}
+    extra_logs = [{"type": "lucky", "content": messages[0], "data": data}]
+
+    if event["type"] == "lucky_breakthrough":
+        target = next_realm_config(character)
+        if target:
+            from_realm = character.realm
+            character.realm = target.name
+            character.realm_stage = target.stage
+            character.cultivation = 0
+            character.cultivation_cap = target.cultivation_cap
+            rewards.append({"type": "realm", "name": character.realm})
+            messages.append(f"你直接突破瓶颈，从「{from_realm}」踏入「{character.realm}」。")
+            data.update({"from_realm": from_realm, "to_realm": character.realm})
+    elif event["type"] in {"rare_item", "hidden_cave"}:
+        rolls = 2 if event["type"] == "rare_item" else 4
+        drop_rewards, drop_messages = grant_drop_items(db, character, rolls)
+        rewards.extend(drop_rewards)
+        messages.extend(drop_messages)
+        extra_logs.append({"type": "drop", "content": "机缘获得掉落：" + "，".join(item["name"] for item in drop_rewards), "data": {"drop_items": [item["code"] for item in drop_rewards]}})
+    elif event["type"] == "master_teach":
+        method = next((item for item in character.methods if item.equipped), None)
+        if method:
+            method.exp += 120
+            rewards.append({"type": "method_exp", "quantity": 120})
+            messages.append("主修功法经验增加 120。")
+        else:
+            character.cultivation = min(character.cultivation_cap, character.cultivation + 120)
+            rewards.append({"type": "cultivation", "quantity": 120})
+            messages.append("你尚未主修功法，只将感悟化作 120 修为。")
+    data["rewards"] = rewards
+    return {"event": event, "message": " ".join(messages), "rewards": rewards, "data": data, "extra_logs": extra_logs}
 
 
 def resolve_battle(character: Character) -> dict:
     enemy = random.choice(["青毛妖狼", "黑鳞妖蛇", "散修劫匪", "山魈"])
     enemy_hp = random.randint(42, 82)
     enemy_attack = random.randint(8, 18)
-    player_attack = get_final_attack(character)
-    player_defense = get_final_defense(character)
+    player_attack = get_final_attack(character) + get_battle_power_bonus(character)
+    player_defense = get_final_defense(character) + get_battle_power_bonus(character)
     damage_taken = 0
     rounds: list[str] = []
     won = False
@@ -115,3 +165,8 @@ def resolve_battle(character: Character) -> dict:
 
 def _roll_range(value: list[int] | tuple[int, int]) -> int:
     return random.randint(int(value[0]), int(value[1]))
+
+
+def _rolls_for_event(event: dict) -> int:
+    roll_range = DROP_ROLLS_BY_EVENT_TYPE.get(event["type"], [1, 1])
+    return _roll_range(roll_range)

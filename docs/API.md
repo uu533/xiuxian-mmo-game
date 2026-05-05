@@ -142,6 +142,43 @@ Authorization: Bearer <token>
 - `recover_mana_meditate`：打坐恢复法力。
 - `recover_mana_stone`：消耗灵石恢复法力。
 - `use_item`：使用背包物品，需要 `params.slot_index`。
+- `learn_method`：学习背包中的功法，需要 `params.slot_index`。
+- `equip_method`：装备主修功法，需要 `params.method_id`。
+- `practice_method`：修炼主修功法，可传 `params.method_id`。
+- `equip_artifact`：装备背包中的法宝，需要 `params.slot_index`。
+- `unequip_artifact`：卸下法宝，需要 `params.artifact_id`。
+- `upgrade_artifact`：强化法宝，需要 `params.artifact_id`。
+
+示例：学习功法
+
+```json
+{
+  "action_type": "learn_method",
+  "params": {
+    "slot_index": 3
+  }
+}
+```
+
+示例：强化法宝
+
+```json
+{
+  "action_type": "upgrade_artifact",
+  "params": {
+    "artifact_id": 1
+  }
+}
+```
+
+突破到筑基、结丹、元婴等关键境界时，会检查 `configs/breakthrough_requirements.py` 中的瓶颈条件。例如筑基需要筑基丹、最低法力和主修功法等级。条件不足会返回失败消息，例如：
+
+```json
+{
+  "success": false,
+  "message": "缺少筑基丹"
+}
+```
 
 兼容旧路径：
 
@@ -175,6 +212,60 @@ Authorization: Bearer <token>
   }
 ]
 ```
+
+## Methods
+
+### GET /methods
+
+返回角色已学习功法。
+
+```json
+[
+  {
+    "id": 1,
+    "method_code": "low_method",
+    "name": "长春功",
+    "level": 3,
+    "exp": 20,
+    "next_exp": 240,
+    "equipped": true,
+    "effects": {
+      "cultivation_speed": 0.04,
+      "max_mana": 12,
+      "breakthrough_rate": 0.01
+    }
+  }
+]
+```
+
+## Artifacts
+
+### GET /artifacts
+
+返回已装备法宝。
+
+```json
+[
+  {
+    "id": 1,
+    "slot_type": "main",
+    "equipped": true,
+    "code": "low_artifact",
+    "name": "青锋剑",
+    "level": 2,
+    "rarity": "白",
+    "effects": {
+      "attack": 8,
+      "defense": 5,
+      "explore_reward_bonus": 0.02
+    }
+  }
+]
+```
+
+## Drop And Lucky Events
+
+探索事件现在会调用 `configs/drop_tables.py`，按角色境界阶段抽取掉落。掉落会进入 `inventory_slots`。低概率机缘由 `configs/opportunities.py` 控制，可能触发顿悟破境、稀有物品、高人指点、隐秘洞府等事件，并写入 `game_logs` 的 `lucky/drop` 类型日志。
 
 ## Logs
 

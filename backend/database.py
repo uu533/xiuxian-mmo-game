@@ -63,6 +63,13 @@ def migrate_early_mvp_schema() -> None:
                 "created_at": "DATETIME",
             },
         )
+        _add_missing_columns(
+            conn,
+            "item_instances",
+            {
+                "rarity": "VARCHAR(8) NOT NULL DEFAULT '白'",
+            },
+        )
         existing = _columns(conn, "characters")
         if "luck" in existing:
             conn.execute(text("UPDATE characters SET hidden_luck = COALESCE(luck, hidden_luck)"))

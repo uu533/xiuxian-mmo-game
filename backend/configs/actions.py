@@ -26,6 +26,30 @@ ACTION_CONFIGS = {
         "mana_cost": 0,
         "log_type": "inventory",
     },
+    "learn_method": {
+        "mana_cost": 0,
+        "log_type": "method",
+    },
+    "equip_method": {
+        "mana_cost": 0,
+        "log_type": "method",
+    },
+    "practice_method": {
+        "mana_cost": 10,
+        "log_type": "method",
+    },
+    "equip_artifact": {
+        "mana_cost": 0,
+        "log_type": "artifact",
+    },
+    "unequip_artifact": {
+        "mana_cost": 0,
+        "log_type": "artifact",
+    },
+    "upgrade_artifact": {
+        "mana_cost": 0,
+        "log_type": "artifact",
+    },
 }
 
 MANA_HELP_TEXT = "法力不足，可通过打坐恢复法力、吸收灵石恢复法力，或服用丹药恢复法力。"

@@ -30,6 +30,7 @@ class ItemInstance(Base):
     durability: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
     level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     exp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    rarity: Mapped[str] = mapped_column(String(8), default="白", nullable=False)
     bound: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     extra_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 

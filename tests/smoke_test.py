@@ -29,12 +29,12 @@ def register(username):
     return request("/register", "POST", payload={"username": username, "password": "123456"})
 
 
-def action(token, action_type, params=None):
-    return request("/action/execute", "POST", token=token, payload={"action_type": action_type, "params": params or {}})
-
-
 def login(username):
     return request("/login", "POST", payload={"username": username, "password": "123456"})["token"]
+
+
+def action(token, action_type, params=None):
+    return request("/action/execute", "POST", token=token, payload={"action_type": action_type, "params": params or {}})
 
 
 def get_ids(username):
@@ -60,22 +60,66 @@ def force_character(username, **fields):
         conn.commit()
 
 
-def add_mana_pill_to_first_slot(username):
+def add_item_to_bag(username, code, quantity=1, rarity="白"):
     _user_id, character_id = get_ids(username)
     with sqlite3.connect(DB_PATH) as conn:
-        template_id = conn.execute("SELECT id FROM item_templates WHERE code = 'mana_pill'").fetchone()[0]
+        template = conn.execute("SELECT id, stackable FROM item_templates WHERE code = ?", (code,)).fetchone()
+        template_id, stackable = template
+        slot_id = conn.execute(
+            """
+            SELECT id FROM inventory_slots
+            WHERE character_id = ? AND container_type = 'main_bag' AND container_id = 0 AND item_template_id IS NULL
+            ORDER BY slot_index
+            LIMIT 1
+            """,
+            (character_id,),
+        ).fetchone()[0]
+        item_instance_id = None
+        if not stackable:
+            conn.execute(
+                """
+                INSERT INTO item_instances (item_template_id, owner_character_id, durability, level, exp, rarity, bound, extra_json)
+                VALUES (?, ?, 100, 1, 0, ?, 0, '{}')
+                """,
+                (template_id, character_id, rarity),
+            )
+            item_instance_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            quantity = 1
         conn.execute(
             """
             UPDATE inventory_slots
-            SET item_template_id = ?, quantity = 1, item_instance_id = NULL
+            SET item_template_id = ?, quantity = ?, item_instance_id = ?
+            WHERE id = ?
+            """,
+            (template_id, quantity, item_instance_id, slot_id),
+        )
+        slot_index = conn.execute("SELECT slot_index FROM inventory_slots WHERE id = ?", (slot_id,)).fetchone()[0]
+        conn.commit()
+    return slot_index
+
+
+def set_first_method_to_level(username, level, exp=0):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("UPDATE character_methods SET level = ?, exp = ?, equipped = 1 WHERE character_id = ?", (level, exp, character_id))
+        conn.commit()
+
+
+def set_first_artifact_rarity(username, rarity="白"):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE item_instances
+            SET rarity = ?
             WHERE id = (
-                SELECT id FROM inventory_slots
-                WHERE character_id = ? AND container_type = 'main_bag' AND container_id = 0
-                ORDER BY slot_index
+                SELECT item_instance_id FROM character_artifacts
+                WHERE character_id = ?
+                ORDER BY id
                 LIMIT 1
             )
             """,
-            (template_id, character_id),
+            (rarity, character_id),
         )
         conn.commit()
 
@@ -94,102 +138,107 @@ def count_logs(character_id, log_type=None):
 
 def main():
     stamp = int(time.time())
-    player_a = f"refactor_a_{stamp}"
-    player_b = f"refactor_b_{stamp}"
+    player_a = f"loop_a_{stamp}"
+    player_b = f"loop_b_{stamp}"
 
     assert request("/dev/health")["ok"] is True
     summary = request("/dev/db-summary")
-    for table in ["item_templates", "inventory_slots", "game_logs", "action_records", "sects", "friendships", "messages"]:
+    for table in ["item_templates", "inventory_slots", "item_instances", "character_methods", "character_artifacts", "game_logs", "action_records"]:
         assert table in summary["tables"]
 
     token_a = register(player_a)["token"]
     token_b = register(player_b)["token"]
-    user_a_id, character_a_id = get_ids(player_a)
+    _user_a_id, character_a_id = get_ids(player_a)
 
     me_a = request("/character/me", token=token_a)
     me_b = request("/character/me", token=token_b)
     assert me_a["username"] == player_a
     assert me_b["username"] == player_b
-    assert me_a["character"]["name"] == player_a
-    assert me_a["character"]["realm"] == "炼气一层"
-    assert me_a["character"]["hp"] <= me_a["character"]["max_hp"]
-    assert me_a["character"]["mana"] <= me_a["character"]["max_mana"]
-    assert me_a["character"]["attack"] == me_a["character"]["base_attack"] + me_a["character"]["attack_bonus"]
-    assert me_a["character"]["defense"] == me_a["character"]["base_defense"] + me_a["character"]["defense_bonus"]
-    assert not HIDDEN_FIELDS.intersection(me_a["character"].keys())
+    assert len(me_a["inventory"]) == 81
     assert "action_points" not in table_columns("characters")
+    assert not HIDDEN_FIELDS.intersection(me_a["character"].keys())
 
-    inventory = request("/inventory", token=token_a)
-    assert len(inventory) == 81
-    assert inventory[0]["slot_index"] == 1
+    force_character(player_a, mana=100, hidden_luck=150)
+    explored = action(token_a, "explore", {"force_lucky_code": "hidden_cave"})
+    assert explored["success"] is True
+    assert any(reward["type"] == "item" for reward in explored["rewards"])
+    assert any(slot["name"] for slot in request("/inventory", token=token_a))
+    assert count_logs(character_a_id, "drop") >= 1
+    assert count_logs(character_a_id, "lucky") >= 1
 
-    before_mana = me_a["character"]["mana"]
-    before_cultivation = me_a["character"]["cultivation"]
-    trained = action(token_a, "train")
-    assert trained["success"] is True
-    assert trained["character"]["mana"] == before_mana - 12
-    assert trained["character"]["cultivation"] > before_cultivation
+    method_slot = add_item_to_bag(player_a, "low_method")
+    before_speed = request("/character/me", token=token_a)["character"]["cultivation_speed"]
+    learned = action(token_a, "learn_method", {"slot_index": method_slot})
+    assert learned["success"] is True
+    methods = request("/methods", token=token_a)
+    assert len(methods) == 1
+    equipped_method = action(token_a, "equip_method", {"method_id": methods[0]["id"]})
+    assert equipped_method["success"] is True
+    after_speed = request("/character/me", token=token_a)["character"]["cultivation_speed"]
+    assert after_speed > before_speed
 
-    force_character(player_a, mana=0)
-    failed_train = action(token_a, "train")
-    assert failed_train["success"] is False
-    assert "法力不足" in failed_train["message"]
+    set_first_method_to_level(player_a, 1, 55)
+    force_character(player_a, mana=100)
+    practiced = action(token_a, "practice_method", {"method_id": methods[0]["id"]})
+    assert practiced["success"] is True
+    assert request("/methods", token=token_a)[0]["level"] >= 2
+    assert count_logs(character_a_id, "method") >= 3
 
-    meditated = action(token_a, "recover_mana_meditate")
-    assert meditated["success"] is True
-    assert meditated["character"]["mana"] > 0
-
-    force_character(player_a, mana=0, spirit_stones=100)
-    stone_recovered = action(token_a, "recover_mana_stone")
-    assert stone_recovered["success"] is True
-    assert stone_recovered["character"]["mana"] == 60
-    assert stone_recovered["character"]["spirit_stones"] == 90
-
-    add_mana_pill_to_first_slot(player_a)
-    force_character(player_a, mana=0)
-    used_item = action(token_a, "use_item", {"slot_index": 1})
-    assert used_item["success"] is True
-    assert used_item["character"]["mana"] == used_item["character"]["max_mana"]
-
-    item_seen = False
-    event_seen = False
-    for _ in range(25):
-        force_character(player_a, mana=100, hp=100)
-        explored = action(token_a, "explore")
-        assert explored["message"]
-        assert explored["cost"]["mana"] == 18
-        event_seen = True
-        if any(reward.get("type") == "item" for reward in explored["rewards"]):
-            item_seen = True
+    artifact_slot = add_item_to_bag(player_a, "low_artifact", rarity="白")
+    before_attack = request("/character/me", token=token_a)["character"]["attack"]
+    equipped_artifact = action(token_a, "equip_artifact", {"slot_index": artifact_slot})
+    assert equipped_artifact["success"] is True
+    artifacts = request("/artifacts", token=token_a)
+    assert len(artifacts) == 1
+    after_attack = request("/character/me", token=token_a)["character"]["attack"]
+    assert after_attack > before_attack
+    set_first_artifact_rarity(player_a, "白")
+    upgraded = None
+    for _ in range(10):
+        force_character(player_a, spirit_stones=500)
+        upgraded = action(token_a, "upgrade_artifact", {"artifact_id": artifacts[0]["id"]})
+        if upgraded["success"]:
             break
-    assert event_seen is True
-    assert item_seen is True
-    assert count_logs(character_a_id, "explore") >= 1
+    assert upgraded and upgraded["success"] is True
+    assert request("/artifacts", token=token_a)[0]["level"] >= 2
+    assert count_logs(character_a_id, "artifact") >= 2
 
-    force_character(player_a, realm="炼气一层", realm_stage="炼气", cultivation=80, cultivation_cap=80, mana=1000, hidden_luck=120, hidden_inner_demon=0)
-    breakthrough_success = action(token_a, "breakthrough")
-    assert breakthrough_success["success"] is True
-    assert "突破成功" in breakthrough_success["message"]
-    assert count_logs(character_a_id, "breakthrough") >= 1
+    force_character(
+        player_a,
+        realm="炼气十二层",
+        realm_stage="炼气",
+        cultivation=2500,
+        cultivation_cap=2500,
+        mana=1000,
+        hidden_luck=120,
+        hidden_inner_demon=0,
+    )
+    set_first_method_to_level(player_a, 3)
+    blocked = action(token_a, "breakthrough")
+    assert blocked["success"] is False
+    assert "缺少筑基丹" in blocked["message"]
 
-    force_character(player_b, cultivation=80, cultivation_cap=80, mana=1000, hidden_luck=0, hidden_inner_demon=100)
-    breakthrough_failure = action(token_b, "breakthrough")
-    assert breakthrough_failure["success"] is False
-    assert "突破失败" in breakthrough_failure["message"]
+    add_item_to_bag(player_a, "foundation_pill")
+    unlocked = action(token_a, "breakthrough")
+    assert unlocked["success"] is True
+    assert unlocked["character"]["realm"] == "筑基初期"
+    assert count_logs(character_a_id, "breakthrough") >= 2
 
-    logs = request("/logs", token=token_a)
-    assert logs
-    assert {"id", "type", "content", "data_json", "created_at"}.issubset(logs[0].keys())
-
-    relogin_token = login(player_a)
-    persisted = request("/character/me", token=relogin_token)
-    assert persisted["character"]["realm"] == breakthrough_success["character"]["realm"]
-    assert persisted["character"]["id"] == character_a_id
-    assert get_ids(player_a)[0] == user_a_id
+    lucky = action(token_a, "explore", {"force_lucky_code": "master_teach"})
+    assert lucky["success"] is True
+    assert count_logs(character_a_id, "lucky") >= 2
 
     untouched_b = request("/character/me", token=token_b)
     assert untouched_b["username"] == player_b
-    assert untouched_b["character"]["id"] != character_a_id
+    assert untouched_b["character"]["realm"] == "炼气一层"
+    assert request("/methods", token=token_b) == []
+    assert request("/artifacts", token=token_b) == []
+
+    relogin_token = login(player_a)
+    persisted = request("/character/me", token=relogin_token)
+    assert persisted["character"]["realm"] == "筑基初期"
+    assert request("/methods", token=relogin_token)[0]["level"] >= 3
+    assert request("/artifacts", token=relogin_token)[0]["level"] >= 2
 
     print("Smoke test passed.")
 

@@ -10,9 +10,14 @@ backend/
   database.py
   configs/
     actions.py
+    artifacts.py
+    breakthrough_requirements.py
+    drop_tables.py
     events.py
     formulas.py
     items.py
+    methods.py
+    opportunities.py
     realms.py
   models/
     character.py
@@ -138,6 +143,34 @@ python -m http.server 5173 --bind 0.0.0.0
 - 寿元按境界自动计算：炼气 1-5 层 100 岁，炼气 6-12 层 130 岁，筑基 200 岁，结丹 500 岁，元婴 1000 岁，化神 3000 岁。
 - 攻击/防御统一由 `calc_service.py` 计算：基础值 + 功法效果 + 法宝效果 + 状态效果。
 - 探索事件由 `configs/events.py` 配置，气运影响稀有事件、收益和负面事件权重。
+- 掉落表由 `configs/drop_tables.py` 配置，按境界阶段控制不同物品和权重。
+- 功法成长由 `configs/methods.py` 配置，学习、装备和修炼功法会影响修炼速度、法力上限和突破率。
+- 法宝强化由 `configs/artifacts.py` 配置，装备和强化法宝会影响攻击、防御、探索收益和斗法能力。
+- 大境界瓶颈由 `configs/breakthrough_requirements.py` 配置，例如筑基需要筑基丹、最低法力和主修功法等级。
+- 机缘事件由 `configs/opportunities.py` 配置，低概率触发顿悟破境、天降灵物、高人指点、隐秘洞府。
+
+## 完整玩法循环
+
+当前玩家可以形成基础闭环：
+
+```text
+探索 -> 触发事件/机缘 -> 按境界掉落物品 -> 学习功法/装备法宝/服用丹药
+-> 修炼功法和强化法宝 -> 满足瓶颈条件 -> 突破境界 -> 进入更高境界掉落表
+```
+
+新增行为：
+
+- `learn_method`：从背包格子学习功法。
+- `equip_method`：设置主修功法，同一时间只能主修一门。
+- `practice_method`：消耗法力修炼功法，经验满后升级。
+- `equip_artifact`：从背包格子装备法宝。
+- `unequip_artifact`：卸下法宝并放回背包。
+- `upgrade_artifact`：消耗灵石强化法宝，成功率按品阶配置。
+
+新增查询：
+
+- `GET /methods`
+- `GET /artifacts`
 
 ## 测试
 
@@ -147,7 +180,7 @@ python -m http.server 5173 --bind 0.0.0.0
 python tests/smoke_test.py
 ```
 
-覆盖：注册两个账号、数据隔离、角色查询、无行动力字段、法力消耗与恢复、探索事件、结构化日志、突破日志、固定 81 格背包、物品入包、隐藏气运心魔、dev health、重新登录后数据持久。
+覆盖：注册两个账号、数据隔离、角色查询、无行动力字段、法力消耗与恢复、探索掉落、结构化日志、机缘、学习/装备/升级功法、装备/强化法宝、瓶颈突破条件、固定 81 格背包、隐藏气运心魔、dev health、重新登录后数据持久。
 
 ## API
 

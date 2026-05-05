@@ -1,9 +1,11 @@
 from backend.configs.actions import ACTION_CONFIGS
+from backend.configs.artifacts import ARTIFACT_EFFECTS_BY_CODE
 from backend.configs.formulas import (
     BASE_HP_BY_STAGE,
     BREAKTHROUGH_INNER_DEMON_FACTOR,
     BREAKTHROUGH_LUCK_FACTOR,
 )
+from backend.configs.methods import METHOD_EFFECTS_BY_CODE
 from backend.models import Character
 from backend.services.realm_service import current_realm_config, normalize_realm, qi_refining_level
 from backend.services.spiritual_root_service import root_rate
@@ -49,7 +51,7 @@ def get_max_hp(character: Character) -> int:
 
 
 def get_cultivation_speed(character: Character) -> float:
-    return root_rate(character.spiritual_root)
+    return root_rate(character.spiritual_root) + _method_cultivation_speed_bonus(character)
 
 
 def get_breakthrough_rate(character: Character) -> float:
@@ -57,6 +59,7 @@ def get_breakthrough_rate(character: Character) -> float:
     rate = config.breakthrough_rate
     rate += character.hidden_luck * BREAKTHROUGH_LUCK_FACTOR
     rate -= character.hidden_inner_demon * BREAKTHROUGH_INNER_DEMON_FACTOR
+    rate += _method_breakthrough_bonus(character)
     if character.realm == "结丹后期":
         rate -= 0.04
     if character.realm.startswith("元婴") or character.realm.startswith("化神"):
@@ -83,6 +86,10 @@ def apply_item_effects(character: Character, effects: dict) -> dict:
         before = character.mana
         character.mana = min(character.max_mana, character.mana + int(effects["recover_mana"]))
         applied["recover_mana"] = character.mana - before
+    if effects.get("recover_hp"):
+        before = character.hp
+        character.hp = min(character.max_hp, character.hp + int(effects["recover_hp"]))
+        applied["recover_hp"] = character.hp - before
     if effects.get("cultivation"):
         gain = int(effects["cultivation"])
         character.cultivation = min(character.cultivation_cap, character.cultivation + gain)
@@ -112,24 +119,82 @@ def derived_stats(character: Character) -> dict:
 
 
 def _method_attack_bonus(character: Character) -> int:
-    return sum(method.level * 2 for method in character.methods if method.equipped)
+    return 0
 
 
 def _method_defense_bonus(character: Character) -> int:
-    return sum(method.level for method in character.methods if method.equipped)
+    return 0
 
 
 def _method_mana_bonus(character: Character) -> int:
-    return sum(method.level * 20 for method in character.methods if method.equipped)
+    total = 0
+    for method in character.methods:
+        if not method.equipped:
+            continue
+        config = METHOD_EFFECTS_BY_CODE.get(method.method_code, {})
+        total += int(config.get("max_mana_per_level", 0) * method.level)
+    return total
 
 
 def _artifact_attack_bonus(character: Character) -> int:
-    return sum((artifact.item_instance.level if artifact.item_instance else 1) * 5 for artifact in character.artifacts if artifact.equipped)
+    total = 0
+    for artifact in character.artifacts:
+        if not artifact.equipped or not artifact.item_instance:
+            continue
+        config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
+        total += int(config.get("attack_per_level", 0) * artifact.item_instance.level)
+    return total
 
 
 def _artifact_defense_bonus(character: Character) -> int:
-    return sum((artifact.item_instance.level if artifact.item_instance else 1) * 3 for artifact in character.artifacts if artifact.equipped)
+    total = 0
+    for artifact in character.artifacts:
+        if not artifact.equipped or not artifact.item_instance:
+            continue
+        config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
+        total += int(config.get("defense_per_level", 0) * artifact.item_instance.level)
+    return total
 
 
 def _artifact_mana_bonus(character: Character) -> int:
-    return sum((artifact.item_instance.level if artifact.item_instance else 1) * 10 for artifact in character.artifacts if artifact.equipped)
+    return 0
+
+
+def _method_cultivation_speed_bonus(character: Character) -> float:
+    total = 0.0
+    for method in character.methods:
+        if not method.equipped:
+            continue
+        config = METHOD_EFFECTS_BY_CODE.get(method.method_code, {})
+        total += float(config.get("cultivation_speed_per_level", 0)) * method.level
+    return total
+
+
+def _method_breakthrough_bonus(character: Character) -> float:
+    total = 0.0
+    for method in character.methods:
+        if not method.equipped:
+            continue
+        config = METHOD_EFFECTS_BY_CODE.get(method.method_code, {})
+        total += float(config.get("breakthrough_rate_per_level", 0)) * method.level
+    return total
+
+
+def get_explore_reward_bonus(character: Character) -> float:
+    total = 0.0
+    for artifact in character.artifacts:
+        if not artifact.equipped or not artifact.item_instance:
+            continue
+        config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
+        total += float(config.get("explore_reward_bonus_per_level", 0)) * artifact.item_instance.level
+    return total
+
+
+def get_battle_power_bonus(character: Character) -> int:
+    total = 0
+    for artifact in character.artifacts:
+        if not artifact.equipped or not artifact.item_instance:
+            continue
+        config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
+        total += int(config.get("battle_power_per_level", 0)) * artifact.item_instance.level
+    return total

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import create_tables
-from backend.routes import action, auth, character, dev, inventory, log
+from backend.routes import action, auth, character, dev, inventory, log, progression
 
 app = FastAPI(title="多人在线修仙文字游戏 MVP", version="1.0.0")
 
@@ -30,4 +30,5 @@ app.include_router(character.router)
 app.include_router(action.router)
 app.include_router(inventory.router)
 app.include_router(log.router)
+app.include_router(progression.router)
 app.include_router(dev.router)

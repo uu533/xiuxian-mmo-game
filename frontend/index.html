@@ -439,6 +439,13 @@
         text-overflow: ellipsis;
       }
 
+      .bag-slot button {
+        min-height: 22px;
+        padding: 0 4px;
+        border-radius: 4px;
+        font-size: 11px;
+      }
+
       .auth-card {
         margin-top: -12px;
       }
@@ -605,6 +612,20 @@
               </div>
               <div id="character-grid" class="stats-grid"></div>
             </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>功法</h2>
+                <span>主修影响修炼和突破</span>
+              </div>
+              <div id="methods-list" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>法宝</h2>
+                <span>装备影响攻防和探索</span>
+              </div>
+              <div id="artifacts-list" class="list"></div>
+            </div>
           </div>
 
           <div id="tab-bag" class="tab-panel hidden">
@@ -664,6 +685,8 @@
       const logs = document.getElementById("logs");
       const recentLogs = document.getElementById("recent-logs");
       const inventory = document.getElementById("inventory");
+      const methodsList = document.getElementById("methods-list");
+      const artifactsList = document.getElementById("artifacts-list");
       const playerTitle = document.getElementById("player-title");
       const fullTitleName = document.getElementById("full-title-name");
       const titleSelect = document.getElementById("title-select");
@@ -671,6 +694,8 @@
       const rootCurrent = document.getElementById("root-current");
 
       let currentUser = null;
+      let currentMethods = [];
+      let currentArtifacts = [];
 
       function getToken() {
         return localStorage.getItem(tokenKey);
@@ -779,16 +804,50 @@
             if (!item.name) {
               return `<div class="bag-slot empty-slot"><span>${item.slot_index}</span></div>`;
             }
-            return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span></div>`;
+            const actionLabel =
+              item.type === "pill"
+                ? "服用"
+                : item.type === "cultivation_method"
+                  ? "学习"
+                  : item.type === "magic_artifact"
+                    ? "装备"
+                    : "";
+            return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span>${actionLabel ? `<button data-slot-action="${item.type}" data-slot-index="${item.slot_index}">${actionLabel}</button>` : ""}</div>`;
           })
           .join("")}</div>`;
+      }
+
+      function renderProgression() {
+        methodsList.innerHTML = currentMethods.length
+          ? currentMethods
+              .map(
+                (method) =>
+                  `<div class="row"><div><strong>${method.name} ${method.equipped ? "· 主修" : ""}</strong><span>${method.level}层 · 经验 ${method.exp}${method.next_exp ? ` / ${method.next_exp}` : ""}</span></div><button data-method-equip="${method.id}" ${method.equipped ? "disabled" : ""}>主修</button><button data-method-practice="${method.id}" class="secondary">修炼</button></div>`
+              )
+              .join("")
+          : `<div class="empty">尚未学习功法</div>`;
+        artifactsList.innerHTML = currentArtifacts.length
+          ? currentArtifacts
+              .map(
+                (artifact) =>
+                  `<div class="row"><div><strong>${artifact.rarity}品 ${artifact.name}</strong><span>强化 +${artifact.level} · ${artifact.equipped ? "已装备" : "未装备"}</span></div><button data-artifact-upgrade="${artifact.id}">强化</button><button data-artifact-unequip="${artifact.id}" class="secondary">卸下</button></div>`
+              )
+              .join("")
+          : `<div class="empty">尚未装备法宝</div>`;
       }
 
       async function loadMe() {
         const data = await request("/character/me");
         renderCharacter(data);
+        await loadProgression();
         await loadLogs();
         showGame(true);
+      }
+
+      async function loadProgression() {
+        currentMethods = await request("/methods");
+        currentArtifacts = await request("/artifacts");
+        renderProgression();
       }
 
       async function loadLogs() {
@@ -893,6 +952,37 @@
       rootHelp.addEventListener("click", (event) => {
         if (event.target === rootHelp) {
           rootHelp.classList.add("hidden");
+        }
+      });
+
+      inventory.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-slot-action]");
+        if (!button) return;
+        const slotIndex = Number(button.dataset.slotIndex);
+        const type = button.dataset.slotAction;
+        const actionType = type === "pill" ? "use_item" : type === "cultivation_method" ? "learn_method" : "equip_artifact";
+        doAction(actionType, { slot_index: slotIndex }).catch((error) => showToast(error.message));
+      });
+
+      methodsList.addEventListener("click", (event) => {
+        const equip = event.target.closest("button[data-method-equip]");
+        const practice = event.target.closest("button[data-method-practice]");
+        if (equip) {
+          doAction("equip_method", { method_id: Number(equip.dataset.methodEquip) }).catch((error) => showToast(error.message));
+        }
+        if (practice) {
+          doAction("practice_method", { method_id: Number(practice.dataset.methodPractice) }).catch((error) => showToast(error.message));
+        }
+      });
+
+      artifactsList.addEventListener("click", (event) => {
+        const upgrade = event.target.closest("button[data-artifact-upgrade]");
+        const unequip = event.target.closest("button[data-artifact-unequip]");
+        if (upgrade) {
+          doAction("upgrade_artifact", { artifact_id: Number(upgrade.dataset.artifactUpgrade) }).catch((error) => showToast(error.message));
+        }
+        if (unequip) {
+          doAction("unequip_artifact", { artifact_id: Number(unequip.dataset.artifactUnequip) }).catch((error) => showToast(error.message));
         }
       });
 

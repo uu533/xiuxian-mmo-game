@@ -3,6 +3,7 @@ BREAKTHROUGH_REQUIREMENTS = {
         "required_items": ["foundation_pill"],
         "min_mana": 50,
         "min_method_level": 3,
+        "min_explore_count": 20,
     },
     "结丹初期": {
         "required_items": ["core_pill"],

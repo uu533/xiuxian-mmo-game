@@ -9,6 +9,7 @@ from backend.services.calc_service import (
     apply_item_effects,
     get_action_mana_cost,
     get_breakthrough_rate,
+    get_cultivation_efficiency,
     sync_base_and_caps,
 )
 from backend.services.character_service import character_payload
@@ -73,12 +74,24 @@ def _train(db: Session, user: User, params: dict) -> dict:
     if not ok:
         return _finalize(db, user, False, "train", error or MANA_HELP_TEXT, cost, [], {"reason": "insufficient_mana"})
 
-    gain = int(random.randint(16, 28) * character_payload(character)["cultivation_speed"] + character.max_mana * 0.03)
+    efficiency = get_cultivation_efficiency(character)
+    base_gain = int(random.randint(16, 28) * character_payload(character)["cultivation_speed"] + character.max_mana * 0.03)
+    gain = max(1, int(base_gain * efficiency))
     character.cultivation = min(character.cultivation_cap, character.cultivation + gain)
     character.hidden_inner_demon = min(100, character.hidden_inner_demon + random.choice([0, 0, 1]))
     character.updated_at = utc_now()
-    message = f"打坐修炼消耗 {cost['mana']} 点法力，炼化灵气，修为增加 {gain}。"
-    return _finalize(db, user, True, "train", message, cost, [{"type": "cultivation", "quantity": gain}], {"cultivation_gain": gain})
+    suffix = "" if efficiency >= 1 else f"连续修炼效率降至 {int(efficiency * 100)}%。"
+    message = f"打坐修炼消耗 {cost['mana']} 点法力，炼化灵气，修为增加 {gain}。{suffix}"
+    return _finalize(
+        db,
+        user,
+        True,
+        "train",
+        message,
+        cost,
+        [{"type": "cultivation", "quantity": gain}],
+        {"cultivation_gain": gain, "base_cultivation_gain": base_gain, "efficiency": efficiency},
+    )
 
 
 def _explore(db: Session, user: User, params: dict) -> dict:
@@ -259,6 +272,7 @@ def _result(db: Session, user: User, success: bool, message: str, cost: dict, re
 
 
 def _check_breakthrough_requirements(db: Session, character, target_realm: str) -> tuple[bool, str, dict]:
+    from backend.models import ActionRecord
     from backend.services.inventory_service import has_item
 
     requirement = BREAKTHROUGH_REQUIREMENTS.get(target_realm)
@@ -273,6 +287,10 @@ def _check_breakthrough_requirements(db: Session, character, target_realm: str) 
         if not has_item(db, character, item_code, 1):
             item_name = _item_name(db, item_code)
             return False, f"缺少{item_name}", {"reason": "required_item", "item": item_code, "target_realm": target_realm}
+    explore_count = db.query(ActionRecord).filter(ActionRecord.character_id == character.id, ActionRecord.action_type == "explore").count()
+    if explore_count < requirement.get("min_explore_count", 0):
+        needed = requirement["min_explore_count"]
+        return False, f"历练不足，突破到{target_realm}前至少需要探索 {needed} 次（当前 {explore_count} 次）。", {"reason": "min_explore_count", "target_realm": target_realm, "explore_count": explore_count, "required": needed}
     return True, "", {}
 
 

@@ -116,6 +116,35 @@ def remove_item_from_bag(username, code):
         conn.commit()
 
 
+def add_explore_records(username, count):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        for _ in range(count):
+            conn.execute(
+                """
+                INSERT INTO action_records (character_id, action_type, cost_json, result_json, created_at)
+                VALUES (?, 'explore', '{}', '{"success": true}', CURRENT_TIMESTAMP)
+                """,
+                (character_id,),
+            )
+        conn.commit()
+
+
+def recent_action_results(username, action_type, limit):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        rows = conn.execute(
+            """
+            SELECT result_json FROM action_records
+            WHERE character_id = ? AND action_type = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (character_id, action_type, limit),
+        ).fetchall()
+    return [json.loads(row[0]) if isinstance(row[0], str) else row[0] for row in reversed(rows)]
+
+
 def set_first_method_to_level(username, level, exp=0):
     _user_id, character_id = get_ids(username)
     with sqlite3.connect(DB_PATH) as conn:
@@ -179,6 +208,8 @@ def main():
     assert "realm" in simulation_3h
     assert "warnings" in simulation_3h
     assert "action_counts" in simulation_3h
+    assert simulation_1h["action_counts"].get("explore", 0) > 0
+    assert simulation_1h["explore_ratio"] >= 0.3
     assert SIMULATION_PATH.exists()
 
     token_a = register(player_a)["token"]
@@ -199,6 +230,8 @@ def main():
     for _ in range(5):
         trained = action(token_a, "train")
         assert trained["success"] is True
+    train_results = recent_action_results(player_a, "train", 5)
+    assert [round(result["data"]["efficiency"], 1) for result in train_results] == [1.0, 0.8, 0.6, 0.4, 0.2]
     me_a = request("/character/me", token=token_a)
     assert me_a["active_task"]["id"] == "task_002"
     assert count_logs(character_a_id, "task") >= 1
@@ -270,6 +303,10 @@ def main():
     assert "缺少筑基丹" in blocked["message"]
 
     add_item_to_bag(player_a, "foundation_pill")
+    blocked_by_explore = action(token_a, "breakthrough")
+    assert blocked_by_explore["success"] is False
+    assert "探索" in blocked_by_explore["message"]
+    add_explore_records(player_a, 20)
     unlocked = action(token_a, "breakthrough")
     assert unlocked["success"] is True
     assert unlocked["character"]["realm"] == "筑基初期"

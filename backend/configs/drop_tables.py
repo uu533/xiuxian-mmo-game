@@ -1,11 +1,22 @@
 DROP_TABLES = {
+    "炼气前期": [
+        {"item": "low_spirit_stone", "weight": 30, "quantity": [6, 14]},
+        {"item": "mana_pill", "weight": 18, "quantity": [1, 2]},
+        {"item": "healing_pill", "weight": 16, "quantity": [1, 2]},
+        {"item": "qi_powder", "weight": 12, "quantity": [1, 2]},
+        {"item": "low_material", "weight": 14, "quantity": [1, 3]},
+        {"item": "low_method", "weight": 14, "quantity": [1, 1]},
+        {"item": "low_artifact", "weight": 12, "quantity": [1, 1]},
+        {"item": "foundation_pill", "weight": 5, "quantity": [1, 1]},
+    ],
     "炼气": [
-        {"item": "low_spirit_stone", "weight": 50, "quantity": [3, 10]},
-        {"item": "healing_pill", "weight": 20, "quantity": [1, 2]},
-        {"item": "low_material", "weight": 20, "quantity": [1, 3]},
-        {"item": "low_method", "weight": 5, "quantity": [1, 1]},
-        {"item": "low_artifact", "weight": 5, "quantity": [1, 1]},
-        {"item": "foundation_pill", "weight": 2, "quantity": [1, 1]},
+        {"item": "low_spirit_stone", "weight": 42, "quantity": [4, 12]},
+        {"item": "mana_pill", "weight": 12, "quantity": [1, 2]},
+        {"item": "healing_pill", "weight": 16, "quantity": [1, 2]},
+        {"item": "low_material", "weight": 18, "quantity": [1, 3]},
+        {"item": "low_method", "weight": 8, "quantity": [1, 1]},
+        {"item": "low_artifact", "weight": 8, "quantity": [1, 1]},
+        {"item": "foundation_pill", "weight": 4, "quantity": [1, 1]},
     ],
     "筑基": [
         {"item": "mid_spirit_stone", "weight": 45, "quantity": [4, 12]},
@@ -37,8 +48,8 @@ DROP_TABLES = {
 }
 
 DROP_ROLLS_BY_EVENT_TYPE = {
-    "reward_item": [1, 2],
-    "battle": [1, 2],
+    "reward_item": [2, 3],
+    "battle": [1, 3],
     "hidden_opportunity": [2, 3],
     "rare_item": [1, 2],
     "hidden_cave": [2, 4],

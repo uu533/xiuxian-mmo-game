@@ -10,6 +10,7 @@ from backend.configs.methods import METHOD_LEVEL_EXP, METHOD_PRACTICE
 from backend.configs.opportunities import LUCKY_EVENT_CONFIG
 from backend.configs.realms import REALM_BY_NAME, REALM_NAMES, STARTING_REALM
 from backend.database import BASE_DIR
+from backend.services.realm_service import qi_refining_level
 from backend.utils.random_utils import weighted_choice
 
 SIMULATION_RESULT_PATH = BASE_DIR / "simulation_result.json"
@@ -34,14 +35,15 @@ def run_simulation(hours: float = 1) -> dict:
 
     for _minute in range(minutes):
         _auto_prepare(state, stats)
-        if state["mana"] < 12:
+        action = _choose_action(state, stats)
+        if state["mana"] < _mana_cost(action):
             stats["mana_blocked_minutes"] += 1
             _recover_mana(state)
             stats["actions"]["recover_mana_meditate"] += 1
             continue
-        if state["cultivation"] < state["cultivation_cap"]:
+        if action == "train":
             _simulate_train(state, stats)
-        elif _can_attempt_breakthrough(state, stats):
+        elif action == "breakthrough":
             _simulate_breakthrough(state, stats)
         else:
             _simulate_explore(state, stats)
@@ -72,7 +74,33 @@ def _new_state() -> dict:
         "artifact_level": 0,
         "artifact_equipped": False,
         "artifact_rarity": "白",
+        "consecutive_train": 0,
+        "explore_count": 0,
     }
+
+
+def _choose_action(state: dict, stats: dict) -> str:
+    if state["cultivation"] >= state["cultivation_cap"]:
+        return "breakthrough" if _can_attempt_breakthrough(state, stats) else "explore"
+    if _needs_exploration(state):
+        return "explore"
+    if state["consecutive_train"] >= 1:
+        return "explore"
+    return "train"
+
+
+def _needs_exploration(state: dict) -> bool:
+    if not state["method_equipped"] or not state["artifact_equipped"]:
+        return True
+    target = _next_realm_name(state["realm"])
+    requirement = BREAKTHROUGH_REQUIREMENTS.get(target or "")
+    if requirement and state["explore_count"] < requirement.get("min_explore_count", 0):
+        return state["cultivation"] >= int(state["cultivation_cap"] * 0.45)
+    return False
+
+
+def _mana_cost(action: str) -> int:
+    return {"train": 12, "explore": 18, "breakthrough": 35}.get(action, 0)
 
 
 def _auto_prepare(state: dict, stats: dict) -> None:
@@ -96,14 +124,18 @@ def _auto_prepare(state: dict, stats: dict) -> None:
 def _simulate_train(state: dict, stats: dict) -> None:
     state["mana"] -= 12
     speed = 1.0 + state["method_level"] * 0.04
-    gain = int(random.randint(16, 28) * speed + state["max_mana"] * 0.03)
+    efficiency = [1.0, 0.8, 0.6, 0.4][state["consecutive_train"]] if state["consecutive_train"] < 4 else 0.2
+    gain = max(1, int((random.randint(16, 28) * speed + state["max_mana"] * 0.03) * efficiency))
     state["cultivation"] = min(state["cultivation_cap"], state["cultivation"] + gain)
     stats["total_cultivation_gained"] += gain
     stats["actions"]["train"] += 1
+    state["consecutive_train"] += 1
 
 
 def _simulate_explore(state: dict, stats: dict) -> None:
     state["mana"] -= 18
+    state["consecutive_train"] = 0
+    state["explore_count"] += 1
     stats["actions"]["explore"] += 1
     if random.random() <= min(LUCKY_EVENT_CONFIG["max_rate"], LUCKY_EVENT_CONFIG["base_rate"] + state["hidden_luck"] * LUCKY_EVENT_CONFIG["luck_factor"]):
         stats["actions"]["lucky"] += 1
@@ -123,6 +155,7 @@ def _simulate_explore(state: dict, stats: dict) -> None:
 
 def _simulate_practice_method(state: dict, stats: dict) -> None:
     state["mana"] -= 10
+    state["consecutive_train"] = 0
     gain = random.randint(*METHOD_PRACTICE["exp_gain"])
     state["method_exp"] += gain
     while state["method_level"] < METHOD_PRACTICE["max_level"] and state["method_exp"] >= METHOD_LEVEL_EXP.get(state["method_level"], 10**9):
@@ -158,6 +191,9 @@ def _can_attempt_breakthrough(state: dict, stats: dict) -> bool:
     if state["method_level"] < requirement.get("min_method_level", 0):
         stats["bottleneck_reasons"]["low_method_level"] += 1
         return False
+    if state["explore_count"] < requirement.get("min_explore_count", 0):
+        stats["bottleneck_reasons"]["low_explore_count"] += 1
+        return False
     return True
 
 
@@ -166,6 +202,7 @@ def _simulate_breakthrough(state: dict, stats: dict) -> None:
     if not target:
         return
     state["mana"] -= 35
+    state["consecutive_train"] = 0
     requirement = BREAKTHROUGH_REQUIREMENTS.get(target)
     if requirement:
         for item_code in requirement.get("required_items", []):
@@ -189,11 +226,12 @@ def _simulate_breakthrough(state: dict, stats: dict) -> None:
 
 
 def _recover_mana(state: dict) -> None:
+    state["consecutive_train"] = 0
     state["mana"] = min(state["max_mana"], state["mana"] + 30)
 
 
 def _grant_sim_drop(state: dict, stats: dict) -> None:
-    table = DROP_TABLES.get(state["realm_stage"], DROP_TABLES["炼气"])
+    table = DROP_TABLES.get(_drop_table_key(state), DROP_TABLES["炼气"])
     drop = weighted_choice(table, lambda item: item["weight"])
     quantity_range = drop.get("quantity", [1, 1])
     quantity = random.randint(quantity_range[0], quantity_range[1])
@@ -220,9 +258,17 @@ def _artifact_upgrade_cost(state: dict) -> int:
     return ARTIFACT_UPGRADE["base_spirit_stone_cost"] + max(0, state["artifact_level"] - 1) * ARTIFACT_UPGRADE["cost_growth"]
 
 
+def _drop_table_key(state: dict) -> str:
+    if state["realm_stage"] == "炼气" and qi_refining_level(state["realm"]) <= 6:
+        return "炼气前期"
+    return state["realm_stage"]
+
+
 def _build_result(hours: float, state: dict, stats: dict, minutes: int) -> dict:
     warnings = _build_warnings(state, stats, minutes)
     attempts = max(1, stats["breakthrough_attempts"])
+    counted_actions = sum(stats["actions"].values())
+    explore_ratio = stats["actions"].get("explore", 0) / max(1, counted_actions)
     return {
         "time": f"{hours:g}h",
         "realm": state["realm"],
@@ -237,6 +283,8 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int) -> dict:
         "success_rate": round(stats["breakthrough_successes"] / attempts, 4),
         "drop_stats": dict(stats["drops"]),
         "action_counts": dict(stats["actions"]),
+        "explore_ratio": round(explore_ratio, 4),
+        "explore_count": state["explore_count"],
         "average_spirit_stones_per_hour": round(stats["total_spirit_stones_gained"] / max(0.1, hours), 2),
         "average_cultivation_per_hour": round(stats["total_cultivation_gained"] / max(0.1, hours), 2),
         "mana_blocked_ratio": round(stats["mana_blocked_minutes"] / minutes, 4),
@@ -253,6 +301,8 @@ def _build_warnings(state: dict, stats: dict, minutes: int) -> list[str]:
         warnings.append("严格修炼策略 1 小时内没有探索收益，前期需要任务引导")
     if stats["actions"].get("explore", 0) > 0 and not stats["drops"]:
         warnings.append("探索掉落过低")
+    if minutes >= 60 and stats["actions"].get("explore", 0) / max(1, sum(stats["actions"].values())) < 0.3:
+        warnings.append("探索占比低于 30%，仍可能偏向单一修炼")
     if state["realm"] == "炼气十二层" and state["items"].get("foundation_pill", 0) <= 0:
         warnings.append("筑基丹掉率过低")
     if stats["breakthrough_failures_in_row"] >= 5:

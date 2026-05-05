@@ -54,6 +54,17 @@ def get_cultivation_speed(character: Character) -> float:
     return root_rate(character.spiritual_root) + _method_cultivation_speed_bonus(character)
 
 
+def get_cultivation_efficiency(character: Character) -> float:
+    consecutive_trains = 0
+    for record in sorted(character.action_records, key=lambda item: item.id, reverse=True):
+        if record.action_type != "train" or not (record.result_json or {}).get("success"):
+            break
+        consecutive_trains += 1
+        if consecutive_trains >= 4:
+            break
+    return [1.0, 0.8, 0.6, 0.4][consecutive_trains] if consecutive_trains < 4 else 0.2
+
+
 def get_breakthrough_rate(character: Character) -> float:
     config = current_realm_config(character)
     rate = config.breakthrough_rate

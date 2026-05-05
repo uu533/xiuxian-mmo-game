@@ -3,16 +3,16 @@ TASKS = [
         "id": "task_001",
         "name": "初入修行",
         "type": "train",
-        "target": 5,
-        "reward": {"spirit_stones": 50},
-        "description": "完成 5 次修炼，熟悉吐纳节奏。",
+        "target": 3,
+        "reward": {"spirit_stones": 120, "items": [{"code": "mana_pill", "quantity": 1}]},
+        "description": "完成 3 次修炼，熟悉吐纳节奏。",
     },
     {
         "id": "task_002",
         "name": "山野初探",
         "type": "explore",
         "target": 3,
-        "reward": {"spirit_stones": 80, "items": [{"code": "mana_pill", "quantity": 1}]},
+        "reward": {"spirit_stones": 180, "items": [{"code": "qi_powder", "quantity": 2}]},
         "description": "完成 3 次探索，获得第一批修行资源。",
     },
     {
@@ -20,7 +20,7 @@ TASKS = [
         "name": "功法入门",
         "type": "learn_method",
         "target": 1,
-        "reward": {"spirit_stones": 120, "items": [{"code": "foundation_pill", "quantity": 1}]},
+        "reward": {"spirit_stones": 220, "items": [{"code": "mana_pill", "quantity": 2}]},
         "description": "学习任意一门功法，为筑基做准备。",
     },
     {
@@ -28,7 +28,7 @@ TASKS = [
         "name": "法宝护身",
         "type": "equip_artifact",
         "target": 1,
-        "reward": {"spirit_stones": 120, "items": [{"code": "low_material", "quantity": 2}]},
+        "reward": {"spirit_stones": 220, "items": [{"code": "low_material", "quantity": 4}]},
         "description": "装备任意一件法宝，提升斗法安全感。",
     },
     {

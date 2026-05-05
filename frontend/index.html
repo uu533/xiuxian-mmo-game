@@ -729,14 +729,14 @@
         document.getElementById("res-cultivation").textContent = `${c.cultivation} / ${c.cultivation_cap}`;
         document.getElementById("res-stones").textContent = c.spirit_stones;
         document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
-        document.getElementById("res-hp").textContent = `${c.hp} · ${c.life_status}`;
+        document.getElementById("res-hp").textContent = `${c.hp} / ${c.max_hp} · ${c.life_status}`;
         document.getElementById("train-rate").textContent = `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
         document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
         document.getElementById("train-btn").disabled = c.mana < 12;
         document.getElementById("explore-btn").disabled = c.mana < 18;
         document.getElementById("breakthrough-btn").disabled = c.mana < 35;
         document.getElementById("spirit-stone-btn").disabled = c.spirit_stones < 10 || c.mana >= c.max_mana;
-        document.getElementById("pill-btn").disabled = !data.inventory.some((item) => item.name === "回灵丹" && item.quantity > 0) || c.mana >= c.max_mana;
+        document.getElementById("pill-btn").disabled = !data.inventory.some((item) => item.code === "mana_pill" && item.quantity > 0) || c.mana >= c.max_mana;
 
         playerTitle.textContent = `角色：${data.username} ${c.title}`;
         fullTitleName.textContent = `${data.username} ${c.title}`;
@@ -750,12 +750,12 @@
           ["身份", c.identity_status],
           ["宗门地位", c.sect_position],
           ["寿元", c.lifespan],
-          ["气血", `${c.hp}（0则死亡）`],
+          ["气血", `${c.hp} / ${c.max_hp}（0则死亡）`],
           ["生命状态", c.life_status],
           ["法力", `${c.mana} / ${c.max_mana}`],
-          ["攻击", `${c.attack}（基础${c.attack_base}+加成${c.attack_bonus}）`],
-          ["防御", `${c.defense}（基础${c.defense_base}+加成${c.defense_bonus}）`],
-          ["法力加成", c.mana_bonus],
+          ["攻击", `${c.attack}（基础${c.base_attack}+加成${c.attack_bonus}）`],
+          ["防御", `${c.defense}（基础${c.base_defense}+加成${c.defense_bonus}）`],
+          ["突破率", `${Math.round(c.breakthrough_rate * 100)}%`],
           ["灵石", c.spirit_stones],
         ];
         grid.innerHTML = stats
@@ -785,7 +785,7 @@
       }
 
       async function loadMe() {
-        const data = await request("/me");
+        const data = await request("/character/me");
         renderCharacter(data);
         await loadLogs();
         showGame(true);
@@ -814,9 +814,12 @@
         await loadMe();
       }
 
-      async function doAction(path) {
+      async function doAction(actionType, params = {}) {
         showToast("");
-        const data = await request(path, { method: "POST", body: "{}" });
+        const data = await request("/action/execute", {
+          method: "POST",
+          body: JSON.stringify({ action_type: actionType, params }),
+        });
         showToast(data.message);
         await loadMe();
       }
@@ -851,27 +854,28 @@
       });
 
       document.getElementById("train-btn").addEventListener("click", () => {
-        doAction("/action/train").catch((error) => showToast(error.message));
+        doAction("train").catch((error) => showToast(error.message));
       });
 
       document.getElementById("explore-btn").addEventListener("click", () => {
-        doAction("/action/explore").catch((error) => showToast(error.message));
+        doAction("explore").catch((error) => showToast(error.message));
       });
 
       document.getElementById("breakthrough-btn").addEventListener("click", () => {
-        doAction("/action/breakthrough").catch((error) => showToast(error.message));
+        doAction("breakthrough").catch((error) => showToast(error.message));
       });
 
       document.getElementById("meditate-btn").addEventListener("click", () => {
-        doAction("/action/meditate").catch((error) => showToast(error.message));
+        doAction("recover_mana_meditate").catch((error) => showToast(error.message));
       });
 
       document.getElementById("spirit-stone-btn").addEventListener("click", () => {
-        doAction("/action/spirit-stone").catch((error) => showToast(error.message));
+        doAction("recover_mana_stone").catch((error) => showToast(error.message));
       });
 
       document.getElementById("pill-btn").addEventListener("click", () => {
-        doAction("/action/pill").catch((error) => showToast(error.message));
+        const slot = currentUser?.inventory.find((item) => item.code === "mana_pill" && item.quantity > 0);
+        doAction("use_item", { slot_index: slot ? slot.slot_index : 0 }).catch((error) => showToast(error.message));
       });
 
       document.getElementById("refresh-btn").addEventListener("click", () => {

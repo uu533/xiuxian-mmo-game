@@ -1,4 +1,5 @@
 import random
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
@@ -7,12 +8,20 @@ from backend.services.auth_service import REALMS, root_rate
 
 ITEM_POOL = ["止血草", "聚气散", "玄铁碎片", "妖兽内丹", "残破玉简", "清心符"]
 
+ACTION_RECOVERY_SECONDS = 10 * 60
+ACTION_RECOVERY_AMOUNT = 5
+ACTIONS_PER_YEAR = 1000
+TRAIN_ACTION_COST = 10
+EXPLORE_ACTION_COST = 15
+BREAKTHROUGH_ACTION_COST = 30
+
 
 def add_log(db: Session, user_id: int, content: str) -> None:
     db.add(Log(user_id=user_id, content=content))
 
 
 def character_payload(character: Character) -> dict:
+    recover_action_points(character)
     return {
         "realm": character.realm,
         "cultivation": character.cultivation,
@@ -27,6 +36,10 @@ def character_payload(character: Character) -> dict:
         "inner_demon": character.inner_demon,
         "luck": character.luck,
         "spirit_stones": character.spirit_stones,
+        "action_points": character.action_points,
+        "max_action_points": character.max_action_points,
+        "action_spent_total": character.action_spent_total,
+        "age_progress": character.age_progress,
     }
 
 
@@ -50,24 +63,61 @@ def add_item(db: Session, user_id: int, name: str, quantity: int = 1) -> None:
         db.add(InventoryItem(user_id=user_id, name=name, quantity=quantity))
 
 
-def advance_time(character: Character, years: int = 1) -> None:
-    character.age += years
-    character.lifespan = max(0, character.lifespan - years)
-    if character.lifespan <= 0:
-        character.hp = max(1, character.hp - 12 * years)
-        character.inner_demon = min(100, character.inner_demon + 4 * years)
+def recover_action_points(character: Character) -> None:
+    now = utc_now()
+    last_recovered = character.last_action_recovered_at or now
+    if last_recovered.tzinfo is None:
+        last_recovered = last_recovered.replace(tzinfo=now.tzinfo)
+
+    elapsed_seconds = max(0, int((now - last_recovered).total_seconds()))
+    intervals = elapsed_seconds // ACTION_RECOVERY_SECONDS
+    if intervals <= 0:
+        return
+
+    before = character.action_points
+    recovered = intervals * ACTION_RECOVERY_AMOUNT
+    character.action_points = min(character.max_action_points, character.action_points + recovered)
+    if character.action_points >= character.max_action_points:
+        character.last_action_recovered_at = now
+    elif character.action_points > before:
+        character.last_action_recovered_at = last_recovered + timedelta(seconds=intervals * ACTION_RECOVERY_SECONDS)
+
+
+def spend_action_points(character: Character, cost: int) -> tuple[bool, str | None]:
+    recover_action_points(character)
+    if character.action_points < cost:
+        return False, f"行动力不足，本次需要 {cost} 点，当前只有 {character.action_points} 点。"
+
+    character.action_points -= cost
+    character.action_spent_total += cost
+    character.age_progress += cost
+
+    if character.age_progress >= ACTIONS_PER_YEAR:
+        years = character.age_progress // ACTIONS_PER_YEAR
+        character.age += years
+        character.age_progress %= ACTIONS_PER_YEAR
+        if character.age >= character.lifespan:
+            character.hp = max(1, character.hp - 12 * years)
+            character.inner_demon = min(100, character.inner_demon + 4 * years)
+
+    return True, None
 
 
 def train(db: Session, user: User) -> dict:
     character = user.character
+    ok, error = spend_action_points(character, TRAIN_ACTION_COST)
+    if not ok:
+        add_log(db, user.id, error or "行动力不足。")
+        db.commit()
+        return {"message": error, "character": character_payload(character), "inventory": inventory_payload(user)}
+
     gain = int(random.randint(16, 28) * root_rate(character.spiritual_root) + character.mana * 0.08)
     character.cultivation = min(character.cultivation_cap, character.cultivation + gain)
     character.mana = min(999, character.mana + random.randint(1, 4))
     character.inner_demon = min(100, character.inner_demon + random.choice([0, 0, 1]))
-    advance_time(character, 1)
     character.updated_at = utc_now()
 
-    message = f"打坐一载，吸纳灵气，修为增加 {gain}。"
+    message = f"打坐修炼消耗 {TRAIN_ACTION_COST} 点行动力，吸纳灵气，修为增加 {gain}。"
     add_log(db, user.id, message)
     db.commit()
     db.refresh(character)
@@ -108,18 +158,22 @@ def run_battle(character: Character) -> tuple[bool, list[str]]:
 
 def explore(db: Session, user: User) -> dict:
     character = user.character
-    advance_time(character, 1)
+    ok, error = spend_action_points(character, EXPLORE_ACTION_COST)
+    if not ok:
+        add_log(db, user.id, error or "行动力不足。")
+        db.commit()
+        return {"message": error, "character": character_payload(character), "inventory": inventory_payload(user)}
 
     roll = random.random()
     if roll < 0.38:
         stones = random.randint(18, 68) + character.luck // 5
         character.spirit_stones += stones
-        message = f"外出探索发现废弃矿脉，获得 {stones} 灵石。"
+        message = f"外出探索消耗 {EXPLORE_ACTION_COST} 点行动力，发现废弃矿脉，获得 {stones} 灵石。"
     elif roll < 0.68:
         item_name = random.choice(ITEM_POOL)
         quantity = random.randint(1, 3)
         add_item(db, user.id, item_name, quantity)
-        message = f"外出探索采得 {item_name} x{quantity}。"
+        message = f"外出探索消耗 {EXPLORE_ACTION_COST} 点行动力，采得 {item_name} x{quantity}。"
     else:
         won, rounds = run_battle(character)
         if won:
@@ -127,9 +181,9 @@ def explore(db: Session, user: User) -> dict:
             character.spirit_stones += reward
             if random.random() < 0.45:
                 add_item(db, user.id, random.choice(ITEM_POOL), 1)
-            message = " ".join(rounds) + f" 战后搜得 {reward} 灵石。"
+            message = f"外出探索消耗 {EXPLORE_ACTION_COST} 点行动力。" + " ".join(rounds) + f" 战后搜得 {reward} 灵石。"
         else:
-            message = " ".join(rounds)
+            message = f"外出探索消耗 {EXPLORE_ACTION_COST} 点行动力。" + " ".join(rounds)
 
     character.cultivation = min(character.cultivation_cap, character.cultivation + random.randint(4, 16))
     character.updated_at = utc_now()
@@ -156,7 +210,11 @@ def breakthrough(db: Session, user: User) -> dict:
 
     success_rate = 0.48 + character.luck * 0.003 - character.inner_demon * 0.004
     success_rate = max(0.12, min(0.88, success_rate))
-    advance_time(character, 2)
+    ok, error = spend_action_points(character, BREAKTHROUGH_ACTION_COST)
+    if not ok:
+        add_log(db, user.id, error or "行动力不足。")
+        db.commit()
+        return {"message": error, "character": character_payload(character), "inventory": inventory_payload(user)}
 
     forced_success = character.luck >= 100
     forced_failure = character.inner_demon >= 100
@@ -171,12 +229,12 @@ def breakthrough(db: Session, user: User) -> dict:
         character.attack += 8 + realm_index * 5
         character.defense += 5 + realm_index * 4
         character.inner_demon = max(0, character.inner_demon - 10)
-        message = f"突破成功！你踏入「{character.realm}」，寿元与法力大涨。"
+        message = f"突破消耗 {BREAKTHROUGH_ACTION_COST} 点行动力。突破成功！你踏入「{character.realm}」，寿元上限与法力大涨。"
     else:
         character.cultivation = int(character.cultivation_cap * 0.42)
         character.inner_demon = min(100, character.inner_demon + random.randint(10, 18))
         character.hp = max(20, character.hp - random.randint(8, 22))
-        message = f"突破失败，心魔反噬。当前突破成功率约 {int(success_rate * 100)}%。"
+        message = f"突破消耗 {BREAKTHROUGH_ACTION_COST} 点行动力。突破失败，心魔反噬。当前突破成功率约 {int(success_rate * 100)}%。"
 
     character.updated_at = utc_now()
     add_log(db, user.id, message)

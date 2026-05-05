@@ -77,8 +77,10 @@ http://你的局域网IP:5173/frontend/index.html
 
 - 用户注册、登录、token 身份验证。
 - 每个账号独立角色数据，存入 `game.db`。
-- 角色字段：境界、修为、修为上限、灵根、年龄、寿元、气血、法力、攻击、防御、心魔、气运、灵石。
+- 角色字段：境界、修为、修为上限、灵根、年龄、寿元、气血、法力、攻击、防御、心魔、气运、灵石、行动力。
 - 行动：打坐修炼、外出探索、突破境界、查看角色、查看日志。
+- 行动力：上限 100，每 10 分钟自然恢复 5 点。打坐消耗 10 点，探索消耗 15 点，突破消耗 30 点。
+- 年龄：不再随每次指令直接增加，累计消耗 1000 点行动力才增长 1 岁。寿元表示寿元上限，突破境界会提升寿元上限。
 - 探索随机结果：获得灵石、获得物品、触发简单回合制战斗。
 - 突破有成功率，成功进入下个境界，失败会损失状态并增加心魔。
 - 每次操作都会写入独立玩家日志。
@@ -88,7 +90,7 @@ http://你的局域网IP:5173/frontend/index.html
 核心表：
 
 - `users`：`id`, `username`, `password_hash`, `created_at`
-- `characters`：`user_id`, `realm`, `cultivation`, `cultivation_cap`, `spiritual_root`, `age`, `lifespan`, `hp`, `mana`, `attack`, `defense`, `inner_demon`, `luck`, `spirit_stones`
+- `characters`：`user_id`, `realm`, `cultivation`, `cultivation_cap`, `spiritual_root`, `age`, `lifespan`, `hp`, `mana`, `attack`, `defense`, `inner_demon`, `luck`, `spirit_stones`, `action_points`, `max_action_points`, `action_spent_total`, `age_progress`, `last_action_recovered_at`
 - `logs`：`user_id`, `content`, `created_at`
 
 扩展表：

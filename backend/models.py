@@ -42,6 +42,11 @@ class Character(Base):
     inner_demon: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     luck: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
     spirit_stones: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    action_points: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    max_action_points: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    action_spent_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    age_progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_action_recovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="character")

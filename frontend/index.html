@@ -439,8 +439,8 @@
         <section class="resource-strip">
           <div class="stat"><span>修为</span><strong id="res-cultivation">0 / 0</strong></div>
           <div class="stat"><span>灵石</span><strong id="res-stones">0</strong></div>
+          <div class="stat"><span>行动力</span><strong id="res-action">0 / 100</strong></div>
           <div class="stat"><span>气血</span><strong id="res-hp">0</strong></div>
-          <div class="stat"><span>法力</span><strong id="res-mana">0</strong></div>
         </section>
 
         <div id="message" class="toast hidden"></div>
@@ -454,9 +454,9 @@
               </div>
               <div class="bar"><span id="cultivation-bar" style="width: 0%"></span></div>
               <div class="action-grid">
-                <button id="train-btn">打坐</button>
-                <button id="explore-btn">探索</button>
-                <button id="breakthrough-btn">突破</button>
+                <button id="train-btn">打坐-10</button>
+                <button id="explore-btn">探索-15</button>
+                <button id="breakthrough-btn">突破-30</button>
               </div>
             </div>
 
@@ -579,13 +579,16 @@
         document.getElementById("hero-name").textContent = data.username;
         document.getElementById("hero-realm").textContent = `${c.realm}`;
         document.getElementById("hero-subtitle").textContent = `${c.spiritual_root} · ${c.age}岁`;
-        document.getElementById("hero-pill").textContent = `寿元 ${c.lifespan}`;
+        document.getElementById("hero-pill").textContent = `行动力 ${c.action_points}/${c.max_action_points}`;
         document.getElementById("res-cultivation").textContent = `${c.cultivation} / ${c.cultivation_cap}`;
         document.getElementById("res-stones").textContent = c.spirit_stones;
+        document.getElementById("res-action").textContent = `${c.action_points} / ${c.max_action_points}`;
         document.getElementById("res-hp").textContent = c.hp;
-        document.getElementById("res-mana").textContent = c.mana;
-        document.getElementById("train-rate").textContent = `心魔 ${c.inner_demon} · 气运 ${c.luck}`;
+        document.getElementById("train-rate").textContent = `10分钟恢复5点 · ${1000 - c.age_progress}点后长1岁`;
         document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+        document.getElementById("train-btn").disabled = c.action_points < 10;
+        document.getElementById("explore-btn").disabled = c.action_points < 15;
+        document.getElementById("breakthrough-btn").disabled = c.action_points < 30;
 
         playerTitle.textContent = `角色：${data.username}`;
         const stats = [
@@ -594,6 +597,8 @@
           ["灵根", c.spiritual_root],
           ["年龄", c.age],
           ["寿元", c.lifespan],
+          ["行动力", `${c.action_points} / ${c.max_action_points}`],
+          ["年龄进度", `${c.age_progress} / 1000`],
           ["气血", c.hp],
           ["法力", c.mana],
           ["攻击", c.attack],

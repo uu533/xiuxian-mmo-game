@@ -37,6 +37,10 @@ class CharacterResponse(BaseModel):
     inner_demon: int
     luck: int
     spirit_stones: int
+    action_points: int
+    max_action_points: int
+    action_spent_total: int
+    age_progress: int
 
 
 class MeResponse(BaseModel):

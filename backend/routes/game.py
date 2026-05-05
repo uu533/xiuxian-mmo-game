@@ -11,8 +11,13 @@ router = APIRouter(tags=["game"])
 
 
 @router.get("/me", response_model=MeResponse)
-def get_me(current_user: User = Depends(get_current_user)) -> dict:
-    return me_payload(current_user)
+def get_me(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    payload = me_payload(current_user)
+    db.commit()
+    return payload
 
 
 @router.post("/action/train", response_model=ActionResponse)

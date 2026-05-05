@@ -34,10 +34,24 @@ def force_ready_for_breakthrough(username, luck, inner_demon):
         conn.execute(
             """
             UPDATE characters
-            SET cultivation = cultivation_cap, luck = ?, inner_demon = ?
+            SET cultivation = cultivation_cap, luck = ?, inner_demon = ?, action_points = 100
             WHERE user_id = ?
             """,
             (luck, inner_demon, user_id),
+        )
+        conn.commit()
+
+
+def force_age_progress(username, age_progress, action_points=100):
+    with sqlite3.connect(DB_PATH) as conn:
+        user_id = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()[0]
+        conn.execute(
+            """
+            UPDATE characters
+            SET age_progress = ?, action_points = ?
+            WHERE user_id = ?
+            """,
+            (age_progress, action_points, user_id),
         )
         conn.commit()
 
@@ -56,14 +70,23 @@ def main():
     assert me_b["username"] == player_b
     assert me_a["character"]["spirit_stones"] == 100
     assert me_b["character"]["spirit_stones"] == 100
+    assert me_a["character"]["action_points"] == 100
+    assert me_a["character"]["max_action_points"] == 100
 
     trained = request("/action/train", "POST", token=token_a)
     assert trained["character"]["cultivation"] > me_a["character"]["cultivation"]
-    assert trained["character"]["age"] > me_a["character"]["age"]
-    assert trained["character"]["lifespan"] < me_a["character"]["lifespan"]
+    assert trained["character"]["age"] == me_a["character"]["age"]
+    assert trained["character"]["lifespan"] == me_a["character"]["lifespan"]
+    assert trained["character"]["action_points"] == me_a["character"]["action_points"] - 10
 
     explored = request("/action/explore", "POST", token=token_a)
     assert explored["message"]
+    assert explored["character"]["action_points"] == trained["character"]["action_points"] - 15
+
+    force_age_progress(player_a, age_progress=990, action_points=100)
+    aged = request("/action/train", "POST", token=token_a)
+    assert aged["character"]["age"] == me_a["character"]["age"] + 1
+    assert aged["character"]["age_progress"] == 0
 
     untouched_b = request("/me", token=token_b)
     assert untouched_b["character"]["cultivation"] == me_b["character"]["cultivation"]

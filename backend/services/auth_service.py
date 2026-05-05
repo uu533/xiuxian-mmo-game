@@ -11,6 +11,7 @@ from backend.services.calc_service import sync_base_and_caps
 from backend.services.inventory_service import ensure_main_bag_slots
 from backend.services.log_service import write_log
 from backend.services.spiritual_root_service import random_spiritual_root
+from backend.services.task_service import ensure_character_tasks
 from backend.utils.security import hash_password, make_token, verify_password
 from backend.utils.time_utils import utc_now
 
@@ -42,6 +43,7 @@ def create_user(db: Session, username: str, password: str) -> User:
     db.add(character)
     db.flush()
     ensure_main_bag_slots(db, character)
+    ensure_character_tasks(db, character)
     write_log(db, user, "system", f"你觉醒「{root.name}」，踏上修仙之路。{root.description}", {"spiritual_root": root.name})
     db.commit()
     db.refresh(user)

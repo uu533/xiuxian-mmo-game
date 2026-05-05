@@ -24,6 +24,7 @@ from backend.services.progression_service import (
     upgrade_artifact,
 )
 from backend.services.realm_service import is_major_breakthrough, next_realm_config, normalize_realm
+from backend.services.task_service import record_task_progress
 
 
 def execute_action(db: Session, user: User, action_type: str, params: dict | None = None) -> dict:
@@ -236,8 +237,12 @@ def _finalize(
     write_log(db, user, log_type, message, data)
     for entry in extra_logs or []:
         write_log(db, user, entry["type"], entry["content"], entry.get("data", {}))
+    task_messages = record_task_progress(db, user, action_type, success, data)
     write_action_record(db, character.id, action_type, cost, {"success": success, "message": message, "rewards": rewards, "data": data})
-    return _result(db, user, success, message, cost, rewards, [message], action_type)
+    combined_message = message
+    if task_messages:
+        combined_message = f"{message} {' '.join(task_messages)}"
+    return _result(db, user, success, combined_message, cost, rewards, [message, *task_messages], action_type)
 
 
 def _result(db: Session, user: User, success: bool, message: str, cost: dict, rewards: list[dict], logs: list[str], action_type: str) -> dict:

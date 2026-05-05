@@ -407,6 +407,10 @@
         line-height: 1.45;
       }
 
+      .task-card {
+        border-left: 3px solid #e5c568;
+      }
+
       .bag-grid {
         display: grid;
         grid-template-columns: repeat(9, minmax(0, 1fr));
@@ -570,6 +574,13 @@
 
         <section class="content">
           <div id="tab-cultivation" class="tab-panel">
+            <div class="panel task-card">
+              <div class="panel-title">
+                <h2>当前任务</h2>
+                <span>新手引导</span>
+              </div>
+              <div id="task-panel" class="row"></div>
+            </div>
             <div class="panel">
               <div class="panel-title">
                 <h2>太虚吐纳</h2>
@@ -685,6 +696,7 @@
       const logs = document.getElementById("logs");
       const recentLogs = document.getElementById("recent-logs");
       const inventory = document.getElementById("inventory");
+      const taskPanel = document.getElementById("task-panel");
       const methodsList = document.getElementById("methods-list");
       const artifactsList = document.getElementById("artifacts-list");
       const playerTitle = document.getElementById("player-title");
@@ -815,6 +827,15 @@
             return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span>${actionLabel ? `<button data-slot-action="${item.type}" data-slot-index="${item.slot_index}">${actionLabel}</button>` : ""}</div>`;
           })
           .join("")}</div>`;
+        renderTask(data.active_task);
+      }
+
+      function renderTask(task) {
+        if (!task) {
+          taskPanel.innerHTML = `<div><strong>暂无任务</strong><span>继续探索修行即可</span></div>`;
+          return;
+        }
+        taskPanel.innerHTML = `<div><strong>${task.name}</strong><span>${task.description}</span><em>${task.progress} / ${task.target}</em></div><button disabled>${task.status === "completed" ? "已完成" : "进行中"}</button>`;
       }
 
       function renderProgression() {

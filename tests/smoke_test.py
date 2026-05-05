@@ -8,6 +8,7 @@ from pathlib import Path
 BASE_URL = "http://127.0.0.1:8000"
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "game.db"
+SIMULATION_PATH = ROOT / "simulation_result.json"
 HIDDEN_FIELDS = {"hidden_luck", "hidden_inner_demon", "luck", "inner_demon", "action_points"}
 
 
@@ -98,6 +99,23 @@ def add_item_to_bag(username, code, quantity=1, rarity="白"):
     return slot_index
 
 
+def remove_item_from_bag(username, code):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        template = conn.execute("SELECT id FROM item_templates WHERE code = ?", (code,)).fetchone()
+        if not template:
+            return
+        conn.execute(
+            """
+            UPDATE inventory_slots
+            SET item_template_id = NULL, quantity = 0, item_instance_id = NULL
+            WHERE character_id = ? AND item_template_id = ?
+            """,
+            (character_id, template[0]),
+        )
+        conn.commit()
+
+
 def set_first_method_to_level(username, level, exp=0):
     _user_id, character_id = get_ids(username)
     with sqlite3.connect(DB_PATH) as conn:
@@ -143,8 +161,25 @@ def main():
 
     assert request("/dev/health")["ok"] is True
     summary = request("/dev/db-summary")
-    for table in ["item_templates", "inventory_slots", "item_instances", "character_methods", "character_artifacts", "game_logs", "action_records"]:
+    for table in [
+        "item_templates",
+        "inventory_slots",
+        "item_instances",
+        "character_methods",
+        "character_artifacts",
+        "character_tasks",
+        "game_logs",
+        "action_records",
+    ]:
         assert table in summary["tables"]
+    simulation_1h = request("/dev/simulation?hours=1")
+    simulation_3h = request("/dev/simulation?hours=3")
+    assert simulation_1h["time"] == "1h"
+    assert simulation_3h["time"] == "3h"
+    assert "realm" in simulation_3h
+    assert "warnings" in simulation_3h
+    assert "action_counts" in simulation_3h
+    assert SIMULATION_PATH.exists()
 
     token_a = register(player_a)["token"]
     token_b = register(player_b)["token"]
@@ -155,13 +190,26 @@ def main():
     assert me_a["username"] == player_a
     assert me_b["username"] == player_b
     assert len(me_a["inventory"]) == 81
+    assert me_a["active_task"]["id"] == "task_001"
+    assert me_a["active_task"]["progress"] == 0
     assert "action_points" not in table_columns("characters")
     assert not HIDDEN_FIELDS.intersection(me_a["character"].keys())
 
-    force_character(player_a, mana=100, hidden_luck=150)
+    force_character(player_a, mana=500, hidden_luck=150)
+    for _ in range(5):
+        trained = action(token_a, "train")
+        assert trained["success"] is True
+    me_a = request("/character/me", token=token_a)
+    assert me_a["active_task"]["id"] == "task_002"
+    assert count_logs(character_a_id, "task") >= 1
+
+    force_character(player_a, mana=500, hidden_luck=150)
     explored = action(token_a, "explore", {"force_lucky_code": "hidden_cave"})
     assert explored["success"] is True
     assert any(reward["type"] == "item" for reward in explored["rewards"])
+    assert action(token_a, "explore")["success"] is True
+    assert action(token_a, "explore")["success"] is True
+    assert request("/character/me", token=token_a)["active_task"]["id"] == "task_003"
     assert any(slot["name"] for slot in request("/inventory", token=token_a))
     assert count_logs(character_a_id, "drop") >= 1
     assert count_logs(character_a_id, "lucky") >= 1
@@ -170,6 +218,7 @@ def main():
     before_speed = request("/character/me", token=token_a)["character"]["cultivation_speed"]
     learned = action(token_a, "learn_method", {"slot_index": method_slot})
     assert learned["success"] is True
+    assert request("/character/me", token=token_a)["active_task"]["id"] == "task_004"
     methods = request("/methods", token=token_a)
     assert len(methods) == 1
     equipped_method = action(token_a, "equip_method", {"method_id": methods[0]["id"]})
@@ -188,6 +237,7 @@ def main():
     before_attack = request("/character/me", token=token_a)["character"]["attack"]
     equipped_artifact = action(token_a, "equip_artifact", {"slot_index": artifact_slot})
     assert equipped_artifact["success"] is True
+    assert request("/character/me", token=token_a)["active_task"]["id"] == "task_005"
     artifacts = request("/artifacts", token=token_a)
     assert len(artifacts) == 1
     after_attack = request("/character/me", token=token_a)["character"]["attack"]
@@ -214,6 +264,7 @@ def main():
         hidden_inner_demon=0,
     )
     set_first_method_to_level(player_a, 3)
+    remove_item_from_bag(player_a, "foundation_pill")
     blocked = action(token_a, "breakthrough")
     assert blocked["success"] is False
     assert "缺少筑基丹" in blocked["message"]

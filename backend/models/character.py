@@ -44,6 +44,7 @@ class Character(Base):
     action_records: Mapped[list["ActionRecord"]] = relationship(back_populates="character", cascade="all, delete-orphan")
     game_logs: Mapped[list["GameLog"]] = relationship(back_populates="character", cascade="all, delete-orphan")
     derived_stats: Mapped["CharacterDerivedStats | None"] = relationship(back_populates="character", cascade="all, delete-orphan", uselist=False)
+    tasks: Mapped[list["CharacterTask"]] = relationship(back_populates="character", cascade="all, delete-orphan")
 
 
 class CharacterDerivedStats(Base):

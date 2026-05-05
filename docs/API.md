@@ -86,7 +86,16 @@ Authorization: Bearer <token>
     "sect_position": "散修",
     "identity_status": "散修"
   },
-  "inventory": []
+  "inventory": [],
+  "active_task": {
+    "id": "task_001",
+    "name": "初入修行",
+    "description": "完成 5 次修炼，熟悉吐纳节奏。",
+    "progress": 0,
+    "target": 5,
+    "status": "active"
+  },
+  "tasks": []
 }
 ```
 
@@ -267,6 +276,18 @@ Authorization: Bearer <token>
 
 探索事件现在会调用 `configs/drop_tables.py`，按角色境界阶段抽取掉落。掉落会进入 `inventory_slots`。低概率机缘由 `configs/opportunities.py` 控制，可能触发顿悟破境、稀有物品、高人指点、隐秘洞府等事件，并写入 `game_logs` 的 `lucky/drop` 类型日志。
 
+## Tasks
+
+新手任务由 `configs/tasks.py` 配置。角色创建或旧角色启动迁移时会自动获得任务，当前版本包含：
+
+- 修炼次数
+- 探索次数
+- 学习功法
+- 装备法宝
+- 突破境界
+
+任务进度由后端在行为成功后自动推进，完成后自动发放奖励并写入 `game_logs` 的 `task` 类型日志。前端只展示 `GET /character/me` 返回的 `active_task`。
+
 ## Logs
 
 ### GET /logs
@@ -306,3 +327,43 @@ Authorization: Bearer <token>
 ### GET /dev/db-summary
 
 返回数据库路径、表列表和主要表数据量。仅用于开发期检查。
+
+### GET /dev/simulation
+
+运行自动玩家数值模拟，并把最近一次结果写入项目根目录 `simulation_result.json`。
+
+```text
+GET /dev/simulation?hours=3
+```
+
+返回示例：
+
+```json
+{
+  "time": "3h",
+  "realm": "炼气十层",
+  "cultivation": 61,
+  "cultivation_cap": 1420,
+  "progress_ratio": 0.043,
+  "spirit_stones": 100,
+  "items": {},
+  "method_level": 0,
+  "artifact_level": 0,
+  "breakthrough_attempts": 10,
+  "success_rate": 0.9,
+  "drop_stats": {},
+  "action_counts": {
+    "train": 152,
+    "breakthrough": 10,
+    "recover_mana_meditate": 18
+  },
+  "average_spirit_stones_per_hour": 0,
+  "average_cultivation_per_hour": 1416,
+  "mana_blocked_ratio": 0.1,
+  "bag_fill_ratio_peak": 0,
+  "bottleneck_reasons": {},
+  "warnings": [
+    "严格修炼策略 1 小时内没有探索收益，前期需要任务引导"
+  ]
+}
+```

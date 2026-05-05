@@ -4,10 +4,18 @@ from backend.models import User
 from backend.services.action_service import execute_action
 from backend.services.character_service import character_payload, set_title as set_character_title
 from backend.services.inventory_service import inventory_payload
+from backend.services.task_service import active_task_payload, ensure_character_tasks, tasks_payload
 
 
 def me_payload(db: Session, user: User) -> dict:
-    return {"username": user.username, "character": character_payload(user.character), "inventory": inventory_payload(db, user.character)}
+    ensure_character_tasks(db, user.character)
+    return {
+        "username": user.username,
+        "character": character_payload(user.character),
+        "inventory": inventory_payload(db, user.character),
+        "tasks": tasks_payload(user.character),
+        "active_task": active_task_payload(user.character),
+    }
 
 
 def train(db: Session, user: User) -> dict:

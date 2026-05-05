@@ -8,6 +8,7 @@ from backend.services.auth_service import get_current_user
 from backend.services.character_service import character_payload, set_title
 from backend.services.inventory_service import inventory_payload
 from backend.services.log_service import write_log
+from backend.services.task_service import active_task_payload, ensure_character_tasks, tasks_payload
 
 router = APIRouter(tags=["character"])
 
@@ -17,10 +18,13 @@ def get_character_me(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
+    ensure_character_tasks(db, current_user.character)
     payload = {
         "username": current_user.username,
         "character": character_payload(current_user.character),
         "inventory": inventory_payload(db, current_user.character),
+        "tasks": tasks_payload(current_user.character),
+        "active_task": active_task_payload(current_user.character),
     }
     db.commit()
     return payload

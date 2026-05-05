@@ -5,6 +5,7 @@ from backend.models.log import ActionRecord, GameLog
 from backend.models.progression import CharacterArtifact, CharacterMethod
 from backend.models.sect import Sect, SectMember
 from backend.models.social import Friendship, Message
+from backend.models.task import CharacterTask
 from backend.models.user import AuthToken, User
 from backend.utils.time_utils import utc_now
 
@@ -15,6 +16,7 @@ __all__ = [
     "CharacterDerivedStats",
     "CharacterArtifact",
     "CharacterMethod",
+    "CharacterTask",
     "Friendship",
     "GameLog",
     "InventorySlot",

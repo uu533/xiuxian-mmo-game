@@ -150,6 +150,7 @@ def ensure_existing_character_runtime_data() -> None:
     from backend.services.calc_service import sync_base_and_caps
     from backend.services.inventory_service import ensure_main_bag_slots
     from backend.services.realm_service import normalize_realm
+    from backend.services.task_service import ensure_character_tasks
 
     db = SessionLocal()
     try:
@@ -157,6 +158,7 @@ def ensure_existing_character_runtime_data() -> None:
             normalize_realm(character)
             sync_base_and_caps(character)
             ensure_main_bag_slots(db, character)
+            ensure_character_tasks(db, character)
         db.commit()
     except Exception as exc:
         db.rollback()
@@ -175,6 +177,7 @@ def db_summary() -> dict:
             "characters": _count(conn, "characters"),
             "inventory_slots": _count(conn, "inventory_slots"),
             "item_templates": _count(conn, "item_templates"),
+            "character_tasks": _count(conn, "character_tasks"),
             "game_logs": _count(conn, "game_logs"),
             "action_records": _count(conn, "action_records"),
             "rebuild_hint": DB_REBUILD_HINT,

@@ -39,6 +39,8 @@ class MeResponse(BaseModel):
     username: str
     character: CharacterResponse
     inventory: list[InventorySlotResponse]
+    tasks: list[dict] = []
+    active_task: dict | None = None
 
 
 class TitleRequest(BaseModel):

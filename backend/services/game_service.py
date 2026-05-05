@@ -4,7 +4,8 @@ from datetime import timedelta
 from sqlalchemy.orm import Session
 
 from backend.models import Character, InventoryItem, Log, User, utc_now
-from backend.services.auth_service import REALMS, root_rate
+from backend.services.auth_service import root_rate
+from backend.services.realm_service import current_index, current_step, is_major_breakthrough, next_step, normalize_realm
 
 ITEM_POOL = ["止血草", "聚气散", "玄铁碎片", "妖兽内丹", "残破玉简", "清心符"]
 
@@ -21,6 +22,7 @@ def add_log(db: Session, user_id: int, content: str) -> None:
 
 
 def character_payload(character: Character) -> dict:
+    normalize_realm(character)
     recover_action_points(character)
     return {
         "realm": character.realm,
@@ -105,6 +107,7 @@ def spend_action_points(character: Character, cost: int) -> tuple[bool, str | No
 
 def train(db: Session, user: User) -> dict:
     character = user.character
+    normalize_realm(character)
     ok, error = spend_action_points(character, TRAIN_ACTION_COST)
     if not ok:
         add_log(db, user.id, error or "行动力不足。")
@@ -125,9 +128,11 @@ def train(db: Session, user: User) -> dict:
 
 
 def run_battle(character: Character) -> tuple[bool, list[str]]:
+    normalize_realm(character)
     enemy_name = random.choice(["山魈", "散修劫匪", "黑鳞妖蛇", "迷雾鬼修"])
-    enemy_hp = random.randint(42, 82) + REALMS.index(character.realm) * 18
-    enemy_attack = random.randint(8, 18) + REALMS.index(character.realm) * 5
+    realm_power = current_index(character)
+    enemy_hp = random.randint(42, 82) + realm_power * 10
+    enemy_attack = random.randint(8, 18) + realm_power * 3
     hp = character.hp
     rounds: list[str] = [f"遭遇{enemy_name}，战斗开始。"]
 
@@ -158,6 +163,7 @@ def run_battle(character: Character) -> tuple[bool, list[str]]:
 
 def explore(db: Session, user: User) -> dict:
     character = user.character
+    normalize_realm(character)
     ok, error = spend_action_points(character, EXPLORE_ACTION_COST)
     if not ok:
         add_log(db, user.id, error or "行动力不足。")
@@ -195,21 +201,27 @@ def explore(db: Session, user: User) -> dict:
 
 def breakthrough(db: Session, user: User) -> dict:
     character = user.character
+    normalize_realm(character)
     if character.cultivation < character.cultivation_cap:
         message = f"修为尚未圆满，至少需要 {character.cultivation_cap} 修为。"
         add_log(db, user.id, message)
         db.commit()
         return {"message": message, "character": character_payload(character), "inventory": inventory_payload(user)}
 
-    realm_index = REALMS.index(character.realm)
-    if realm_index >= len(REALMS) - 1:
+    target_step = next_step(character)
+    if not target_step:
         message = "你已抵达当前版本最高境界，暂无法继续突破。"
         add_log(db, user.id, message)
         db.commit()
         return {"message": message, "character": character_payload(character), "inventory": inventory_payload(user)}
 
-    success_rate = 0.48 + character.luck * 0.003 - character.inner_demon * 0.004
-    success_rate = max(0.12, min(0.88, success_rate))
+    source_step = current_step(character)
+    success_rate = source_step.breakthrough_rate + character.luck * 0.0018 - character.inner_demon * 0.0035
+    if source_step.name == "结丹后期":
+        success_rate -= 0.04
+    if source_step.name.startswith("元婴") or source_step.name.startswith("化神"):
+        success_rate -= 0.03
+    success_rate = max(0.02, min(0.9, success_rate))
     ok, error = spend_action_points(character, BREAKTHROUGH_ACTION_COST)
     if not ok:
         add_log(db, user.id, error or "行动力不足。")
@@ -220,16 +232,20 @@ def breakthrough(db: Session, user: User) -> dict:
     forced_failure = character.inner_demon >= 100
 
     if forced_success or (not forced_failure and random.random() <= success_rate):
-        character.realm = REALMS[realm_index + 1]
+        from_realm = character.realm
+        character.realm = target_step.name
         character.cultivation = 0
-        character.cultivation_cap = int(character.cultivation_cap * 2.6)
-        character.lifespan += 45 + realm_index * 30
-        character.hp += 36 + realm_index * 18
-        character.mana += 28 + realm_index * 16
-        character.attack += 8 + realm_index * 5
-        character.defense += 5 + realm_index * 4
+        character.cultivation_cap = target_step.cultivation_cap
+        character.lifespan += target_step.lifespan_bonus
+        character.hp += target_step.hp_bonus
+        character.mana += target_step.mana_bonus
+        character.attack += target_step.attack_bonus
+        character.defense += target_step.defense_bonus
         character.inner_demon = max(0, character.inner_demon - 10)
-        message = f"突破消耗 {BREAKTHROUGH_ACTION_COST} 点行动力。突破成功！你踏入「{character.realm}」，寿元上限与法力大涨。"
+        if is_major_breakthrough(from_realm, character.realm):
+            message = f"突破消耗 {BREAKTHROUGH_ACTION_COST} 点行动力。大境界突破成功！你踏入「{character.realm}」，寿元上限与法力大涨。"
+        else:
+            message = f"突破消耗 {BREAKTHROUGH_ACTION_COST} 点行动力。突破成功！你踏入「{character.realm}」。"
     else:
         character.cultivation = int(character.cultivation_cap * 0.42)
         character.inner_demon = min(100, character.inner_demon + random.randint(10, 18))

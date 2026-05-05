@@ -31,6 +31,7 @@ def create_tables() -> None:
 
     Base.metadata.create_all(bind=engine)
     ensure_character_columns()
+    migrate_realms()
 
 
 def ensure_character_columns() -> None:
@@ -54,3 +55,12 @@ def ensure_character_columns() -> None:
                 """
             )
         )
+
+
+def migrate_realms() -> None:
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE characters SET realm = '炼气一层', cultivation_cap = MAX(cultivation_cap, 80) WHERE realm = '炼气'"))
+        conn.execute(text("UPDATE characters SET realm = '筑基初期', cultivation_cap = MAX(cultivation_cap, 4200) WHERE realm = '筑基'"))
+        conn.execute(text("UPDATE characters SET realm = '结丹初期', cultivation_cap = MAX(cultivation_cap, 17000) WHERE realm IN ('金丹', '结丹')"))
+        conn.execute(text("UPDATE characters SET realm = '元婴初期', cultivation_cap = MAX(cultivation_cap, 92000) WHERE realm = '元婴'"))
+        conn.execute(text("UPDATE characters SET realm = '化神初期', cultivation_cap = MAX(cultivation_cap, 520000) WHERE realm = '化神'"))

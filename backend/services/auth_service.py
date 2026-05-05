@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import AuthToken, Character, Log, User
+from backend.services.realm_service import STARTING_CULTIVATION_CAP, STARTING_REALM
 
-REALMS = ["炼气", "筑基", "金丹", "元婴", "化神"]
 SPIRITUAL_ROOTS = [
     ("天灵根", 1.45, 42),
     ("双灵根", 1.25, 50),
@@ -47,6 +47,8 @@ def create_user(db: Session, username: str, password: str) -> User:
 
     character = Character(
         user_id=user.id,
+        realm=STARTING_REALM,
+        cultivation_cap=STARTING_CULTIVATION_CAP,
         spiritual_root=root_name,
         luck=luck + secrets.randbelow(9),
         hp=100 + secrets.randbelow(16),

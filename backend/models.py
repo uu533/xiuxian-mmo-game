@@ -29,9 +29,9 @@ class Character(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, index=True, nullable=False)
-    realm: Mapped[str] = mapped_column(String(24), default="炼气", nullable=False)
+    realm: Mapped[str] = mapped_column(String(24), default="炼气一层", nullable=False)
     cultivation: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    cultivation_cap: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    cultivation_cap: Mapped[int] = mapped_column(Integer, default=80, nullable=False)
     spiritual_root: Mapped[str] = mapped_column(String(24), default="五行杂灵根", nullable=False)
     age: Mapped[int] = mapped_column(Integer, default=16, nullable=False)
     lifespan: Mapped[int] = mapped_column(Integer, default=80, nullable=False)

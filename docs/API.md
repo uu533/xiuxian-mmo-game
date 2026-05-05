@@ -73,7 +73,7 @@ Authorization: Bearer <token>
 {
   "username": "player01",
   "character": {
-    "realm": "炼气",
+    "realm": "炼气一层",
     "cultivation": 0,
     "cultivation_cap": 100,
     "spiritual_root": "三灵根",
@@ -112,7 +112,7 @@ Authorization: Bearer <token>
 {
   "message": "打坐修炼消耗 10 点行动力，吸纳灵气，修为增加 24。",
   "character": {
-    "realm": "炼气",
+    "realm": "炼气一层",
     "cultivation": 24,
     "cultivation_cap": 100,
     "spiritual_root": "三灵根",
@@ -151,7 +151,7 @@ Authorization: Bearer <token>
 {
   "message": "外出探索采得 聚气散 x2。",
   "character": {
-    "realm": "炼气",
+    "realm": "炼气一层",
     "cultivation": 38,
     "cultivation_cap": 100,
     "spiritual_root": "三灵根",
@@ -180,7 +180,7 @@ Authorization: Bearer <token>
 {
   "message": "遭遇黑鳞妖蛇，战斗开始。 第1回合，你造成 17 伤害。 黑鳞妖蛇反击，你损失 8 气血。 黑鳞妖蛇败退。 战后搜得 52 灵石。",
   "character": {
-    "realm": "炼气",
+    "realm": "炼气一层",
     "cultivation": 44,
     "cultivation_cap": 100,
     "spiritual_root": "三灵根",
@@ -201,6 +201,18 @@ Authorization: Bearer <token>
 ## POST /action/breakthrough
 
 突破境界。修为必须达到上限，消耗 30 点行动力。突破存在成功率，可能成功或失败。
+
+境界序列：
+
+```text
+炼气一层 -> ... -> 炼气十二层
+筑基初期 -> 筑基中期 -> 筑基后期
+结丹初期 -> 结丹中期 -> 结丹后期
+元婴初期 -> 元婴中期 -> 元婴后期
+化神初期 -> 化神中期 -> 化神后期
+```
+
+结丹后期突破到元婴初期是明显门槛；进入元婴后，每个小境界的修为需求和突破失败率都会显著增加。
 
 ## 行动力与年龄规则
 
@@ -226,11 +238,11 @@ Authorization: Bearer <token>
 
 ```json
 {
-  "message": "突破成功！你踏入「筑基」，寿元与法力大涨。",
+  "message": "突破消耗 30 点行动力。突破成功！你踏入「炼气二层」。",
   "character": {
-    "realm": "筑基",
+    "realm": "炼气二层",
     "cultivation": 0,
-    "cultivation_cap": 260,
+    "cultivation_cap": 120,
     "spiritual_root": "三灵根",
     "age": 23,
     "lifespan": 125,
@@ -250,9 +262,9 @@ Authorization: Bearer <token>
 
 ```json
 {
-  "message": "突破失败，心魔反噬。当前突破成功率约 61%。",
+  "message": "突破消耗 30 点行动力。突破失败，心魔反噬。当前突破成功率约 61%。",
   "character": {
-    "realm": "炼气",
+    "realm": "炼气一层",
     "cultivation": 42,
     "cultivation_cap": 100,
     "spiritual_root": "三灵根",

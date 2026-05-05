@@ -68,6 +68,8 @@ def main():
     me_b = request("/me", token=token_b)
     assert me_a["username"] == player_a
     assert me_b["username"] == player_b
+    assert me_a["character"]["realm"] == "炼气一层"
+    assert me_a["character"]["cultivation_cap"] == 80
     assert me_a["character"]["spirit_stones"] == 100
     assert me_b["character"]["spirit_stones"] == 100
     assert me_a["character"]["action_points"] == 100
@@ -101,6 +103,7 @@ def main():
     force_ready_for_breakthrough(player_a, luck=120, inner_demon=0)
     success = request("/action/breakthrough", "POST", token=token_a)
     assert "突破成功" in success["message"]
+    assert success["character"]["realm"] == "炼气二层"
 
     force_ready_for_breakthrough(player_b, luck=0, inner_demon=100)
     failure = request("/action/breakthrough", "POST", token=token_b)

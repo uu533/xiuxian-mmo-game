@@ -944,8 +944,8 @@
           const member = currentSect.member;
           sectSummary.innerHTML = `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${member.position_name} · 贡献 ${member.contribution} · 声望 ${member.reputation}</span><span>正道 ${reputations.righteous || 0} / 魔道 ${reputations.demonic || 0} / 鬼道 ${reputations.ghost || 0} / 佛道 ${reputations.buddhist || 0}</span></div><button data-sect-action="promote">晋升</button><button data-sect-action="leave" class="danger">退出</button></div>`;
           sectTasks.innerHTML = `${mySectTasks
-            .filter((task) => task.status === "active")
-            .map((task) => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span></div><button data-complete-sect-task="${task.id}">完成</button></div>`)
+            .filter((task) => task.status === "active" || task.status === "claimable")
+            .map((task) => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span><span>进度：${task.progress} / ${task.target} · ${task.status === "claimable" ? "可领取" : "进行中"}</span></div><button data-complete-sect-task="${task.id}" ${task.status === "claimable" ? "" : "disabled"}>${task.status === "claimable" ? "领取奖励" : "未达成"}</button></div>`)
             .join("")}${availableSectTasks
             .map((task) => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward.contribution || 0} · 灵石 ${task.reward.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`)
             .join("") || `<div class="empty">暂无可接任务</div>`}`;

@@ -13,6 +13,7 @@ from backend.configs.sects import (
 )
 from backend.models import Character, Sect, SectMember, SectReputationLog, SectTask, User, utc_now
 from backend.services.inventory_service import add_item_to_main_bag, consume_item_by_code, has_item
+from backend.services.log_service import write_log
 
 
 def derive_sect_position(character: Character) -> str:
@@ -158,7 +159,7 @@ def accept_sect_task(db: Session, user: User, task_code: str) -> tuple[bool, str
     member = active_member(db, character)
     if not member:
         return False, "你尚未加入宗门。", {"reason": "not_in_sect"}
-    if db.query(SectTask).filter(SectTask.character_id == character.id, SectTask.status == "active").first():
+    if db.query(SectTask).filter(SectTask.character_id == character.id, SectTask.status.in_(["active", "claimable"])).first():
         return False, "你已有进行中的宗门任务。", {"reason": "active_task_exists"}
     config = _task_config(task_code)
     if not config or not _task_available(config, member.sect.faction, member.position):
@@ -168,7 +169,7 @@ def accept_sect_task(db: Session, user: User, task_code: str) -> tuple[bool, str
         character_id=character.id,
         task_code=config["code"],
         task_type=config["type"],
-        target=int(config.get("target", 1)),
+        target=int(config.get("target_count", config.get("target", 1))),
         reward_json=config.get("reward", {}),
     )
     db.add(task)
@@ -181,17 +182,15 @@ def complete_sect_task(db: Session, user: User, task_id: int | None = None) -> t
     member = active_member(db, character)
     if not member:
         return False, "你尚未加入宗门。", {"reason": "not_in_sect"}, {}, []
-    query = db.query(SectTask).filter(SectTask.character_id == character.id, SectTask.status == "active")
+    query = db.query(SectTask).filter(SectTask.character_id == character.id, SectTask.status.in_(["active", "claimable"]))
     task = query.filter(SectTask.id == task_id).first() if task_id else query.order_by(SectTask.id.asc()).first()
     if not task:
-        return False, "没有可完成的宗门任务。", {"reason": "no_active_sect_task"}, {}, []
+        return False, "没有可领取奖励的宗门任务。", {"reason": "no_claimable_sect_task"}, {}, []
     config = _task_config(task.task_code)
     if not config:
         return False, "宗门任务配置不存在。", {"reason": "task_config_missing"}, {}, []
-
-    ok, message, cost = _pay_task_cost(db, character, config)
-    if not ok:
-        return False, message, {"reason": "task_cost_failed", "task": sect_task_payload(task)}, cost, []
+    if task.status != "claimable" or task.progress < task.target:
+        return False, f"宗门任务「{config['name']}」尚未达成，当前进度 {task.progress}/{task.target}。", {"reason": "task_not_ready", "task": sect_task_payload(task)}, {}, []
 
     reward = config.get("reward", {})
     reward_logs = _grant_sect_reward(db, character, reward)
@@ -204,7 +203,48 @@ def complete_sect_task(db: Session, user: User, task_id: int | None = None) -> t
     task.completed_at = utc_now()
     _add_reputation_logs(db, character, member.sect, int(config.get("reputation", 0)), f"sect_task:{task.task_code}")
     db.flush()
+    cost: dict = {}
     return True, f"完成宗门任务「{config['name']}」，获得 {contribution} 贡献。", {"task": sect_task_payload(task), "member": member_payload(member), "reward": reward}, cost, reward_logs
+
+
+def record_sect_task_progress(db: Session, user: User, action_type: str, success: bool, result_data: dict | None = None) -> list[str]:
+    if not success or action_type in {"accept_sect_task", "complete_sect_task", "join_sect", "leave_sect"}:
+        return []
+    character = user.character
+    member = active_member(db, character)
+    if not member:
+        return []
+    task = (
+        db.query(SectTask)
+        .filter(SectTask.character_id == character.id, SectTask.status == "active")
+        .order_by(SectTask.id.asc())
+        .first()
+    )
+    if not task:
+        return []
+    config = _task_config(task.task_code)
+    if not config:
+        return []
+    amount = _progress_amount(config, action_type, result_data or {})
+    if amount <= 0:
+        return []
+    before = task.progress
+    task.progress = min(task.target, task.progress + amount)
+    messages = [f"宗门任务进度：{config['name']} {task.progress}/{task.target}"]
+    write_log(
+        db,
+        user,
+        "sect",
+        messages[0],
+        {"task_id": task.id, "task_code": task.task_code, "from": before, "to": task.progress, "target": task.target},
+    )
+    if task.progress >= task.target:
+        task.status = "claimable"
+        ready_message = f"宗门任务「{config['name']}」已达成，可领取奖励。"
+        messages.append(ready_message)
+        write_log(db, user, "sect", ready_message, {"task_id": task.id, "task_code": task.task_code})
+    db.flush()
+    return messages
 
 
 def promote_position(db: Session, user: User) -> tuple[bool, str, dict]:
@@ -275,12 +315,19 @@ def task_config_payload(task: dict, sect: Sect) -> dict:
         "code": task["code"],
         "name": task["name"],
         "type": task["type"],
+        "task_type": task["type"],
+        "target_action": task.get("target_action"),
+        "target_count": task.get("target_count", task.get("target", 1)),
         "faction": task["faction"],
         "required_position": task["required_position"],
         "required_position_name": position_name(sect.faction, task["required_position"]),
-        "target": task.get("target", 1),
+        "target": task.get("target_count", task.get("target", 1)),
         "cost": task.get("cost", {}),
         "reward": task.get("reward", {}),
+        "reward_contribution": int(task.get("reward", {}).get("contribution", 0)),
+        "reward_reputation": int(task.get("reputation", 0)),
+        "reward_items": task.get("reward", {}).get("items", []),
+        "reward_stones": int(task.get("reward", {}).get("spirit_stones", 0)),
         "description": task["description"],
     }
 
@@ -296,6 +343,7 @@ def sect_task_payload(task: SectTask) -> dict:
         "status": task.status,
         "progress": task.progress,
         "target": task.target,
+        "current_progress": task.progress,
         "reward": task.reward_json,
         "description": config.get("description", ""),
     }
@@ -328,6 +376,30 @@ def _pay_task_cost(db: Session, character: Character, config: dict) -> tuple[boo
             return False, f"缺少任务所需物品：{code} x{quantity}", {"items": config.get("required_items", [])}
         consume_item_by_code(db, character, code, quantity)
     return True, "", cost
+
+
+def _progress_amount(config: dict, action_type: str, result_data: dict) -> int:
+    if action_type != config.get("target_action"):
+        return 0
+    task_type = config["type"]
+    if task_type == "patrol":
+        return 1
+    if task_type == "train_method":
+        return 1
+    if task_type == "gather_material":
+        allowed = set(config.get("target_item_codes", []))
+        rewards = result_data.get("rewards", [])
+        if not allowed:
+            return 1 if any(reward.get("type") == "item" for reward in rewards) else 0
+        return sum(int(reward.get("quantity", 1)) for reward in rewards if reward.get("code") in allowed)
+    if task_type == "hunt_beast":
+        battle = result_data.get("battle") or {}
+        return 1 if result_data.get("event_type") == "battle" and battle.get("won", True) else 0
+    if task_type == "explore_secret":
+        return 1 if result_data.get("event_type") in set(config.get("target_event_types", [])) else 0
+    if task_type == "faction_conflict":
+        return 1 if result_data.get("event_type") in set(config.get("target_event_types", [])) else 0
+    return 1
 
 
 def _grant_sect_reward(db: Session, character: Character, reward: dict) -> list[dict]:

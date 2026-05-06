@@ -298,6 +298,17 @@ def main():
     assert any(task["code"] == "patrol_mountain" for task in sect_tasks)
     accepted = action(token_s, "accept_sect_task", {"task_code": "patrol_mountain"})
     assert accepted["success"] is True
+    early_claim = action(token_s, "complete_sect_task")
+    assert early_claim["success"] is False
+    force_character(player_s, mana=500)
+    assert action(token_s, "explore")["success"] is True
+    active_task = request("/sects/tasks/me", token=token_s)[0]
+    assert active_task["status"] == "active"
+    assert active_task["progress"] == 1
+    assert action(token_s, "explore")["success"] is True
+    active_task = request("/sects/tasks/me", token=token_s)[0]
+    assert active_task["status"] == "claimable"
+    assert active_task["progress"] == active_task["target"]
     before_contribution = request("/sects/me", token=token_s)["member"]["contribution"]
     completed = action(token_s, "complete_sect_task")
     assert completed["success"] is True

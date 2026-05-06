@@ -19,6 +19,7 @@ SIMULATION_RESULT_PATH = BASE_DIR / "simulation_result.json"
 def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
     minutes = max(1, int(hours * 60))
     state = _new_state()
+    state["sect_enabled"] = with_sect
     stats = {
         "actions": Counter(),
         "drops": Counter(),
@@ -34,6 +35,7 @@ def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
         "sect_tasks_completed": 0,
         "sect_contribution_gained": 0,
         "sect_reward_stones": 0,
+        "sect_reputation_change": Counter(),
     }
 
     for minute in range(minutes):
@@ -83,6 +85,10 @@ def _new_state() -> dict:
         "explore_count": 0,
         "sect_joined": False,
         "sect_contribution": 0,
+        "sect_enabled": False,
+        "sect_task_status": None,
+        "sect_task_progress": 0,
+        "sect_task_target": 2,
     }
 
 
@@ -133,16 +139,32 @@ def _simulate_sect_layer(state: dict, stats: dict, minute: int) -> None:
         state["sect_joined"] = True
         state["sect_contribution"] += 30
         stats["sect_contribution_gained"] += 30
+        stats["sect_reputation_change"]["righteous"] += 10
+        stats["sect_reputation_change"]["demonic"] -= 10
+        stats["sect_reputation_change"]["ghost"] -= 10
+        stats["sect_reputation_change"]["buddhist"] += 3
         stats["actions"]["join_sect"] += 1
-    if not state["sect_joined"] or minute == 0 or minute % 12 != 0 or state["mana"] < 20:
+    if not state["sect_joined"]:
         return
-    state["mana"] -= 20
-    state["consecutive_train"] = 0
+    if state["sect_task_status"] is None:
+        state["sect_task_status"] = "active"
+        state["sect_task_progress"] = 0
+        state["sect_task_target"] = 2
+        stats["actions"]["accept_sect_task"] += 1
+        return
+    if state["sect_task_status"] != "claimable":
+        return
     state["sect_contribution"] += 20
     state["spirit_stones"] += 30
+    state["sect_task_status"] = None
+    state["sect_task_progress"] = 0
     stats["sect_tasks_completed"] += 1
     stats["sect_contribution_gained"] += 20
     stats["sect_reward_stones"] += 30
+    stats["sect_reputation_change"]["righteous"] += 8
+    stats["sect_reputation_change"]["demonic"] -= 8
+    stats["sect_reputation_change"]["ghost"] -= 8
+    stats["sect_reputation_change"]["buddhist"] += 2
     stats["total_spirit_stones_gained"] += 30
     stats["actions"]["complete_sect_task"] += 1
 
@@ -163,6 +185,7 @@ def _simulate_explore(state: dict, stats: dict) -> None:
     state["consecutive_train"] = 0
     state["explore_count"] += 1
     stats["actions"]["explore"] += 1
+    _simulate_sect_task_progress(state, stats, "explore")
     if random.random() <= min(LUCKY_EVENT_CONFIG["max_rate"], LUCKY_EVENT_CONFIG["base_rate"] + state["hidden_luck"] * LUCKY_EVENT_CONFIG["luck_factor"]):
         stats["actions"]["lucky"] += 1
         for _ in range(2):
@@ -189,6 +212,18 @@ def _simulate_practice_method(state: dict, stats: dict) -> None:
         state["method_level"] += 1
     state["max_mana"] = 100 + state["method_level"] * 12
     stats["actions"]["practice_method"] += 1
+    _simulate_sect_task_progress(state, stats, "practice_method")
+
+
+def _simulate_sect_task_progress(state: dict, stats: dict, action_type: str) -> None:
+    if not state["sect_enabled"] or not state["sect_joined"] or state["sect_task_status"] != "active":
+        return
+    if action_type != "explore":
+        return
+    state["sect_task_progress"] = min(state["sect_task_target"], state["sect_task_progress"] + 1)
+    stats["actions"]["sect_task_progress"] += 1
+    if state["sect_task_progress"] >= state["sect_task_target"]:
+        state["sect_task_status"] = "claimable"
 
 
 def _simulate_upgrade_artifact(state: dict, stats: dict) -> None:
@@ -293,8 +328,11 @@ def _drop_table_key(state: dict) -> str:
 def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sect: bool = False) -> dict:
     warnings = _build_warnings(state, stats, minutes)
     attempts = max(1, stats["breakthrough_attempts"])
-    counted_actions = sum(stats["actions"].values())
+    growth_actions = {"explore", "train", "practice_method", "breakthrough"}
+    counted_actions = sum(count for action, count in stats["actions"].items() if action in growth_actions)
     explore_ratio = stats["actions"].get("explore", 0) / max(1, counted_actions)
+    train_ratio = stats["actions"].get("train", 0) / max(1, counted_actions)
+    sect_reward_ratio = stats["sect_reward_stones"] / max(1, stats["total_spirit_stones_gained"])
     return {
         "time": f"{hours:g}h",
         "realm": state["realm"],
@@ -310,6 +348,7 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sec
         "drop_stats": dict(stats["drops"]),
         "action_counts": dict(stats["actions"]),
         "explore_ratio": round(explore_ratio, 4),
+        "train_ratio": round(train_ratio, 4),
         "explore_count": state["explore_count"],
         "average_spirit_stones_per_hour": round(stats["total_spirit_stones_gained"] / max(0.1, hours), 2),
         "average_cultivation_per_hour": round(stats["total_cultivation_gained"] / max(0.1, hours), 2),
@@ -323,6 +362,8 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sec
         "sect_contribution": state["sect_contribution"],
         "sect_contribution_gained": stats["sect_contribution_gained"],
         "sect_reward_stones": stats["sect_reward_stones"],
+        "sect_reputation_change": dict(stats["sect_reputation_change"]),
+        "sect_reward_ratio": round(sect_reward_ratio, 4),
         "simulation_result_file": str(SIMULATION_RESULT_PATH),
     }
 
@@ -333,7 +374,9 @@ def _build_warnings(state: dict, stats: dict, minutes: int) -> list[str]:
         warnings.append("严格修炼策略 1 小时内没有探索收益，前期需要任务引导")
     if stats["actions"].get("explore", 0) > 0 and not stats["drops"]:
         warnings.append("探索掉落过低")
-    if minutes >= 60 and stats["actions"].get("explore", 0) / max(1, sum(stats["actions"].values())) < 0.3:
+    growth_actions = {"explore", "train", "practice_method", "breakthrough"}
+    core_total = sum(count for action, count in stats["actions"].items() if action in growth_actions)
+    if minutes >= 60 and stats["actions"].get("explore", 0) / max(1, core_total) < 0.3:
         warnings.append("探索占比低于 30%，仍可能偏向单一修炼")
     if state["realm"] == "炼气十二层" and state["items"].get("foundation_pill", 0) <= 0:
         warnings.append("筑基丹掉率过低")
@@ -345,6 +388,8 @@ def _build_warnings(state: dict, stats: dict, minutes: int) -> list[str]:
         warnings.append("背包接近溢出")
     if stats["bottleneck_reasons"].get("missing_foundation_pill", 0) > 20:
         warnings.append("筑基丹掉率过低")
+    if stats.get("sect_reward_stones", 0) / max(1, stats.get("total_spirit_stones_gained", 0)) > 0.45:
+        warnings.append("宗门任务灵石奖励占比过高，可能出现只刷宗门任务")
     return sorted(set(warnings))
 
 

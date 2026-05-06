@@ -32,6 +32,7 @@ from backend.services.sect_service import (
     join_sect,
     leave_sect,
     promote_position,
+    record_sect_task_progress,
 )
 from backend.services.task_service import record_task_progress
 
@@ -299,11 +300,13 @@ def _finalize(
     for entry in extra_logs or []:
         write_log(db, user, entry["type"], entry["content"], entry.get("data", {}))
     task_messages = record_task_progress(db, user, action_type, success, data)
+    sect_task_messages = record_sect_task_progress(db, user, action_type, success, data)
     write_action_record(db, character.id, action_type, cost, {"success": success, "message": message, "rewards": rewards, "data": data})
     combined_message = message
-    if task_messages:
-        combined_message = f"{message} {' '.join(task_messages)}"
-    return _result(db, user, success, combined_message, cost, rewards, [message, *task_messages], action_type, data)
+    progress_messages = [*task_messages, *sect_task_messages]
+    if progress_messages:
+        combined_message = f"{message} {' '.join(progress_messages)}"
+    return _result(db, user, success, combined_message, cost, rewards, [message, *progress_messages], action_type, data)
 
 
 def _result(db: Session, user: User, success: bool, message: str, cost: dict, rewards: list[dict], logs: list[str], action_type: str, data: dict | None = None) -> dict:

@@ -171,6 +171,51 @@ def set_first_artifact_rarity(username, rarity="白"):
         conn.commit()
 
 
+def force_active_sect_member(username, **fields):
+    _user_id, character_id = get_ids(username)
+    assignments = ", ".join(f"{name} = ?" for name in fields)
+    values = list(fields.values()) + [character_id]
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(f"UPDATE sect_members SET {assignments} WHERE character_id = ? AND status = 'active'", values)
+        conn.commit()
+
+
+def fill_inventory(username):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        template_id = conn.execute("SELECT id FROM item_templates WHERE code = 'low_artifact'").fetchone()[0]
+        empty_slots = conn.execute(
+            """
+            SELECT id FROM inventory_slots
+            WHERE character_id = ? AND container_type = 'main_bag' AND container_id = 0 AND item_template_id IS NULL
+            """,
+            (character_id,),
+        ).fetchall()
+        for (slot_id,) in empty_slots:
+            conn.execute(
+                """
+                INSERT INTO item_instances (item_template_id, owner_character_id, durability, level, exp, rarity, bound, extra_json)
+                VALUES (?, ?, 100, 1, 0, '白', 0, '{}')
+                """,
+                (template_id, character_id),
+            )
+            instance_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            conn.execute(
+                """
+                UPDATE inventory_slots
+                SET item_template_id = ?, quantity = 1, item_instance_id = ?
+                WHERE id = ?
+                """,
+                (template_id, instance_id, slot_id),
+            )
+        conn.commit()
+
+
+def count_action_records(character_id, action_type):
+    with sqlite3.connect(DB_PATH) as conn:
+        return conn.execute("SELECT COUNT(*) FROM action_records WHERE character_id = ? AND action_type = ?", (character_id, action_type)).fetchone()[0]
+
+
 def table_columns(table_name):
     with sqlite3.connect(DB_PATH) as conn:
         return {row[1] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()}
@@ -187,6 +232,7 @@ def main():
     stamp = int(time.time())
     player_a = f"loop_a_{stamp}"
     player_b = f"loop_b_{stamp}"
+    player_s = f"sect_s_{stamp}"
 
     assert request("/dev/health")["ok"] is True
     summary = request("/dev/db-summary")
@@ -199,10 +245,16 @@ def main():
         "character_tasks",
         "game_logs",
         "action_records",
+        "sects",
+        "sect_members",
+        "sect_tasks",
+        "sect_reputation_logs",
     ]:
         assert table in summary["tables"]
+    assert summary["sects"] >= 8
     simulation_1h = request("/dev/simulation?hours=1")
     simulation_3h = request("/dev/simulation?hours=3")
+    simulation_sect = request("/dev/simulation?hours=3&with_sect=true")
     assert simulation_1h["time"] == "1h"
     assert simulation_3h["time"] == "3h"
     assert "realm" in simulation_3h
@@ -210,11 +262,15 @@ def main():
     assert "action_counts" in simulation_3h
     assert simulation_1h["action_counts"].get("explore", 0) > 0
     assert simulation_1h["explore_ratio"] >= 0.3
+    assert simulation_sect["with_sect"] is True
+    assert "sect_tasks_completed" in simulation_sect
     assert SIMULATION_PATH.exists()
 
     token_a = register(player_a)["token"]
     token_b = register(player_b)["token"]
+    token_s = register(player_s)["token"]
     _user_a_id, character_a_id = get_ids(player_a)
+    _user_s_id, character_s_id = get_ids(player_s)
 
     me_a = request("/character/me", token=token_a)
     me_b = request("/character/me", token=token_b)
@@ -225,6 +281,47 @@ def main():
     assert me_a["active_task"]["progress"] == 0
     assert "action_points" not in table_columns("characters")
     assert not HIDDEN_FIELDS.intersection(me_a["character"].keys())
+
+    sects = request("/sects")
+    assert len(sects) >= 8
+    assert {sect["faction"] for sect in sects} >= {"righteous", "demonic", "ghost", "buddhist"}
+    force_character(player_s, realm="炼气五层", realm_stage="炼气", cultivation_cap=330, mana=500, spirit_stones=500)
+    joined = action(token_s, "join_sect", {"sect_code": "qingxuan_sword_sect"})
+    assert joined["success"] is True
+    assert joined["sect"]["code"] == "qingxuan_sword_sect"
+    sect_me = request("/sects/me", token=token_s)
+    assert sect_me["sect"]["name"] == "青玄剑宗"
+    assert sect_me["member"]["position"] == "outer_disciple"
+    second_join = action(token_s, "join_sect", {"sect_code": "taiqing_alchemy_pavilion"})
+    assert second_join["success"] is False
+    sect_tasks = request("/sects/tasks", token=token_s)
+    assert any(task["code"] == "patrol_mountain" for task in sect_tasks)
+    accepted = action(token_s, "accept_sect_task", {"task_code": "patrol_mountain"})
+    assert accepted["success"] is True
+    before_contribution = request("/sects/me", token=token_s)["member"]["contribution"]
+    completed = action(token_s, "complete_sect_task")
+    assert completed["success"] is True
+    after_sect = request("/sects/me", token=token_s)
+    assert after_sect["member"]["contribution"] > before_contribution
+    assert after_sect["reputations"]["righteous"] > 0
+    assert count_logs(character_s_id, "sect") >= 2
+    assert count_action_records(character_s_id, "complete_sect_task") >= 1
+    force_active_sect_member(player_s, contribution=220)
+    exchanged = action(token_s, "exchange_sect_reward", {"reward_code": "sect_mana_pill"})
+    assert exchanged["success"] is True
+    force_active_sect_member(player_s, contribution=150)
+    promoted = action(token_s, "promote_sect_position")
+    assert promoted["success"] is True
+    assert request("/sects/me", token=token_s)["member"]["position"] == "inner_disciple"
+    fill_inventory(player_s)
+    force_active_sect_member(player_s, contribution=500)
+    full_exchange = action(token_s, "exchange_sect_reward", {"reward_code": "sect_artifact"})
+    assert full_exchange["success"] is False
+    left = action(token_s, "leave_sect")
+    assert left["success"] is True
+    assert request("/sects/me", token=token_s)["sect"] is None
+    rejoined = action(token_s, "join_sect", {"sect_code": "taiqing_alchemy_pavilion"})
+    assert rejoined["success"] is True
 
     force_character(player_a, mana=500, hidden_luck=150)
     for _ in range(5):

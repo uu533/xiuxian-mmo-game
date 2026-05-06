@@ -190,6 +190,17 @@ python tests/smoke_test.py
 - 任务进度由后端行为系统自动推进，完成后自动发放奖励并写入 `game_logs` 的 `task` 类型日志。
 - 前端主界面会显示当前任务和完成进度，游戏主循环不依赖任务也能运行。
 
+## 宗门系统第一版
+
+- 默认初始化 8 个 NPC 宗门：青玄剑宗、太清丹阁、血煞门、阴罗教、幽冥谷、白骨观、金莲寺、大觉禅院。
+- 宗门阵营分为正道、魔道、鬼道、佛道，阵营关系和任务/商店配置位于 `backend/configs/sects.py`。
+- 玩家可通过 `join_sect` 加入宗门，通过 `leave_sect` 退出宗门。
+- 宗门任务支持巡山、收集材料、猎杀妖兽、捐献灵石、参悟功法、探查秘境和阵营冲突。
+- 完成宗门任务会增加贡献和阵营声望，写入 `game_logs`、`action_records` 和 `sect_reputation_logs`。
+- 宗门贡献可通过 `exchange_sect_reward` 兑换丹药、功法、法宝、材料等资源。
+- 前端新增“宗门”页，可完成加入、任务、兑换、晋升和退出操作。
+- 模拟接口支持 `GET /dev/simulation?hours=3&with_sect=true` 查看宗门任务对成长的影响。
+
 ## API
 
 详见 [docs/API.md](docs/API.md)。

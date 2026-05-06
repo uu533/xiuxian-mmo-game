@@ -17,5 +17,5 @@ def dev_db_summary() -> dict:
 
 
 @router.get("/dev/simulation")
-def dev_simulation(hours: float = 1) -> dict:
-    return run_simulation(hours)
+def dev_simulation(hours: float = 1, with_sect: bool = False) -> dict:
+    return run_simulation(hours, with_sect=with_sect)

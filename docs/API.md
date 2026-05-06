@@ -157,6 +157,12 @@ Authorization: Bearer <token>
 - `equip_artifact`：装备背包中的法宝，需要 `params.slot_index`。
 - `unequip_artifact`：卸下法宝，需要 `params.artifact_id`。
 - `upgrade_artifact`：强化法宝，需要 `params.artifact_id`。
+- `join_sect`：加入宗门，需要 `params.sect_code`。
+- `leave_sect`：退出当前宗门。
+- `accept_sect_task`：接取宗门任务，需要 `params.task_code`。
+- `complete_sect_task`：完成已接宗门任务，可传 `params.task_id`。
+- `promote_sect_position`：尝试晋升宗门职位。
+- `exchange_sect_reward`：兑换宗门奖励，需要 `params.reward_code`。
 
 示例：学习功法
 
@@ -276,6 +282,57 @@ Authorization: Bearer <token>
 
 探索事件现在会调用 `configs/drop_tables.py`，按角色境界阶段抽取掉落。掉落会进入 `inventory_slots`。低概率机缘由 `configs/opportunities.py` 控制，可能触发顿悟破境、稀有物品、高人指点、隐秘洞府等事件，并写入 `game_logs` 的 `lucky/drop` 类型日志。
 
+## Sects
+
+宗门配置位于 `backend/configs/sects.py`。当前初始化 8 个 NPC 宗门：
+
+- 正道：青玄剑宗、太清丹阁
+- 魔道：血煞门、阴罗教
+- 鬼道：幽冥谷、白骨观
+- 佛道：金莲寺、大觉禅院
+
+### GET /sects
+
+返回所有 NPC 宗门及加入要求。
+
+### GET /sects/me
+
+返回当前角色宗门、职位、贡献和阵营声望摘要。
+
+### GET /sects/tasks
+
+返回当前宗门和职位可接取的任务。
+
+### GET /sects/tasks/me
+
+返回当前角色已接取/已完成的宗门任务。
+
+### GET /sects/shop
+
+返回当前宗门贡献商店。
+
+加入宗门示例：
+
+```json
+{
+  "action_type": "join_sect",
+  "params": {
+    "sect_code": "qingxuan_sword_sect"
+  }
+}
+```
+
+完成任务示例：
+
+```json
+{
+  "action_type": "complete_sect_task",
+  "params": {}
+}
+```
+
+宗门任务完成后会增加贡献、写入 `game_logs` 的 `sect` 类型日志、写入 `action_records`，并通过 `sect_reputation_logs` 记录阵营声望变化。
+
 ## Tasks
 
 新手任务由 `configs/tasks.py` 配置。角色创建或旧角色启动迁移时会自动获得任务，当前版本包含：
@@ -334,6 +391,7 @@ Authorization: Bearer <token>
 
 ```text
 GET /dev/simulation?hours=3
+GET /dev/simulation?hours=3&with_sect=true
 ```
 
 返回示例：
@@ -364,6 +422,10 @@ GET /dev/simulation?hours=3
   "bottleneck_reasons": {},
   "warnings": [
     "严格修炼策略 1 小时内没有探索收益，前期需要任务引导"
-  ]
+  ],
+  "with_sect": false,
+  "sect_joined": false,
+  "sect_tasks_completed": 0,
+  "sect_contribution": 0
 }
 ```

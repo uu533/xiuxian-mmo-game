@@ -25,6 +25,14 @@ from backend.services.progression_service import (
     upgrade_artifact,
 )
 from backend.services.realm_service import is_major_breakthrough, next_realm_config, normalize_realm
+from backend.services.sect_service import (
+    accept_sect_task,
+    complete_sect_task,
+    exchange_reward,
+    join_sect,
+    leave_sect,
+    promote_position,
+)
 from backend.services.task_service import record_task_progress
 
 
@@ -46,6 +54,12 @@ def execute_action(db: Session, user: User, action_type: str, params: dict | Non
         "equip_artifact": _equip_artifact,
         "unequip_artifact": _unequip_artifact,
         "upgrade_artifact": _upgrade_artifact,
+        "join_sect": _join_sect,
+        "leave_sect": _leave_sect,
+        "accept_sect_task": _accept_sect_task,
+        "complete_sect_task": _complete_sect_task,
+        "promote_sect_position": _promote_sect_position,
+        "exchange_sect_reward": _exchange_sect_reward,
     }
     handler = handlers.get(action_type)
     if not handler:
@@ -232,6 +246,40 @@ def _upgrade_artifact(db: Session, user: User, params: dict) -> dict:
     return _finalize(db, user, ok, "upgrade_artifact", message, {"spirit_stones": data.get("cost", 0)}, [{"type": "artifact_upgrade", **data}] if ok else [], data)
 
 
+def _join_sect(db: Session, user: User, params: dict) -> dict:
+    ok, message, data = join_sect(db, user, str(params.get("sect_code", "")))
+    return _finalize(db, user, ok, "join_sect", message, {"sect_code": params.get("sect_code")}, [], data)
+
+
+def _leave_sect(db: Session, user: User, params: dict) -> dict:
+    _ = params
+    ok, message, data = leave_sect(db, user)
+    return _finalize(db, user, ok, "leave_sect", message, {}, [], data)
+
+
+def _accept_sect_task(db: Session, user: User, params: dict) -> dict:
+    ok, message, data = accept_sect_task(db, user, str(params.get("task_code", "")))
+    return _finalize(db, user, ok, "accept_sect_task", message, {"task_code": params.get("task_code")}, [], data)
+
+
+def _complete_sect_task(db: Session, user: User, params: dict) -> dict:
+    task_id = params.get("task_id")
+    ok, message, data, cost, extra_logs = complete_sect_task(db, user, int(task_id) if task_id else None)
+    rewards = [{"type": "sect_reward", **data.get("reward", {})}] if ok else []
+    return _finalize(db, user, ok, "complete_sect_task", message, cost, rewards, data, extra_logs)
+
+
+def _promote_sect_position(db: Session, user: User, params: dict) -> dict:
+    _ = params
+    ok, message, data = promote_position(db, user)
+    return _finalize(db, user, ok, "promote_sect_position", message, {}, [], data)
+
+
+def _exchange_sect_reward(db: Session, user: User, params: dict) -> dict:
+    ok, message, data = exchange_reward(db, user, str(params.get("reward_code", "")))
+    return _finalize(db, user, ok, "exchange_sect_reward", message, {"reward_code": params.get("reward_code")}, [{"type": "sect_exchange", **data}] if ok else [], data)
+
+
 def _finalize(
     db: Session,
     user: User,
@@ -255,12 +303,12 @@ def _finalize(
     combined_message = message
     if task_messages:
         combined_message = f"{message} {' '.join(task_messages)}"
-    return _result(db, user, success, combined_message, cost, rewards, [message, *task_messages], action_type)
+    return _result(db, user, success, combined_message, cost, rewards, [message, *task_messages], action_type, data)
 
 
-def _result(db: Session, user: User, success: bool, message: str, cost: dict, rewards: list[dict], logs: list[str], action_type: str) -> dict:
+def _result(db: Session, user: User, success: bool, message: str, cost: dict, rewards: list[dict], logs: list[str], action_type: str, data: dict | None = None) -> dict:
     _ = action_type
-    return {
+    result = {
         "success": success,
         "message": message,
         "character": character_payload(user.character),
@@ -269,6 +317,11 @@ def _result(db: Session, user: User, success: bool, message: str, cost: dict, re
         "logs": logs,
         "inventory": inventory_payload(db, user.character),
     }
+    data = data or {}
+    for key in ("sect", "member", "task"):
+        if key in data:
+            result[key] = data[key]
+    return result
 
 
 def _check_breakthrough_requirements(db: Session, character, target_realm: str) -> tuple[bool, str, dict]:

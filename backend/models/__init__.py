@@ -3,7 +3,7 @@ from backend.models.inventory import InventorySlot
 from backend.models.item import ItemInstance, ItemTemplate
 from backend.models.log import ActionRecord, GameLog
 from backend.models.progression import CharacterArtifact, CharacterMethod
-from backend.models.sect import Sect, SectMember
+from backend.models.sect import Sect, SectMember, SectReputationLog, SectTask
 from backend.models.social import Friendship, Message
 from backend.models.task import CharacterTask
 from backend.models.user import AuthToken, User
@@ -25,6 +25,8 @@ __all__ = [
     "Message",
     "Sect",
     "SectMember",
+    "SectReputationLog",
+    "SectTask",
     "User",
     "utc_now",
 ]

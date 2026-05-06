@@ -33,6 +33,7 @@ def create_tables() -> None:
     Base.metadata.create_all(bind=engine)
     migrate_early_mvp_schema()
     seed_item_templates()
+    seed_default_sects()
     ensure_existing_character_runtime_data()
 
 
@@ -70,6 +71,31 @@ def migrate_early_mvp_schema() -> None:
                 "rarity": "VARCHAR(8) NOT NULL DEFAULT '白'",
             },
         )
+        _add_missing_columns(
+            conn,
+            "sects",
+            {
+                "code": "VARCHAR(64)",
+                "faction": "VARCHAR(24) NOT NULL DEFAULT 'righteous'",
+                "is_player_created": "INTEGER NOT NULL DEFAULT 0",
+                "leader_character_id": "INTEGER",
+                "updated_at": "DATETIME",
+            },
+        )
+        _add_missing_columns(
+            conn,
+            "sect_members",
+            {
+                "reputation": "INTEGER NOT NULL DEFAULT 0",
+                "last_task_at": "DATETIME",
+                "last_left_at": "DATETIME",
+                "status": "VARCHAR(24) NOT NULL DEFAULT 'active'",
+            },
+        )
+        if "code" in _columns(conn, "sects"):
+            conn.execute(text("UPDATE sects SET code = COALESCE(NULLIF(code, ''), 'legacy_' || id)"))
+        if "updated_at" in _columns(conn, "sects"):
+            conn.execute(text("UPDATE sects SET updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP)"))
         existing = _columns(conn, "characters")
         if "luck" in existing:
             conn.execute(text("UPDATE characters SET hidden_luck = COALESCE(luck, hidden_luck)"))
@@ -145,6 +171,46 @@ def seed_item_templates() -> None:
                 )
 
 
+def seed_default_sects() -> None:
+    from backend.configs.sects import NPC_SECTS
+
+    with engine.begin() as conn:
+        for sect in NPC_SECTS:
+            exists = conn.execute(text("SELECT id FROM sects WHERE code = :code"), {"code": sect["code"]}).fetchone()
+            payload = {
+                "code": sect["code"],
+                "name": sect["name"],
+                "faction": sect["faction"],
+                "level": sect["level"],
+                "description": sect["description"],
+            }
+            if exists:
+                conn.execute(
+                    text(
+                        """
+                        UPDATE sects
+                        SET name = :name, faction = :faction, level = :level,
+                            description = :description, is_player_created = 0,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE code = :code
+                        """
+                    ),
+                    payload,
+                )
+            else:
+                conn.execute(
+                    text(
+                        """
+                        INSERT INTO sects
+                            (code, name, faction, level, description, is_player_created, created_at, updated_at)
+                        VALUES
+                            (:code, :name, :faction, :level, :description, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        """
+                    ),
+                    payload,
+                )
+
+
 def ensure_existing_character_runtime_data() -> None:
     from backend.models import Character
     from backend.services.calc_service import sync_base_and_caps
@@ -180,6 +246,9 @@ def db_summary() -> dict:
             "character_tasks": _count(conn, "character_tasks"),
             "game_logs": _count(conn, "game_logs"),
             "action_records": _count(conn, "action_records"),
+            "sects": _count(conn, "sects"),
+            "sect_members": _count(conn, "sect_members"),
+            "sect_tasks": _count(conn, "sect_tasks"),
             "rebuild_hint": DB_REBUILD_HINT,
         }
 

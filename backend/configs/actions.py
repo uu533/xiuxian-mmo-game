@@ -50,6 +50,30 @@ ACTION_CONFIGS = {
         "mana_cost": 0,
         "log_type": "artifact",
     },
+    "join_sect": {
+        "mana_cost": 0,
+        "log_type": "sect",
+    },
+    "leave_sect": {
+        "mana_cost": 0,
+        "log_type": "sect",
+    },
+    "accept_sect_task": {
+        "mana_cost": 0,
+        "log_type": "sect",
+    },
+    "complete_sect_task": {
+        "mana_cost": 0,
+        "log_type": "sect",
+    },
+    "promote_sect_position": {
+        "mana_cost": 0,
+        "log_type": "sect",
+    },
+    "exchange_sect_reward": {
+        "mana_cost": 0,
+        "log_type": "sect",
+    },
 }
 
 MANA_HELP_TEXT = "法力不足，可通过打坐恢复法力、吸收灵石恢复法力，或服用丹药恢复法力。"

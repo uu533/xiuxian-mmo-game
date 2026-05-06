@@ -17,6 +17,9 @@ class ActionResultResponse(BaseModel):
     cost: dict
     logs: list[str]
     inventory: list[InventorySlotResponse]
+    sect: dict | None = None
+    member: dict | None = None
+    task: dict | None = None
 
 
 ActionResponse = ActionResultResponse

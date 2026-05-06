@@ -649,6 +649,37 @@
             </div>
           </div>
 
+          <div id="tab-sect" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>宗门</h2>
+                <button id="refresh-sect-btn" class="secondary">刷新</button>
+              </div>
+              <div id="sect-summary" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>宗门任务</h2>
+                <span>贡献与声望</span>
+              </div>
+              <div id="sect-tasks" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>宗门商店</h2>
+                <span>贡献兑换</span>
+              </div>
+              <div id="sect-shop" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>可拜入宗门</h2>
+                <span>NPC 阵营</span>
+              </div>
+              <div id="sect-list" class="list"></div>
+            </div>
+          </div>
+
           <div id="tab-logs" class="tab-panel hidden">
             <div class="panel">
               <div class="panel-title">
@@ -665,6 +696,7 @@
         <button class="active" data-tab="cultivation"><span class="tab-icon">✦</span><span>修炼</span></button>
         <button data-tab="character"><span class="tab-icon">◇</span><span>角色</span></button>
         <button data-tab="bag"><span class="tab-icon">▣</span><span>背包</span></button>
+        <button data-tab="sect"><span class="tab-icon">▲</span><span>宗门</span></button>
         <button data-tab="logs"><span class="tab-icon">☰</span><span>日志</span></button>
       </nav>
 
@@ -699,6 +731,10 @@
       const taskPanel = document.getElementById("task-panel");
       const methodsList = document.getElementById("methods-list");
       const artifactsList = document.getElementById("artifacts-list");
+      const sectSummary = document.getElementById("sect-summary");
+      const sectTasks = document.getElementById("sect-tasks");
+      const sectShop = document.getElementById("sect-shop");
+      const sectList = document.getElementById("sect-list");
       const playerTitle = document.getElementById("player-title");
       const fullTitleName = document.getElementById("full-title-name");
       const titleSelect = document.getElementById("title-select");
@@ -708,6 +744,11 @@
       let currentUser = null;
       let currentMethods = [];
       let currentArtifacts = [];
+      let currentSect = null;
+      let sectCatalog = [];
+      let availableSectTasks = [];
+      let mySectTasks = [];
+      let currentSectShop = [];
 
       function getToken() {
         return localStorage.getItem(tokenKey);
@@ -861,6 +902,7 @@
         const data = await request("/character/me");
         renderCharacter(data);
         await loadProgression();
+        await loadSect();
         await loadLogs();
         showGame(true);
       }
@@ -880,6 +922,40 @@
         recentLogs.innerHTML = data.slice(0, 5).length
           ? data.slice(0, 5).map((log) => `<p>${log.content}</p>`).join("")
           : `<div class="empty">暂无游历记录</div>`;
+      }
+
+      async function loadSect() {
+        sectCatalog = await request("/sects");
+        currentSect = await request("/sects/me");
+        availableSectTasks = currentSect.sect ? await request("/sects/tasks") : [];
+        mySectTasks = currentSect.sect ? await request("/sects/tasks/me") : [];
+        currentSectShop = currentSect.sect ? await request("/sects/shop") : [];
+        renderSect();
+      }
+
+      function renderSect() {
+        const reputations = currentSect?.reputations || {};
+        if (!currentSect?.sect) {
+          sectSummary.innerHTML = `<div class="empty">你目前是散修，可以选择一个 NPC 宗门拜入。</div>`;
+          sectTasks.innerHTML = `<div class="empty">加入宗门后可接取任务。</div>`;
+          sectShop.innerHTML = `<div class="empty">加入宗门后可使用贡献兑换奖励。</div>`;
+        } else {
+          const sect = currentSect.sect;
+          const member = currentSect.member;
+          sectSummary.innerHTML = `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${member.position_name} · 贡献 ${member.contribution} · 声望 ${member.reputation}</span><span>正道 ${reputations.righteous || 0} / 魔道 ${reputations.demonic || 0} / 鬼道 ${reputations.ghost || 0} / 佛道 ${reputations.buddhist || 0}</span></div><button data-sect-action="promote">晋升</button><button data-sect-action="leave" class="danger">退出</button></div>`;
+          sectTasks.innerHTML = `${mySectTasks
+            .filter((task) => task.status === "active")
+            .map((task) => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span></div><button data-complete-sect-task="${task.id}">完成</button></div>`)
+            .join("")}${availableSectTasks
+            .map((task) => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward.contribution || 0} · 灵石 ${task.reward.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`)
+            .join("") || `<div class="empty">暂无可接任务</div>`}`;
+          sectShop.innerHTML = currentSectShop.length
+            ? currentSectShop.map((item) => `<div class="row"><div><strong>${item.name}</strong><span>消耗 ${item.cost} 贡献 · 获得 ${item.item_code} x${item.quantity}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("")
+            : `<div class="empty">暂无可兑换奖励</div>`;
+        }
+        sectList.innerHTML = sectCatalog
+          .map((sect) => `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${sect.description}</span><span>要求：${sect.required_realm} · 灵石 ${sect.required_spirit_stones || 0} · 偏好灵根 ${sect.preferred_root.join("、") || "不限"}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""}>拜入</button></div>`)
+          .join("");
       }
 
       async function auth(path) {
@@ -962,6 +1038,10 @@
         loadMe().catch((error) => showToast(error.message));
       });
 
+      document.getElementById("refresh-sect-btn").addEventListener("click", () => {
+        loadSect().catch((error) => showToast(error.message));
+      });
+
       titleSelect.addEventListener("change", () => {
         changeTitle(titleSelect.value).catch((error) => showToast(error.message));
       });
@@ -1004,6 +1084,42 @@
         }
         if (unequip) {
           doAction("unequip_artifact", { artifact_id: Number(unequip.dataset.artifactUnequip) }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectList.addEventListener("click", (event) => {
+        const join = event.target.closest("button[data-join-sect]");
+        if (join) {
+          doAction("join_sect", { sect_code: join.dataset.joinSect }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectTasks.addEventListener("click", (event) => {
+        const accept = event.target.closest("button[data-accept-sect-task]");
+        const complete = event.target.closest("button[data-complete-sect-task]");
+        if (accept) {
+          doAction("accept_sect_task", { task_code: accept.dataset.acceptSectTask }).catch((error) => showToast(error.message));
+        }
+        if (complete) {
+          doAction("complete_sect_task", { task_id: Number(complete.dataset.completeSectTask) }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectShop.addEventListener("click", (event) => {
+        const exchange = event.target.closest("button[data-exchange-sect-reward]");
+        if (exchange) {
+          doAction("exchange_sect_reward", { reward_code: exchange.dataset.exchangeSectReward }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectSummary.addEventListener("click", (event) => {
+        const action = event.target.closest("button[data-sect-action]");
+        if (!action) return;
+        if (action.dataset.sectAction === "promote") {
+          doAction("promote_sect_position").catch((error) => showToast(error.message));
+        }
+        if (action.dataset.sectAction === "leave") {
+          doAction("leave_sect").catch((error) => showToast(error.message));
         }
       });
 

@@ -16,7 +16,7 @@ from backend.utils.random_utils import weighted_choice
 SIMULATION_RESULT_PATH = BASE_DIR / "simulation_result.json"
 
 
-def run_simulation(hours: float = 1) -> dict:
+def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
     minutes = max(1, int(hours * 60))
     state = _new_state()
     stats = {
@@ -31,10 +31,15 @@ def run_simulation(hours: float = 1) -> dict:
         "total_spirit_stones_gained": 0,
         "total_cultivation_gained": 0,
         "bottleneck_reasons": Counter(),
+        "sect_tasks_completed": 0,
+        "sect_contribution_gained": 0,
+        "sect_reward_stones": 0,
     }
 
-    for _minute in range(minutes):
+    for minute in range(minutes):
         _auto_prepare(state, stats)
+        if with_sect:
+            _simulate_sect_layer(state, stats, minute)
         action = _choose_action(state, stats)
         if state["mana"] < _mana_cost(action):
             stats["mana_blocked_minutes"] += 1
@@ -49,7 +54,7 @@ def run_simulation(hours: float = 1) -> dict:
             _simulate_explore(state, stats)
         stats["bag_slots_used_peak"] = max(stats["bag_slots_used_peak"], len(state["items"]))
 
-    result = _build_result(hours, state, stats, minutes)
+    result = _build_result(hours, state, stats, minutes, with_sect)
     SIMULATION_RESULT_PATH.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
@@ -76,6 +81,8 @@ def _new_state() -> dict:
         "artifact_rarity": "白",
         "consecutive_train": 0,
         "explore_count": 0,
+        "sect_joined": False,
+        "sect_contribution": 0,
     }
 
 
@@ -119,6 +126,25 @@ def _auto_prepare(state: dict, stats: dict) -> None:
         _simulate_practice_method(state, stats)
     if state["artifact_equipped"] and state["artifact_level"] < 3 and state["spirit_stones"] >= _artifact_upgrade_cost(state):
         _simulate_upgrade_artifact(state, stats)
+
+
+def _simulate_sect_layer(state: dict, stats: dict, minute: int) -> None:
+    if not state["sect_joined"] and _realm_rank(state["realm"]) >= _realm_rank("炼气三层"):
+        state["sect_joined"] = True
+        state["sect_contribution"] += 30
+        stats["sect_contribution_gained"] += 30
+        stats["actions"]["join_sect"] += 1
+    if not state["sect_joined"] or minute == 0 or minute % 12 != 0 or state["mana"] < 20:
+        return
+    state["mana"] -= 20
+    state["consecutive_train"] = 0
+    state["sect_contribution"] += 20
+    state["spirit_stones"] += 30
+    stats["sect_tasks_completed"] += 1
+    stats["sect_contribution_gained"] += 20
+    stats["sect_reward_stones"] += 30
+    stats["total_spirit_stones_gained"] += 30
+    stats["actions"]["complete_sect_task"] += 1
 
 
 def _simulate_train(state: dict, stats: dict) -> None:
@@ -264,7 +290,7 @@ def _drop_table_key(state: dict) -> str:
     return state["realm_stage"]
 
 
-def _build_result(hours: float, state: dict, stats: dict, minutes: int) -> dict:
+def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sect: bool = False) -> dict:
     warnings = _build_warnings(state, stats, minutes)
     attempts = max(1, stats["breakthrough_attempts"])
     counted_actions = sum(stats["actions"].values())
@@ -291,6 +317,12 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int) -> dict:
         "bag_fill_ratio_peak": round(stats["bag_slots_used_peak"] / 81, 4),
         "bottleneck_reasons": dict(stats["bottleneck_reasons"]),
         "warnings": warnings,
+        "with_sect": with_sect,
+        "sect_joined": state["sect_joined"],
+        "sect_tasks_completed": stats["sect_tasks_completed"],
+        "sect_contribution": state["sect_contribution"],
+        "sect_contribution_gained": stats["sect_contribution_gained"],
+        "sect_reward_stones": stats["sect_reward_stones"],
         "simulation_result_file": str(SIMULATION_RESULT_PATH),
     }
 
@@ -314,3 +346,7 @@ def _build_warnings(state: dict, stats: dict, minutes: int) -> list[str]:
     if stats["bottleneck_reasons"].get("missing_foundation_pill", 0) > 20:
         warnings.append("筑基丹掉率过低")
     return sorted(set(warnings))
+
+
+def _realm_rank(name: str) -> int:
+    return REALM_NAMES.index(name) if name in REALM_NAMES else 0

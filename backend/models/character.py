@@ -36,7 +36,7 @@ class Character(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="character")
-    sect: Mapped["Sect | None"] = relationship(back_populates="characters")
+    sect: Mapped["Sect | None"] = relationship(back_populates="characters", foreign_keys=[sect_id])
     inventory_slots: Mapped[list["InventorySlot"]] = relationship(back_populates="character", cascade="all, delete-orphan")
     item_instances: Mapped[list["ItemInstance"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     methods: Mapped[list["CharacterMethod"]] = relationship(back_populates="character", cascade="all, delete-orphan")

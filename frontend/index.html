@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>太虚问道</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+        background: #08110f;
+        color: #f6eed9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        background: #08110f;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        min-height: 40px;
+        padding: 0 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: #17130c;
+        background: #e5c568;
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      button.secondary {
+        color: #e9eadf;
+        background: #314039;
+      }
+
+      button.danger {
+        color: #ffece5;
+        background: #9b3d31;
+      }
+
+      button:disabled {
+        color: #a9a293;
+        background: #314039;
+        cursor: not-allowed;
+      }
+
+      input {
+        width: 100%;
+        min-height: 42px;
+        border: 1px solid rgba(204, 223, 202, 0.2);
+        border-radius: 8px;
+        padding: 0 12px;
+        color: #f6eed9;
+        background: #10231f;
+        outline: none;
+      }
+
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        color: #c8d2c1;
+        font-size: 13px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 560px;
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: env(safe-area-inset-top) 14px calc(92px + env(safe-area-inset-bottom));
+        background:
+          linear-gradient(180deg, rgba(8, 17, 15, 0.08) 0%, rgba(8, 17, 15, 0.72) 42%, #08110f 100%),
+          radial-gradient(circle at 78% 10%, rgba(238, 214, 143, 0.9) 0 34px, rgba(238, 214, 143, 0.1) 35px, transparent 70px),
+          linear-gradient(135deg, #183b32 0%, #10231f 46%, #08110f 100%);
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      .shell::before {
+        content: "";
+        position: absolute;
+        inset: 135px 0 auto;
+        height: 210px;
+        background:
+          linear-gradient(135deg, transparent 0 16%, #07100e 16% 28%, transparent 28%),
+          linear-gradient(45deg, transparent 0 22%, #102b25 22% 37%, transparent 37%),
+          linear-gradient(135deg, transparent 0 40%, #173c32 40% 58%, transparent 58%);
+        opacity: 0.72;
+        pointer-events: none;
+      }
+
+      .hero,
+      .resource-strip,
+      .content,
+      .tabs,
+      .toast {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero {
+        min-height: 220px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 22px 0 14px;
+      }
+
+      .identity span,
+      .panel-title span,
+      .stat span,
+      .row span,
+      .row em,
+      .realm-pill {
+        color: #c8d2c1;
+      }
+
+      .identity h1 {
+        margin: 6px 0 4px;
+        font-size: 38px;
+        line-height: 1;
+        letter-spacing: 0;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.48);
+      }
+
+      .identity p {
+        margin: 0;
+        color: #e5c568;
+        font-weight: 800;
+      }
+
+      .realm-pill {
+        border: 1px solid rgba(229, 197, 104, 0.45);
+        border-radius: 999px;
+        padding: 8px 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(8, 17, 15, 0.62);
+        backdrop-filter: blur(6px);
+        font-size: 12px;
+      }
+
+      .resource-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .stat {
+        min-height: 58px;
+        padding: 10px;
+        border: 1px solid rgba(204, 223, 202, 0.12);
+        border-radius: 8px;
+        background: rgba(12, 30, 26, 0.88);
+        display: grid;
+        gap: 3px;
+      }
+
+      .stat strong {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-size: 18px;
+      }
+
+      .toast {
+        margin: 10px 0;
+        padding: 10px 12px;
+        border-left: 3px solid #d95f45;
+        border-radius: 8px;
+        background: rgba(73, 28, 25, 0.92);
+        color: #ffe7dd;
+        font-weight: 800;
+      }
+
+      .content {
+        display: grid;
+        gap: 10px;
+      }
+
+      .panel {
+        border: 1px solid rgba(204, 223, 202, 0.12);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(11, 24, 21, 0.94);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .panel-title h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .panel-title span {
+        font-size: 12px;
+        text-align: right;
+      }
+
+      .bar {
+        width: 100%;
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #263a33;
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #64c7a6, #e5c568, #d95f45);
+      }
+
+      .action-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .action-grid button {
+        width: 100%;
+        min-width: 0;
+        padding: 0 8px;
+      }
+
+      .recovery-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .row {
+        min-height: 58px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 8px;
+        background: #10231f;
+      }
+
+      .row div {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+      }
+
+      .row strong,
+      .row span,
+      .row em {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .row span,
+      .row em {
+        font-size: 12px;
+        font-style: normal;
+        line-height: 1.35;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .mini-stat {
+        min-height: 64px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #10231f;
+        display: grid;
+        gap: 5px;
+      }
+
+      .mini-stat span {
+        color: #c8d2c1;
+        font-size: 12px;
+      }
+
+      .mini-stat strong {
+        overflow-wrap: anywhere;
+      }
+
+      .title-editor {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #10231f;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .title-editor span {
+        color: #c8d2c1;
+        font-size: 12px;
+      }
+
+      .title-editor select {
+        min-height: 36px;
+        border: 1px solid rgba(204, 223, 202, 0.2);
+        border-radius: 8px;
+        padding: 0 8px;
+        color: #f6eed9;
+        background: #0b1815;
+      }
+
+      .root-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .help-btn {
+        width: 24px;
+        height: 24px;
+        min-height: 24px;
+        padding: 0;
+        border-radius: 50%;
+        color: #15130c;
+        background: #e5c568;
+        font-size: 14px;
+      }
+
+      .root-help {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        background: rgba(3, 8, 7, 0.72);
+      }
+
+      .root-help-card {
+        width: min(460px, 100%);
+        border: 1px solid rgba(229, 197, 104, 0.35);
+        border-radius: 8px;
+        padding: 14px;
+        background: #0b1815;
+        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.44);
+      }
+
+      .root-help-card h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .root-help-card p {
+        margin: 0 0 10px;
+        color: #dbe5d5;
+        line-height: 1.55;
+      }
+
+      .root-help-card ul {
+        margin: 0 0 12px;
+        padding-left: 18px;
+        color: #c8d2c1;
+        line-height: 1.6;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 8px;
+      }
+
+      .timeline p {
+        margin: 0;
+        padding: 9px 10px;
+        border-radius: 8px;
+        background: #10231f;
+        color: #dbe5d5;
+        line-height: 1.45;
+      }
+
+      .task-card {
+        border-left: 3px solid #e5c568;
+      }
+
+      .bag-grid {
+        display: grid;
+        grid-template-columns: repeat(9, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .bag-slot {
+        aspect-ratio: 1;
+        min-width: 0;
+        border: 1px solid rgba(204, 223, 202, 0.14);
+        border-radius: 6px;
+        padding: 4px;
+        display: grid;
+        align-content: space-between;
+        background: #10231f;
+        color: #f6eed9;
+        font-size: 11px;
+        line-height: 1.15;
+        overflow: hidden;
+      }
+
+      .bag-slot.empty-slot {
+        color: rgba(200, 210, 193, 0.35);
+        background: rgba(16, 35, 31, 0.52);
+      }
+
+      .bag-slot strong,
+      .bag-slot span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .bag-slot button {
+        min-height: 22px;
+        padding: 0 4px;
+        border-radius: 4px;
+        font-size: 11px;
+      }
+
+      .auth-card {
+        margin-top: -12px;
+      }
+
+      .auth-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .empty {
+        min-height: 58px;
+        display: grid;
+        place-content: center;
+        border: 1px dashed rgba(200, 210, 193, 0.24);
+        border-radius: 8px;
+        color: #c8d2c1;
+      }
+
+      .tabs {
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: min(560px, 100%);
+        padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        background: rgba(8, 17, 15, 0.94);
+        border-top: 1px solid rgba(204, 223, 202, 0.12);
+        backdrop-filter: blur(10px);
+      }
+
+      .tabs button {
+        min-height: 54px;
+        padding: 6px 4px;
+        display: grid;
+        gap: 2px;
+        color: #c8d2c1;
+        background: transparent;
+      }
+
+      .tabs button.active {
+        color: #15130c;
+        background: #e5c568;
+      }
+
+      .tab-icon {
+        font-size: 19px;
+        line-height: 1;
+      }
+
+      .tabs span {
+        font-size: 12px;
+      }
+
+      @media (min-width: 720px) {
+        .shell {
+          border-left: 1px solid rgba(204, 223, 202, 0.1);
+          border-right: 1px solid rgba(204, 223, 202, 0.1);
+        }
+      }
+
+      @media (max-width: 380px) {
+        .identity h1 {
+          font-size: 32px;
+        }
+
+        .hero {
+          align-items: flex-start;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        .row button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="identity">
+          <span id="hero-name">云游散修</span>
+          <h1 id="hero-realm">太虚问道</h1>
+          <p id="hero-subtitle">多人在线修仙文字游戏</p>
+        </div>
+        <div class="realm-pill" id="hero-pill">联网存档</div>
+      </section>
+
+      <section id="auth-section" class="panel auth-card">
+        <div class="panel-title">
+          <h2>登录 / 注册</h2>
+          <span>一人一档</span>
+        </div>
+        <label for="username">用户名</label>
+        <input id="username" autocomplete="username" placeholder="至少 3 个字符" />
+        <label for="password">密码</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="至少 6 个字符" />
+        <div class="auth-actions">
+          <button id="register-btn">注册</button>
+          <button id="login-btn" class="secondary">登录</button>
+        </div>
+      </section>
+
+      <section id="game-ui" class="hidden">
+        <section class="resource-strip">
+          <div class="stat"><span>修为</span><strong id="res-cultivation">0 / 0</strong></div>
+          <div class="stat"><span>灵石</span><strong id="res-stones">0</strong></div>
+          <div class="stat"><span>法力</span><strong id="res-mana">0 / 0</strong></div>
+          <div class="stat"><span>气血</span><strong id="res-hp">0</strong></div>
+        </section>
+
+        <div id="message" class="toast hidden"></div>
+
+        <section class="content">
+          <div id="tab-cultivation" class="tab-panel">
+            <div class="panel task-card">
+              <div class="panel-title">
+                <h2>当前任务</h2>
+                <span>新手引导</span>
+              </div>
+              <div id="task-panel" class="row"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>太虚吐纳</h2>
+                <span id="train-rate">后端结算</span>
+              </div>
+              <div class="bar"><span id="cultivation-bar" style="width: 0%"></span></div>
+              <div class="action-grid">
+                <button id="train-btn">修炼-12</button>
+                <button id="explore-btn">探索-18</button>
+                <button id="breakthrough-btn">突破-35</button>
+              </div>
+              <div class="action-grid recovery-grid">
+                <button id="meditate-btn" class="secondary">调息</button>
+                <button id="spirit-stone-btn" class="secondary">吸灵石</button>
+                <button id="pill-btn" class="secondary">服丹药</button>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-title">
+                <h2>最近游历</h2>
+                <span>实时日志</span>
+              </div>
+              <div id="recent-logs" class="timeline"></div>
+            </div>
+          </div>
+
+          <div id="tab-character" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2 id="player-title">角色</h2>
+                <button id="logout-btn" class="danger">退出</button>
+              </div>
+              <div class="title-editor">
+                <div>
+                  <strong id="full-title-name">云游散修 师兄</strong>
+                  <span>称号随境界解锁，可随时更换</span>
+                </div>
+                <select id="title-select" title="选择称号"></select>
+              </div>
+              <div id="character-grid" class="stats-grid"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>功法</h2>
+                <span>主修影响修炼和突破</span>
+              </div>
+              <div id="methods-list" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>法宝</h2>
+                <span>装备影响攻防和探索</span>
+              </div>
+              <div id="artifacts-list" class="list"></div>
+            </div>
+          </div>
+
+          <div id="tab-bag" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>背包</h2>
+                <span>探索所得</span>
+              </div>
+              <div id="inventory" class="list"></div>
+            </div>
+          </div>
+
+          <div id="tab-sect" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>宗门</h2>
+                <button id="refresh-sect-btn" class="secondary">刷新</button>
+              </div>
+              <div id="sect-summary" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>宗门任务</h2>
+                <span>贡献与声望</span>
+              </div>
+              <div id="sect-tasks" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>宗门商店</h2>
+                <span>贡献兑换</span>
+              </div>
+              <div id="sect-shop" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>可拜入宗门</h2>
+                <span>NPC 阵营</span>
+              </div>
+              <div id="sect-list" class="list"></div>
+            </div>
+          </div>
+
+          <div id="tab-logs" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>日志</h2>
+                <button id="refresh-btn" class="secondary">刷新</button>
+              </div>
+              <div id="logs" class="timeline"></div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <nav id="tabs" class="tabs hidden" aria-label="玩法导航">
+        <button class="active" data-tab="cultivation"><span class="tab-icon">✦</span><span>修炼</span></button>
+        <button data-tab="character"><span class="tab-icon">◇</span><span>角色</span></button>
+        <button data-tab="bag"><span class="tab-icon">▣</span><span>背包</span></button>
+        <button data-tab="sect"><span class="tab-icon">▲</span><span>宗门</span></button>
+        <button data-tab="logs"><span class="tab-icon">☰</span><span>日志</span></button>
+      </nav>
+
+      <div id="root-help" class="root-help hidden" role="dialog" aria-modal="true" aria-labelledby="root-help-title">
+        <div class="root-help-card">
+          <h2 id="root-help-title">灵根资质说明</h2>
+          <p id="root-current"></p>
+          <ul>
+            <li>金木水火土中单一属性为天灵根，修炼速度最快。</li>
+            <li>两个属性为双灵根，三个属性为三灵根。</li>
+            <li>四个属性为伪灵根，五行俱全为杂灵根，杂灵根修炼最慢。</li>
+            <li>雷、冰、光、暗为异灵根，修炼速度约等同三灵根。</li>
+          </ul>
+          <button id="close-root-help">知道了</button>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const API_HOST = window.location.hostname || "127.0.0.1";
+      const API_BASE = `http://${API_HOST}:8000`;
+      const tokenKey = "xiuxian_mmo_token";
+
+      const authSection = document.getElementById("auth-section");
+      const gameUi = document.getElementById("game-ui");
+      const tabs = document.getElementById("tabs");
+      const message = document.getElementById("message");
+      const grid = document.getElementById("character-grid");
+      const logs = document.getElementById("logs");
+      const recentLogs = document.getElementById("recent-logs");
+      const inventory = document.getElementById("inventory");
+      const taskPanel = document.getElementById("task-panel");
+      const methodsList = document.getElementById("methods-list");
+      const artifactsList = document.getElementById("artifacts-list");
+      const sectSummary = document.getElementById("sect-summary");
+      const sectTasks = document.getElementById("sect-tasks");
+      const sectShop = document.getElementById("sect-shop");
+      const sectList = document.getElementById("sect-list");
+      const playerTitle = document.getElementById("player-title");
+      const fullTitleName = document.getElementById("full-title-name");
+      const titleSelect = document.getElementById("title-select");
+      const rootHelp = document.getElementById("root-help");
+      const rootCurrent = document.getElementById("root-current");
+
+      let currentUser = null;
+      let currentMethods = [];
+      let currentArtifacts = [];
+      let currentSect = null;
+      let sectCatalog = [];
+      let availableSectTasks = [];
+      let mySectTasks = [];
+      let currentSectShop = [];
+
+      function getToken() {
+        return localStorage.getItem(tokenKey);
+      }
+
+      function setToken(token) {
+        localStorage.setItem(tokenKey, token);
+      }
+
+      function clearToken() {
+        localStorage.removeItem(tokenKey);
+      }
+
+      function showToast(text) {
+        message.textContent = text || "";
+        message.classList.toggle("hidden", !text);
+      }
+
+      async function request(path, options = {}) {
+        const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+        const token = getToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const response = await fetch(`${API_BASE}${path}`, {
+          ...options,
+          headers,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || "请求失败");
+        }
+        return data;
+      }
+
+      function showGame(loggedIn) {
+        authSection.classList.toggle("hidden", loggedIn);
+        gameUi.classList.toggle("hidden", !loggedIn);
+        tabs.classList.toggle("hidden", !loggedIn);
+      }
+
+      function setTab(tab) {
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.add("hidden"));
+        document.getElementById(`tab-${tab}`).classList.remove("hidden");
+        document.querySelectorAll(".tabs button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.tab === tab);
+        });
+      }
+
+      function renderCharacter(data) {
+        currentUser = data;
+        const c = data.character;
+        document.getElementById("hero-name").textContent = `${data.username} ${c.title}`;
+        document.getElementById("hero-realm").textContent = `${c.realm}`;
+        document.getElementById("hero-subtitle").textContent = `${c.spiritual_root} · ${c.age}岁 · ${c.identity_status}`;
+        document.getElementById("hero-pill").textContent = `法力 ${c.mana}/${c.max_mana}`;
+        document.getElementById("res-cultivation").textContent = `${c.cultivation} / ${c.cultivation_cap}`;
+        document.getElementById("res-stones").textContent = c.spirit_stones;
+        document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
+        document.getElementById("res-hp").textContent = `${c.hp} / ${c.max_hp} · ${c.life_status}`;
+        const isDead = c.hp <= 0;
+        document.getElementById("train-rate").textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
+        document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+        document.getElementById("train-btn").disabled = isDead || c.mana < 12;
+        document.getElementById("explore-btn").disabled = isDead || c.mana < 18;
+        document.getElementById("breakthrough-btn").disabled = isDead || c.mana < 35;
+        document.getElementById("meditate-btn").disabled = isDead || c.mana >= c.max_mana;
+        document.getElementById("spirit-stone-btn").disabled = isDead || c.spirit_stones < 10 || c.mana >= c.max_mana;
+        document.getElementById("pill-btn").disabled = isDead || !data.inventory.some((item) => item.code === "mana_pill" && item.quantity > 0) || c.mana >= c.max_mana;
+
+        playerTitle.textContent = `角色：${data.username} ${c.title}`;
+        fullTitleName.textContent = `${data.username} ${c.title}`;
+        titleSelect.innerHTML = c.unlocked_titles.map((title) => `<option value="${title}">${title}</option>`).join("");
+        titleSelect.value = c.title;
+        const stats = [
+          ["境界", c.realm],
+          ["修为", `${c.cultivation} / ${c.cultivation_cap}`],
+          ["灵根", c.spiritual_root, true],
+          ["年龄", c.age],
+          ["身份", c.identity_status],
+          ["宗门地位", c.sect_position],
+          ["寿元", c.lifespan],
+          ["气血", `${c.hp} / ${c.max_hp}（0则死亡）`],
+          ["生命状态", c.life_status],
+          ["法力", `${c.mana} / ${c.max_mana}`],
+          ["攻击", `${c.attack}（基础${c.base_attack}+加成${c.attack_bonus}）`],
+          ["防御", `${c.defense}（基础${c.base_defense}+加成${c.defense_bonus}）`],
+          ["突破率", `${Math.round(c.breakthrough_rate * 100)}%`],
+          ["灵石", c.spirit_stones],
+        ];
+        grid.innerHTML = stats
+          .map(([label, value, hasHelp]) => {
+            const valueHtml = hasHelp
+              ? `<div class="root-line"><strong>${value}</strong><button class="help-btn" id="root-help-btn" title="查看灵根说明">?</button></div>`
+              : `<strong>${value}</strong>`;
+            return `<div class="mini-stat"><span>${label}</span>${valueHtml}</div>`;
+          })
+          .join("");
+        const helpButton = document.getElementById("root-help-btn");
+        if (helpButton) {
+          helpButton.addEventListener("click", () => {
+            rootCurrent.textContent = `当前灵根：${currentUser.character.spiritual_root}`;
+            rootHelp.classList.remove("hidden");
+          });
+        }
+
+        inventory.innerHTML = `<div class="bag-grid">${data.inventory
+          .map((item) => {
+            if (!item.name) {
+              return `<div class="bag-slot empty-slot"><span>${item.slot_index}</span></div>`;
+            }
+            const actionLabel =
+              item.type === "pill"
+                ? "服用"
+                : item.type === "cultivation_method"
+                  ? "学习"
+                  : item.type === "magic_artifact"
+                    ? "装备"
+                    : "";
+            return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span>${actionLabel ? `<button data-slot-action="${item.type}" data-slot-index="${item.slot_index}">${actionLabel}</button>` : ""}</div>`;
+          })
+          .join("")}</div>`;
+        renderTask(data.active_task);
+      }
+
+      function renderTask(task) {
+        if (!task) {
+          taskPanel.innerHTML = `<div><strong>暂无任务</strong><span>继续探索修行即可</span></div>`;
+          return;
+        }
+        taskPanel.innerHTML = `<div><strong>${task.name}</strong><span>${task.description}</span><em>${task.progress} / ${task.target}</em></div><button disabled>${task.status === "completed" ? "已完成" : "进行中"}</button>`;
+      }
+
+      function renderProgression() {
+        methodsList.innerHTML = currentMethods.length
+          ? currentMethods
+              .map(
+                (method) =>
+                  `<div class="row"><div><strong>${method.name} ${method.equipped ? "· 主修" : ""}</strong><span>${method.level}层 · 经验 ${method.exp}${method.next_exp ? ` / ${method.next_exp}` : ""}</span></div><button data-method-equip="${method.id}" ${method.equipped ? "disabled" : ""}>主修</button><button data-method-practice="${method.id}" class="secondary">修炼</button></div>`
+              )
+              .join("")
+          : `<div class="empty">尚未学习功法</div>`;
+        artifactsList.innerHTML = currentArtifacts.length
+          ? currentArtifacts
+              .map(
+                (artifact) =>
+                  `<div class="row"><div><strong>${artifact.rarity}品 ${artifact.name}</strong><span>强化 +${artifact.level} · ${artifact.equipped ? "已装备" : "未装备"}</span></div><button data-artifact-upgrade="${artifact.id}">强化</button><button data-artifact-unequip="${artifact.id}" class="secondary">卸下</button></div>`
+              )
+              .join("")
+          : `<div class="empty">尚未装备法宝</div>`;
+      }
+
+      async function loadMe() {
+        const data = await request("/character/me");
+        renderCharacter(data);
+        await loadProgression();
+        await loadSect();
+        await loadLogs();
+        showGame(true);
+      }
+
+      async function loadProgression() {
+        currentMethods = await request("/methods");
+        currentArtifacts = await request("/artifacts");
+        renderProgression();
+      }
+
+      async function loadLogs() {
+        const data = await request("/logs?limit=30");
+        const items = data.length
+          ? data.map((log) => `<p><small>${new Date(log.created_at).toLocaleString()}</small><br />${log.content}</p>`).join("")
+          : `<div class="empty">暂无日志</div>`;
+        logs.innerHTML = items;
+        recentLogs.innerHTML = data.slice(0, 5).length
+          ? data.slice(0, 5).map((log) => `<p>${log.content}</p>`).join("")
+          : `<div class="empty">暂无游历记录</div>`;
+      }
+
+      async function loadSect() {
+        sectCatalog = await request("/sects");
+        currentSect = await request("/sects/me");
+        availableSectTasks = currentSect.sect ? await request("/sects/tasks") : [];
+        mySectTasks = currentSect.sect ? await request("/sects/tasks/me") : [];
+        currentSectShop = currentSect.sect ? await request("/sects/shop") : [];
+        renderSect();
+      }
+
+      function renderSect() {
+        const reputations = currentSect?.reputations || {};
+        if (!currentSect?.sect) {
+          sectSummary.innerHTML = `<div class="empty">你目前是散修，可以选择一个 NPC 宗门拜入。</div>`;
+          sectTasks.innerHTML = `<div class="empty">加入宗门后可接取任务。</div>`;
+          sectShop.innerHTML = `<div class="empty">加入宗门后可使用贡献兑换奖励。</div>`;
+        } else {
+          const sect = currentSect.sect;
+          const member = currentSect.member;
+          sectSummary.innerHTML = `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${member.position_name} · 贡献 ${member.contribution} · 声望 ${member.reputation}</span><span>正道 ${reputations.righteous || 0} / 魔道 ${reputations.demonic || 0} / 鬼道 ${reputations.ghost || 0} / 佛道 ${reputations.buddhist || 0}</span></div><button data-sect-action="promote">晋升</button><button data-sect-action="leave" class="danger">退出</button></div>`;
+          sectTasks.innerHTML = `${mySectTasks
+            .filter((task) => task.status === "active" || task.status === "claimable")
+            .map((task) => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span><span>进度：${task.progress} / ${task.target} · ${task.status === "claimable" ? "可领取" : "进行中"}</span></div><button data-complete-sect-task="${task.id}" ${task.status === "claimable" ? "" : "disabled"}>${task.status === "claimable" ? "领取奖励" : "未达成"}</button></div>`)
+            .join("")}${availableSectTasks
+            .map((task) => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward.contribution || 0} · 灵石 ${task.reward.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`)
+            .join("") || `<div class="empty">暂无可接任务</div>`}`;
+          sectShop.innerHTML = currentSectShop.length
+            ? currentSectShop.map((item) => `<div class="row"><div><strong>${item.name}</strong><span>消耗 ${item.cost} 贡献 · 获得 ${item.item_code} x${item.quantity}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("")
+            : `<div class="empty">暂无可兑换奖励</div>`;
+        }
+        sectList.innerHTML = sectCatalog
+          .map((sect) => `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${sect.description}</span><span>要求：${sect.required_realm} · 灵石 ${sect.required_spirit_stones || 0} · 偏好灵根 ${sect.preferred_root.join("、") || "不限"}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""}>拜入</button></div>`)
+          .join("");
+      }
+
+      async function auth(path) {
+        showToast("");
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const data = await request(path, {
+          method: "POST",
+          body: JSON.stringify({ username, password }),
+        });
+        setToken(data.token);
+        await loadMe();
+      }
+
+      async function doAction(actionType, params = {}) {
+        showToast("");
+        const data = await request("/action/execute", {
+          method: "POST",
+          body: JSON.stringify({ action_type: actionType, params }),
+        });
+        showToast(data.message);
+        await loadMe();
+      }
+
+      async function changeTitle(title) {
+        showToast("");
+        const data = await request("/character/title", {
+          method: "POST",
+          body: JSON.stringify({ title }),
+        });
+        showToast(data.message);
+        await loadMe();
+      }
+
+      document.getElementById("register-btn").addEventListener("click", () => {
+        auth("/register").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("login-btn").addEventListener("click", () => {
+        auth("/login").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        clearToken();
+        currentUser = null;
+        showToast("");
+        showGame(false);
+        document.getElementById("hero-name").textContent = "云游散修";
+        document.getElementById("hero-realm").textContent = "太虚问道";
+        document.getElementById("hero-subtitle").textContent = "多人在线修仙文字游戏";
+        document.getElementById("hero-pill").textContent = "联网存档";
+      });
+
+      document.getElementById("train-btn").addEventListener("click", () => {
+        doAction("train").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("explore-btn").addEventListener("click", () => {
+        doAction("explore").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("breakthrough-btn").addEventListener("click", () => {
+        doAction("breakthrough").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("meditate-btn").addEventListener("click", () => {
+        doAction("recover_mana_meditate").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("spirit-stone-btn").addEventListener("click", () => {
+        doAction("recover_mana_stone").catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("pill-btn").addEventListener("click", () => {
+        const slot = currentUser?.inventory.find((item) => item.code === "mana_pill" && item.quantity > 0);
+        doAction("use_item", { slot_index: slot ? slot.slot_index : 0 }).catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("refresh-btn").addEventListener("click", () => {
+        loadMe().catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("refresh-sect-btn").addEventListener("click", () => {
+        loadSect().catch((error) => showToast(error.message));
+      });
+
+      titleSelect.addEventListener("change", () => {
+        changeTitle(titleSelect.value).catch((error) => showToast(error.message));
+      });
+
+      document.getElementById("close-root-help").addEventListener("click", () => {
+        rootHelp.classList.add("hidden");
+      });
+
+      rootHelp.addEventListener("click", (event) => {
+        if (event.target === rootHelp) {
+          rootHelp.classList.add("hidden");
+        }
+      });
+
+      inventory.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-slot-action]");
+        if (!button) return;
+        const slotIndex = Number(button.dataset.slotIndex);
+        const type = button.dataset.slotAction;
+        const actionType = type === "pill" ? "use_item" : type === "cultivation_method" ? "learn_method" : "equip_artifact";
+        doAction(actionType, { slot_index: slotIndex }).catch((error) => showToast(error.message));
+      });
+
+      methodsList.addEventListener("click", (event) => {
+        const equip = event.target.closest("button[data-method-equip]");
+        const practice = event.target.closest("button[data-method-practice]");
+        if (equip) {
+          doAction("equip_method", { method_id: Number(equip.dataset.methodEquip) }).catch((error) => showToast(error.message));
+        }
+        if (practice) {
+          doAction("practice_method", { method_id: Number(practice.dataset.methodPractice) }).catch((error) => showToast(error.message));
+        }
+      });
+
+      artifactsList.addEventListener("click", (event) => {
+        const upgrade = event.target.closest("button[data-artifact-upgrade]");
+        const unequip = event.target.closest("button[data-artifact-unequip]");
+        if (upgrade) {
+          doAction("upgrade_artifact", { artifact_id: Number(upgrade.dataset.artifactUpgrade) }).catch((error) => showToast(error.message));
+        }
+        if (unequip) {
+          doAction("unequip_artifact", { artifact_id: Number(unequip.dataset.artifactUnequip) }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectList.addEventListener("click", (event) => {
+        const join = event.target.closest("button[data-join-sect]");
+        if (join) {
+          doAction("join_sect", { sect_code: join.dataset.joinSect }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectTasks.addEventListener("click", (event) => {
+        const accept = event.target.closest("button[data-accept-sect-task]");
+        const complete = event.target.closest("button[data-complete-sect-task]");
+        if (accept) {
+          doAction("accept_sect_task", { task_code: accept.dataset.acceptSectTask }).catch((error) => showToast(error.message));
+        }
+        if (complete) {
+          doAction("complete_sect_task", { task_id: Number(complete.dataset.completeSectTask) }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectShop.addEventListener("click", (event) => {
+        const exchange = event.target.closest("button[data-exchange-sect-reward]");
+        if (exchange) {
+          doAction("exchange_sect_reward", { reward_code: exchange.dataset.exchangeSectReward }).catch((error) => showToast(error.message));
+        }
+      });
+
+      sectSummary.addEventListener("click", (event) => {
+        const action = event.target.closest("button[data-sect-action]");
+        if (!action) return;
+        if (action.dataset.sectAction === "promote") {
+          doAction("promote_sect_position").catch((error) => showToast(error.message));
+        }
+        if (action.dataset.sectAction === "leave") {
+          doAction("leave_sect").catch((error) => showToast(error.message));
+        }
+      });
+
+      document.querySelectorAll(".tabs button").forEach((button) => {
+        button.addEventListener("click", () => setTab(button.dataset.tab));
+      });
+
+      if (getToken()) {
+        loadMe().catch(() => {
+          clearToken();
+          showGame(false);
+        });
+      }
+    </script>
+  </body>
+</html>

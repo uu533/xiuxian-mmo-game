@@ -1,0 +1,371 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "description": "修仙游戏法宝数据库（优化版）",
+    "design_principles": {
+      "exponential_growth": "每提升一个小等阶，数值增长50%；每提升一个大等阶，数值翻倍",
+      "percentage_bonus": "法宝属性以百分比形式加成，体现等阶碾压",
+      "mana_cost_linked": "消耗与玩家法力上限挂钩，体现\"法力深厚\"优势"
+    },
+    "tier_multipliers": {
+      "低阶法器": 1.0,
+      "中阶法器": 1.5,
+      "高阶法器": 2.25,
+      "顶阶法器": 3.375,
+      "低阶法宝": 6.75,
+      "中阶法宝": 10.125,
+      "高阶法宝": 15.1875,
+      "顶阶法宝": 22.78,
+      "低阶古宝": 45.56,
+      "中阶古宝": 68.34,
+      "高阶古宝": 102.52,
+      "顶阶古宝": 153.77,
+      "低阶灵宝": 307.55,
+      "中阶灵宝": 461.32,
+      "高阶灵宝": 691.98,
+      "顶阶灵宝": 1037.97,
+      "通天灵宝": 5000.0
+    },
+    "mana_cost_percent": {
+      "低阶法器": "2%",
+      "中阶法器": "3%",
+      "高阶法器": "5%",
+      "顶阶法器": "8%",
+      "低阶法宝": "10%",
+      "中阶法宝": "12%",
+      "高阶法宝": "15%",
+      "顶阶法宝": "18%",
+      "低阶古宝": "20%",
+      "中阶古宝": "22%",
+      "高阶古宝": "25%",
+      "顶阶古宝": "28%",
+      "低阶灵宝": "30%",
+      "中阶灵宝": "35%",
+      "高阶灵宝": "40%",
+      "顶阶灵宝": "45%",
+      "通天灵宝": "50%"
+    }
+  },
+  "artifacts": [
+    {
+      "id": "ART_001",
+      "name": "青锋剑",
+      "tier": "低阶法器",
+      "element": "金",
+      "attack_bonus": "10%",
+      "defense_bonus": "0%",
+      "mana_cost": "2%",
+      "description": "锋利的青色飞剑，可远程操控"
+    },
+    {
+      "id": "ART_002",
+      "name": "碧玉簪",
+      "tier": "低阶法器",
+      "element": "木",
+      "attack_bonus": "8%",
+      "defense_bonus": "2%",
+      "mana_cost": "2%",
+      "description": "翠绿发簪，可释放木刺"
+    },
+    {
+      "id": "ART_003",
+      "name": "寒冰珠",
+      "tier": "低阶法器",
+      "element": "水",
+      "attack_bonus": "9%",
+      "defense_bonus": "3%",
+      "mana_cost": "2%",
+      "description": "冰冷珠子，可冻结小范围敌人"
+    },
+    {
+      "id": "ART_004",
+      "name": "赤焰旗",
+      "tier": "低阶法器",
+      "element": "火",
+      "attack_bonus": "12%",
+      "defense_bonus": "0%",
+      "mana_cost": "2%",
+      "description": "红色小旗，可喷射火焰"
+    },
+    {
+      "id": "ART_005",
+      "name": "土遁符",
+      "tier": "低阶法器",
+      "element": "土",
+      "attack_bonus": "5%",
+      "defense_bonus": "8%",
+      "mana_cost": "2%",
+      "description": "黄色符箓，可遁入地下"
+    },
+    {
+      "id": "ART_006",
+      "name": "雷击符",
+      "tier": "低阶法器",
+      "element": "雷",
+      "attack_bonus": "15%",
+      "defense_bonus": "0%",
+      "mana_cost": "2%",
+      "description": "紫色符箓，可召唤小型雷电"
+    },
+    {
+      "id": "ART_007",
+      "name": "玄冰甲",
+      "tier": "低阶法器",
+      "element": "水",
+      "attack_bonus": "0%",
+      "defense_bonus": "12%",
+      "mana_cost": "2%",
+      "description": "冰蓝色铠甲，抵御攻击"
+    },
+    {
+      "id": "ART_008",
+      "name": "紫霄剑",
+      "tier": "中阶法器",
+      "element": "金",
+      "attack_bonus": "15%",
+      "defense_bonus": "0%",
+      "mana_cost": "3%",
+      "description": "紫色飞剑，锋利无比"
+    },
+    {
+      "id": "ART_009",
+      "name": "碧波旗",
+      "tier": "中阶法器",
+      "element": "水",
+      "attack_bonus": "12%",
+      "defense_bonus": "5%",
+      "mana_cost": "3%",
+      "description": "蓝色大旗，可掀起巨浪"
+    },
+    {
+      "id": "ART_010",
+      "name": "赤炎炉",
+      "tier": "中阶法器",
+      "element": "火",
+      "attack_bonus": "18%",
+      "defense_bonus": "0%",
+      "mana_cost": "3%",
+      "description": "红色丹炉，可喷射烈焰"
+    },
+    {
+      "id": "ART_011",
+      "name": "天罡剑",
+      "tier": "高阶法器",
+      "element": "金",
+      "attack_bonus": "22%",
+      "defense_bonus": "0%",
+      "mana_cost": "5%",
+      "description": "天罡正气凝聚而成"
+    },
+    {
+      "id": "ART_012",
+      "name": "紫霄雷剑",
+      "tier": "高阶法器",
+      "element": "雷",
+      "attack_bonus": "25%",
+      "defense_bonus": "0%",
+      "mana_cost": "5%",
+      "description": "紫霄神雷凝聚而成"
+    },
+    {
+      "id": "ART_013",
+      "name": "天罡神剑",
+      "tier": "顶阶法器",
+      "element": "金",
+      "attack_bonus": "33%",
+      "defense_bonus": "0%",
+      "mana_cost": "8%",
+      "description": "天罡正气凝聚，锋利无匹"
+    },
+    {
+      "id": "ART_014",
+      "name": "紫霄雷神剑",
+      "tier": "顶阶法器",
+      "element": "雷",
+      "attack_bonus": "38%",
+      "defense_bonus": "0%",
+      "mana_cost": "8%",
+      "description": "紫霄神雷凝聚，雷电环绕"
+    },
+    {
+      "id": "ART_015",
+      "name": "青元剑",
+      "tier": "低阶法宝",
+      "element": "金",
+      "attack_bonus": "65%",
+      "defense_bonus": "0%",
+      "mana_cost": "10%",
+      "description": "青元剑宗镇派之宝，锋利无比"
+    },
+    {
+      "id": "ART_016",
+      "name": "碧波仙剑",
+      "tier": "低阶法宝",
+      "element": "水",
+      "attack_bonus": "55%",
+      "defense_bonus": "15%",
+      "mana_cost": "10%",
+      "description": "碧波仙宫传承之宝，水波荡漾"
+    },
+    {
+      "id": "ART_017",
+      "name": "赤焰魔刀",
+      "tier": "低阶法宝",
+      "element": "火",
+      "attack_bonus": "75%",
+      "defense_bonus": "0%",
+      "mana_cost": "10%",
+      "description": "赤焰魔门镇派之宝，烈焰焚天"
+    },
+    {
+      "id": "ART_018",
+      "name": "天罡神剑",
+      "tier": "中阶法宝",
+      "element": "金",
+      "attack_bonus": "100%",
+      "defense_bonus": "0%",
+      "mana_cost": "12%",
+      "description": "天罡正气凝聚，锋利无匹"
+    },
+    {
+      "id": "ART_019",
+      "name": "紫霄雷神剑",
+      "tier": "中阶法宝",
+      "element": "雷",
+      "attack_bonus": "120%",
+      "defense_bonus": "0%",
+      "mana_cost": "12%",
+      "description": "紫霄神雷凝聚，雷电环绕"
+    },
+    {
+      "id": "ART_020",
+      "name": "天罡神神剑",
+      "tier": "高阶法宝",
+      "element": "金",
+      "attack_bonus": "150%",
+      "defense_bonus": "0%",
+      "mana_cost": "15%",
+      "description": "天罡正气凝聚，锋利无匹"
+    },
+    {
+      "id": "ART_021",
+      "name": "紫霄雷神神剑",
+      "tier": "高阶法宝",
+      "element": "雷",
+      "attack_bonus": "180%",
+      "defense_bonus": "0%",
+      "mana_cost": "15%",
+      "description": "紫霄神雷凝聚，雷电环绕"
+    },
+    {
+      "id": "ART_022",
+      "name": "天罡神神神剑",
+      "tier": "顶阶法宝",
+      "element": "金",
+      "attack_bonus": "225%",
+      "defense_bonus": "0%",
+      "mana_cost": "18%",
+      "description": "天罡正气凝聚，锋利无匹"
+    },
+    {
+      "id": "ART_023",
+      "name": "紫霄雷神神神剑",
+      "tier": "顶阶法宝",
+      "element": "雷",
+      "attack_bonus": "270%",
+      "defense_bonus": "0%",
+      "mana_cost": "18%",
+      "description": "紫霄神雷凝聚，雷电环绕"
+    },
+    {
+      "id": "ART_024",
+      "name": "太乙拂尘",
+      "tier": "低阶古宝",
+      "element": "金",
+      "attack_bonus": "450%",
+      "defense_bonus": "0%",
+      "mana_cost": "20%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    },
+    {
+      "id": "ART_025",
+      "name": "紫金红葫芦",
+      "tier": "低阶古宝",
+      "element": "火",
+      "attack_bonus": "400%",
+      "defense_bonus": "50%",
+      "mana_cost": "20%",
+      "description": "可吸纳万物，炼化敌人"
+    },
+    {
+      "id": "ART_026",
+      "name": "太乙神拂尘",
+      "tier": "中阶古宝",
+      "element": "金",
+      "attack_bonus": "680%",
+      "defense_bonus": "0%",
+      "mana_cost": "22%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    },
+    {
+      "id": "ART_027",
+      "name": "太乙仙拂尘",
+      "tier": "高阶古宝",
+      "element": "金",
+      "attack_bonus": "1020%",
+      "defense_bonus": "0%",
+      "mana_cost": "25%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    },
+    {
+      "id": "ART_028",
+      "name": "太乙神仙拂尘",
+      "tier": "顶阶古宝",
+      "element": "金",
+      "attack_bonus": "1530%",
+      "defense_bonus": "0%",
+      "mana_cost": "28%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    },
+    {
+      "id": "ART_029",
+      "name": "太乙仙神拂尘",
+      "tier": "低阶灵宝",
+      "element": "金",
+      "attack_bonus": "3070%",
+      "defense_bonus": "0%",
+      "mana_cost": "30%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    },
+    {
+      "id": "ART_030",
+      "name": "太乙仙神神拂尘",
+      "tier": "中阶灵宝",
+      "element": "金",
+      "attack_bonus": "4610%",
+      "defense_bonus": "0%",
+      "mana_cost": "35%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    },
+    {
+      "id": "ART_031",
+      "name": "太乙仙神神神拂尘",
+      "tier": "高阶灵宝",
+      "element": "金",
+      "attack_bonus": "6910%",
+      "defense_bonus": "0%",
+      "mana_cost": "40%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    },
+    {
+      "id": "ART_032",
+      "name": "太乙仙神神神神拂尘",
+      "tier": "顶阶灵宝",
+      "element": "金",
+      "attack_bonus": "10370%",
+      "defense_bonus": "0%",
+      "mana_cost": "45%",
+      "description": "太乙真人遗留，拂尘可扫万物"
+    }
+  ]
+}

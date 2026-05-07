@@ -1,0 +1,11 @@
+node_modules/
+dist/
+data/
+.env
+*.log
+simulation_result.json
+game.db*
+__pycache__/
+.pytest_cache/
+.venv/
+.vite/

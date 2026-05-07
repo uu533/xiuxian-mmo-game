@@ -1,0 +1,710 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "修仙游戏宗门数据库",
+    "total_count": 100,
+    "factions": ["正道", "魔道", "鬼道", "佛道"]
+  },
+  "sects": [
+    {
+      "id": "SECT_001",
+      "name": "青元剑宗",
+      "faction": "正道",
+      "terrain": "位于翠霞山，山峦叠嶂，古木参天，剑气纵横",
+      "description": "以木系剑阵闻名，门人坚韧不拔，信奉\"一剑破万法\""
+    },
+    {
+      "id": "SECT_002",
+      "name": "太虚道宗",
+      "faction": "正道",
+      "terrain": "坐落于云海之巅的浮空仙岛，灵气浓郁",
+      "description": "修习无上道法，追求天人合一，擅长推演天机"
+    },
+    {
+      "id": "SECT_003",
+      "name": "碧落仙宫",
+      "faction": "正道",
+      "terrain": "环绕碧水寒潭而建，宫殿如水晶般剔透",
+      "description": "以水系功法见长，门人多为女修，冰清玉洁"
+    },
+    {
+      "id": "SECT_004",
+      "name": "紫霄雷府",
+      "faction": "正道",
+      "terrain": "位于雷泽之畔，常年雷云密布，电闪雷鸣",
+      "description": "专修雷法，以雷霆之力荡涤邪祟，刚正不阿"
+    },
+    {
+      "id": "SECT_005",
+      "name": "天璇星阁",
+      "faction": "正道",
+      "terrain": "建于万丈高峰之巅，夜可观星，阵法环绕",
+      "description": "擅长星辰大阵，以星力加持，攻守兼备"
+    },
+    {
+      "id": "SECT_006",
+      "name": "金虹贯日宗",
+      "faction": "正道",
+      "terrain": "位于赤霞山脉，落日余晖如金虹贯日",
+      "description": "修习金系剑法，锋锐无匹，一剑可斩山岳"
+    },
+    {
+      "id": "SECT_007",
+      "name": "玄天正宗",
+      "faction": "正道",
+      "terrain": "占据整座玄天峰，峰顶有天然八卦阵图",
+      "description": "阵法大宗，以阴阳五行阵困敌于无形"
+    },
+    {
+      "id": "SECT_008",
+      "name": "浩然书阁",
+      "faction": "正道",
+      "terrain": "位于浩然平原，藏书楼高耸入云",
+      "description": "以儒入道，浩然正气可镇压万邪"
+    },
+    {
+      "id": "SECT_009",
+      "name": "灵药谷",
+      "faction": "正道",
+      "terrain": "隐于深山幽谷，灵药遍地，药香四溢",
+      "description": "炼丹圣地，丹道传承悠久，可炼生死人肉白骨之丹"
+    },
+    {
+      "id": "SECT_010",
+      "name": "天剑门",
+      "faction": "正道",
+      "terrain": "剑山连绵，剑意冲霄，门人日夜练剑",
+      "description": "剑道正宗，以剑入道，追求人剑合一"
+    },
+    {
+      "id": "SECT_011",
+      "name": "噬魂魔宫",
+      "faction": "魔道",
+      "terrain": "位于血色荒原，魔气翻涌，终日不见阳光",
+      "description": "以吞噬他人魂魄修炼，残忍嗜杀，实力强横"
+    },
+    {
+      "id": "SECT_012",
+      "name": "万毒门",
+      "faction": "魔道",
+      "terrain": "盘踞于瘴气弥漫的毒沼泽地，毒虫遍地",
+      "description": "精通万毒之术，以毒入道，杀人于无形"
+    },
+    {
+      "id": "SECT_013",
+      "name": "血煞宗",
+      "faction": "魔道",
+      "terrain": "建于血河之畔，空气中弥漫血腥之气",
+      "description": "修习血煞功法，以血祭提升修为，不忌杀戮"
+    },
+    {
+      "id": "SECT_014",
+      "name": "幽冥教",
+      "faction": "魔道",
+      "terrain": "隐于地底深渊，阴风阵阵，鬼哭狼嚎",
+      "description": "操纵亡灵，以幽冥之力侵蚀生灵"
+    },
+    {
+      "id": "SECT_015",
+      "name": "天魔门",
+      "faction": "魔道",
+      "terrain": "魔山耸立，魔焰滔天，门人狂傲不羁",
+      "description": "修习天魔功法，以魔入道，追求无上魔力"
+    },
+    {
+      "id": "SECT_016",
+      "name": "修罗殿",
+      "faction": "魔道",
+      "terrain": "血色宫殿林立，战鼓声不绝于耳",
+      "description": "以战养战，修罗之道，越战越强"
+    },
+    {
+      "id": "SECT_017",
+      "name": "九幽宗",
+      "faction": "魔道",
+      "terrain": "位于九幽之地，暗无天日，阴气森森",
+      "description": "擅长暗杀与诅咒，行事诡秘，令人防不胜防"
+    },
+    {
+      "id": "SECT_018",
+      "name": "魔焰宗",
+      "faction": "魔道",
+      "terrain": "黑色火焰常年燃烧，炽热难耐",
+      "description": "以魔焰焚天，火系功法霸道绝伦"
+    },
+    {
+      "id": "SECT_019",
+      "name": "阴煞宗",
+      "faction": "鬼道",
+      "terrain": "位于阴煞之地，阴风怒号，白骨累累",
+      "description": "操控阴煞之气，以阴魂为兵，攻敌于无形"
+    },
+    {
+      "id": "SECT_020",
+      "name": "鬼王殿",
+      "faction": "鬼道",
+      "terrain": "建于万鬼聚集之地，鬼气冲天",
+      "description": "鬼道至尊，可召唤万鬼为己用"
+    },
+    {
+      "id": "SECT_021",
+      "name": "冥河宗",
+      "faction": "鬼道",
+      "terrain": "位于冥河之畔，河水漆黑如墨",
+      "description": "以冥河之水洗练魂魄，擅长魂攻之术"
+    },
+    {
+      "id": "SECT_022",
+      "name": "黄泉门",
+      "faction": "鬼道",
+      "terrain": "隐于黄泉路口，阴气弥漫，亡魂游荡",
+      "description": "掌控黄泉之力，可令生者入死，死者复生"
+    },
+    {
+      "id": "SECT_023",
+      "name": "枯骨宗",
+      "faction": "鬼道",
+      "terrain": "白骨山连绵不绝，骨刺如林",
+      "description": "以枯骨为兵，骨系法术坚硬无比"
+    },
+    {
+      "id": "SECT_024",
+      "name": "大梵音寺",
+      "faction": "佛道",
+      "terrain": "金碧辉煌的古刹，梵音阵阵，佛光普照",
+      "description": "佛法精深，以慈悲为怀，降妖除魔"
+    },
+    {
+      "id": "SECT_025",
+      "name": "金刚禅院",
+      "faction": "佛道",
+      "terrain": "古朴禅院，金刚像巍峨耸立",
+      "description": "专修金刚不坏之身，防御无双，肉身成圣"
+    },
+    {
+      "id": "SECT_026",
+      "name": "般若寺",
+      "faction": "佛道",
+      "terrain": "位于须弥山麓，钟声悠扬，香火鼎盛",
+      "description": "修习般若智慧，以智慧之力化解万劫"
+    },
+    {
+      "id": "SECT_027",
+      "name": "降魔寺",
+      "faction": "佛道",
+      "terrain": "古刹坐落于魔气弥漫之地，以佛法镇压",
+      "description": "专修降魔法术，佛光可破一切邪魔"
+    },
+    {
+      "id": "SECT_028",
+      "name": "净土宗",
+      "faction": "佛道",
+      "terrain": "莲花遍地，七宝池中金莲盛开",
+      "description": "修习净土法门，往生极乐，净化一切污秽"
+    },
+    {
+      "id": "SECT_029",
+      "name": "罗汉堂",
+      "faction": "佛道",
+      "terrain": "十八罗汉像环绕，金光闪闪",
+      "description": "专修罗汉金身，十八般武艺样样精通"
+    },
+    {
+      "id": "SECT_030",
+      "name": "天龙寺",
+      "faction": "佛道",
+      "terrain": "古寺隐于云雾之中，时有天龙盘旋",
+      "description": "以天龙八部之力护法，龙象之力惊天"
+    },
+    {
+      "id": "SECT_031",
+      "name": "万剑宗",
+      "faction": "正道",
+      "terrain": "剑冢绵延千里，万剑齐鸣",
+      "description": "以万剑归宗为终极奥义，剑气可裂苍穹"
+    },
+    {
+      "id": "SECT_032",
+      "name": "玄冰宫",
+      "faction": "正道",
+      "terrain": "冰宫矗立于极北寒原，终年冰雪覆盖",
+      "description": "修习冰系功法，可冰封万里，冻结时空"
+    },
+    {
+      "id": "SECT_033",
+      "name": "赤焰门",
+      "faction": "正道",
+      "terrain": "位于火山口畔，岩浆翻涌",
+      "description": "以火系功法见长，火焰可焚尽万物"
+    },
+    {
+      "id": "SECT_034",
+      "name": "厚土宗",
+      "faction": "正道",
+      "terrain": "占据广袤大地，土系灵气充沛",
+      "description": "修习土系功法，可移山填海，防御坚固"
+    },
+    {
+      "id": "SECT_035",
+      "name": "青云门",
+      "faction": "正道",
+      "terrain": "山门高耸入云，云雾缭绕",
+      "description": "以轻灵身法著称，门人飘逸如仙"
+    },
+    {
+      "id": "SECT_036",
+      "name": "天机阁",
+      "faction": "正道",
+      "terrain": "机关重重，傀儡遍地",
+      "description": "精通机关术与傀儡术，以巧破千斤"
+    },
+    {
+      "id": "SECT_037",
+      "name": "合欢宗",
+      "faction": "魔道",
+      "terrain": "花团锦簇，香气醉人，却暗藏杀机",
+      "description": "以双修之法提升修为，亦正亦邪"
+    },
+    {
+      "id": "SECT_038",
+      "name": "蛊毒门",
+      "faction": "魔道",
+      "terrain": "盘踞于南疆密林，蛊虫横行",
+      "description": "以蛊入道，炼制万蛊，操控生死"
+    },
+    {
+      "id": "SECT_039",
+      "name": "魔音宗",
+      "faction": "魔道",
+      "terrain": "位于音波谷，魔音阵阵，摄人心魄",
+      "description": "以魔音入道，一曲可令万军覆灭"
+    },
+    {
+      "id": "SECT_040",
+      "name": "夺魄门",
+      "faction": "魔道",
+      "terrain": "阴森恐怖的古堡，魂灯摇曳",
+      "description": "专修夺魄之术，可摄取他人魂魄为己用"
+    },
+    {
+      "id": "SECT_041",
+      "name": "噬天宗",
+      "faction": "魔道",
+      "terrain": "魔气冲天，黑色漩涡常驻",
+      "description": "以吞噬天地灵气修炼，贪婪无度"
+    },
+    {
+      "id": "SECT_042",
+      "name": "毒龙教",
+      "faction": "魔道",
+      "terrain": "毒龙盘踞，瘴气弥漫",
+      "description": "驯养毒龙，以龙毒为攻，剧毒无比"
+    },
+    {
+      "id": "SECT_043",
+      "name": "白骨门",
+      "faction": "鬼道",
+      "terrain": "白骨成山，骨刺如林",
+      "description": "以白骨为兵，骨系法术变化多端"
+    },
+    {
+      "id": "SECT_044",
+      "name": "幽魂宗",
+      "faction": "鬼道",
+      "terrain": "鬼火点点，幽魂飘荡",
+      "description": "操控幽魂，以魂攻敌，令人防不胜防"
+    },
+    {
+      "id": "SECT_045",
+      "name": "鬼医门",
+      "faction": "鬼道",
+      "terrain": "阴森的药堂，以鬼药治病",
+      "description": "以鬼道医术闻名，可起死回生，亦可杀人于无形"
+    },
+    {
+      "id": "SECT_046",
+      "name": "无常殿",
+      "faction": "鬼道",
+      "terrain": "黑白无常像矗立，阴风阵阵",
+      "description": "以无常之力勾魂夺命，生死由我"
+    },
+    {
+      "id": "SECT_047",
+      "name": "地藏庵",
+      "faction": "佛道",
+      "terrain": "古庵坐落于幽冥入口，佛光与鬼气交织",
+      "description": "修习地藏法门，地狱不空誓不成佛"
+    },
+    {
+      "id": "SECT_048",
+      "name": "逍遥谷",
+      "faction": "正道",
+      "terrain": "世外桃源，鸟语花香",
+      "description": "以逍遥为道，不拘一格，功法随心所欲"
+    },
+    {
+      "id": "SECT_049",
+      "name": "千幻宗",
+      "faction": "魔道",
+      "terrain": "幻境重重，真假难辨",
+      "description": "精通幻术，以幻入道，困敌于幻境之中"
+    },
+    {
+      "id": "SECT_050",
+      "name": "太阴教",
+      "faction": "鬼道",
+      "terrain": "位于月阴之地，月光如水",
+      "description": "以太阴之力修炼，阴气极盛，克制阳属性"
+    },
+    {
+      "id": "SECT_051",
+      "name": "紫电宗",
+      "faction": "正道",
+      "terrain": "位于雷霆山脉，紫色闪电不时劈落",
+      "description": "以紫电为攻，速度极快，一击必杀"
+    },
+    {
+      "id": "SECT_052",
+      "name": "沧海门",
+      "faction": "正道",
+      "terrain": "位于东海之滨，海浪滔天",
+      "description": "修习水系功法，可操控江河湖海之力"
+    },
+    {
+      "id": "SECT_053",
+      "name": "苍穹派",
+      "faction": "正道",
+      "terrain": "位于万丈高空，云海之上",
+      "description": "以风系功法见长，可御风飞行，来去如风"
+    },
+    {
+      "id": "SECT_054",
+      "name": "磐石宗",
+      "faction": "正道",
+      "terrain": "巨石环绕，坚不可摧",
+      "description": "以防御见长，磐石大阵可挡万军"
+    },
+    {
+      "id": "SECT_055",
+      "name": "飞星谷",
+      "faction": "正道",
+      "terrain": "流星常坠于此，星辰之力充沛",
+      "description": "以星辰之力修炼，攻速极快"
+    },
+    {
+      "id": "SECT_056",
+      "name": "九阳宫",
+      "faction": "正道",
+      "terrain": "九轮烈日高悬，阳气鼎盛",
+      "description": "修习至阳功法，可克制一切阴邪"
+    },
+    {
+      "id": "SECT_057",
+      "name": "太极门",
+      "faction": "正道",
+      "terrain": "阴阳鱼图案遍布山门，太极流转",
+      "description": "以太极阴阳之道，刚柔并济，四两拨千斤"
+    },
+    {
+      "id": "SECT_058",
+      "name": "玉清观",
+      "faction": "正道",
+      "terrain": "道观古朴，清气缭绕",
+      "description": "修习清心诀，心如止水，万法不侵"
+    },
+    {
+      "id": "SECT_059",
+      "name": "五行宗",
+      "faction": "正道",
+      "terrain": "五行灵气交织，变化莫测",
+      "description": "精通五行之术，可随意切换五行属性"
+    },
+    {
+      "id": "SECT_060",
+      "name": "乾坤门",
+      "faction": "正道",
+      "terrain": "乾坤大阵笼罩，天地之力汇聚",
+      "description": "以乾坤之力扭转战局，攻守一体"
+    },
+    {
+      "id": "SECT_061",
+      "name": "天邪宗",
+      "faction": "魔道",
+      "terrain": "邪气冲天，天地变色",
+      "description": "以邪入道，不走寻常路，功法诡异莫测"
+    },
+    {
+      "id": "SECT_062",
+      "name": "噬血门",
+      "faction": "魔道",
+      "terrain": "血池遍布，血气弥漫",
+      "description": "以吸血为生，越战越狂，不死不休"
+    },
+    {
+      "id": "SECT_063",
+      "name": "魔心宗",
+      "faction": "魔道",
+      "terrain": "心魔幻境重重，考验心智",
+      "description": "以心魔入道，可操控他人心智"
+    },
+    {
+      "id": "SECT_064",
+      "name": "万鬼宗",
+      "faction": "鬼道",
+      "terrain": "万鬼夜行，鬼哭神嚎",
+      "description": "以万鬼为兵，数量取胜，铺天盖地"
+    },
+    {
+      "id": "SECT_065",
+      "name": "僵尸门",
+      "faction": "鬼道",
+      "terrain": "僵尸遍地，尸气冲天",
+      "description": "以炼尸为道，僵尸刀枪不入，力大无穷"
+    },
+    {
+      "id": "SECT_066",
+      "name": "阴阳宗",
+      "faction": "鬼道",
+      "terrain": "阴阳交汇，生死轮回",
+      "description": "以阴阳之力操控生死，亦正亦邪"
+    },
+    {
+      "id": "SECT_067",
+      "name": "往生门",
+      "faction": "鬼道",
+      "terrain": "轮回之地，生死交替",
+      "description": "以轮回之力重生，越死越强"
+    },
+    {
+      "id": "SECT_068",
+      "name": "邪佛寺",
+      "faction": "佛道",
+      "terrain": "佛像扭曲，邪气与佛光交织",
+      "description": "以邪法入佛道，亦正亦邪，令人捉摸不透"
+    },
+    {
+      "id": "SECT_069",
+      "name": "大日如来殿",
+      "faction": "佛道",
+      "terrain": "大日金光普照，万邪不侵",
+      "description": "修习大日如来法，佛光可净化一切"
+    },
+    {
+      "id": "SECT_070",
+      "name": "菩提院",
+      "faction": "佛道",
+      "terrain": "菩提树下悟道，智慧如海",
+      "description": "以菩提心法悟道，智慧通达，万法皆通"
+    },
+    {
+      "id": "SECT_071",
+      "name": "明王殿",
+      "faction": "佛道",
+      "terrain": "金刚明王像怒目而视",
+      "description": "以明王之怒降妖除魔，威猛无双"
+    },
+    {
+      "id": "SECT_072",
+      "name": "天罡门",
+      "faction": "正道",
+      "terrain": "天罡正气充盈，刚正不阿",
+      "description": "以天罡正气修炼，正气凛然，百邪不侵"
+    },
+    {
+      "id": "SECT_073",
+      "name": "地煞宗",
+      "faction": "魔道",
+      "terrain": "地煞之气弥漫，阴森恐怖",
+      "description": "以地煞之气修炼，煞气可侵蚀万物"
+    },
+    {
+      "id": "SECT_074",
+      "name": "血影门",
+      "faction": "魔道",
+      "terrain": "血影重重，来去无踪",
+      "description": "以血影身法见长，速度极快，杀人于无形"
+    },
+    {
+      "id": "SECT_075",
+      "name": "通天教",
+      "faction": "魔道",
+      "terrain": "通天魔塔耸立，魔气滔天",
+      "description": "以通天魔功为根基，追求超越天地"
+    },
+    {
+      "id": "SECT_076",
+      "name": "玄阴教",
+      "faction": "鬼道",
+      "terrain": "阴气凝结如冰，寒彻骨髓",
+      "description": "以玄阴之力冻结万物，阴寒入骨"
+    },
+    {
+      "id": "SECT_077",
+      "name": "七煞门",
+      "faction": "魔道",
+      "terrain": "七煞星高悬，煞气冲天",
+      "description": "以七煞星力修炼，煞气可令敌人疯狂"
+    },
+    {
+      "id": "SECT_078",
+      "name": "天机谷",
+      "faction": "正道",
+      "terrain": "机关术圣地，傀儡与阵法交织",
+      "description": "以机关傀儡之术辅助战斗，巧夺天工"
+    },
+    {
+      "id": "SECT_079",
+      "name": "幽冥血海宗",
+      "faction": "魔道",
+      "terrain": "血海翻涌，亡魂哀嚎",
+      "description": "以血海之力侵蚀一切，污秽天地"
+    },
+    {
+      "id": "SECT_080",
+      "name": "万兽门",
+      "faction": "正道",
+      "terrain": "灵兽遍地，百兽朝宗",
+      "description": "以驯兽为道，灵兽大军可横扫千军"
+    },
+    {
+      "id": "SECT_081",
+      "name": "风雷派",
+      "faction": "正道",
+      "terrain": "风雷交汇，电闪雷鸣",
+      "description": "以风雷双属性修炼，攻速兼备"
+    },
+    {
+      "id": "SECT_082",
+      "name": "紫霞宗",
+      "faction": "正道",
+      "terrain": "紫霞漫天，仙气飘飘",
+      "description": "以紫霞功法修炼，飘逸灵动"
+    },
+    {
+      "id": "SECT_083",
+      "name": "烈焰门",
+      "faction": "正道",
+      "terrain": "烈焰焚天，炽热无比",
+      "description": "以烈焰为攻，火系功法登峰造极"
+    },
+    {
+      "id": "SECT_084",
+      "name": "玄武门",
+      "faction": "正道",
+      "terrain": "玄武像矗立，防御如山",
+      "description": "以玄武之力防御，滴水不漏"
+    },
+    {
+      "id": "SECT_085",
+      "name": "青龙帮",
+      "faction": "正道",
+      "terrain": "青龙盘踞，龙气冲天",
+      "description": "以青龙之力攻击，威猛霸道"
+    },
+    {
+      "id": "SECT_086",
+      "name": "白虎门",
+      "faction": "正道",
+      "terrain": "白虎咆哮，杀气腾腾",
+      "description": "以白虎之力战斗，凶猛无比"
+    },
+    {
+      "id": "SECT_087",
+      "name": "朱雀阁",
+      "faction": "正道",
+      "terrain": "朱雀展翅，火焰漫天",
+      "description": "以朱雀之力重生，越战越勇"
+    },
+    {
+      "id": "SECT_088",
+      "name": "天魔宫",
+      "faction": "魔道",
+      "terrain": "天魔降临，魔威盖世",
+      "description": "以天魔之力为根基，追求无上魔道"
+    },
+    {
+      "id": "SECT_089",
+      "name": "魔影宗",
+      "faction": "魔道",
+      "terrain": "魔影重重，虚实难辨",
+      "description": "以魔影分身之术迷惑敌人"
+    },
+    {
+      "id": "SECT_090",
+      "name": "血魔门",
+      "faction": "魔道",
+      "terrain": "血魔降世，血流成河",
+      "description": "以血魔功法修炼，嗜血成性"
+    },
+    {
+      "id": "SECT_091",
+      "name": "噬魂教",
+      "faction": "魔道",
+      "terrain": "魂灯摇曳，魂魄哀鸣",
+      "description": "以吞噬魂魄增强自身"
+    },
+    {
+      "id": "SECT_092",
+      "name": "幽鬼宗",
+      "faction": "鬼道",
+      "terrain": "幽暗深处，鬼影幢幢",
+      "description": "以幽鬼之力潜伏暗杀"
+    },
+    {
+      "id": "SECT_093",
+      "name": "冥王殿",
+      "faction": "鬼道",
+      "terrain": "冥王像怒目，死亡气息弥漫",
+      "description": "以冥王之力掌控生死"
+    },
+    {
+      "id": "SECT_094",
+      "name": "阴曹宗",
+      "faction": "鬼道",
+      "terrain": "阴曹地府再现，亡魂排队",
+      "description": "以阴曹之力审判亡魂"
+    },
+    {
+      "id": "SECT_095",
+      "name": "轮回门",
+      "faction": "鬼道",
+      "terrain": "轮回盘旋转，生死轮回",
+      "description": "以轮回之力掌控因果"
+    },
+    {
+      "id": "SECT_096",
+      "name": "佛光寺",
+      "faction": "佛道",
+      "terrain": "佛光万丈，普照众生",
+      "description": "以佛光净化一切污秽"
+    },
+    {
+      "id": "SECT_097",
+      "name": "禅心院",
+      "faction": "佛道",
+      "terrain": "禅意深远，心如止水",
+      "description": "以禅心入道，万法皆空"
+    },
+    {
+      "id": "SECT_098",
+      "name": "韦陀院",
+      "faction": "佛道",
+      "terrain": "韦陀像威武，降魔杵闪耀",
+      "description": "以韦陀之力护法降魔"
+    },
+    {
+      "id": "SECT_099",
+      "name": "弥勒寺",
+      "faction": "佛道",
+      "terrain": "弥勒笑佛，欢乐祥和",
+      "description": "以弥勒之力化解怨恨"
+    },
+    {
+      "id": "SECT_100",
+      "name": "天道宗",
+      "faction": "正道",
+      "terrain": "天道法则显化，秩序井然",
+      "description": "以天道为基，追求大道至简"
+    }
+  ]
+}

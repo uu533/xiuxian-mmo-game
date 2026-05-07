@@ -264,6 +264,9 @@ def main():
     assert simulation_1h["explore_ratio"] >= 0.3
     assert simulation_sect["with_sect"] is True
     assert "sect_tasks_completed" in simulation_sect
+    assert "sect_task_type_distribution" in simulation_sect
+    assert "sect_reward_by_type" in simulation_sect
+    assert "sect_max_task_type_ratio" in simulation_sect
     assert SIMULATION_PATH.exists()
 
     token_a = register(player_a)["token"]

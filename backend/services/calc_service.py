@@ -6,6 +6,7 @@ from backend.configs.formulas import (
     BREAKTHROUGH_LUCK_FACTOR,
 )
 from backend.configs.methods import METHOD_EFFECTS_BY_CODE
+from backend.configs.sects import SECT_TASK_LIMITS
 from backend.models import Character
 from backend.services.realm_service import current_realm_config, normalize_realm, qi_refining_level
 from backend.services.spiritual_root_service import root_rate
@@ -91,6 +92,38 @@ def get_action_mana_cost(character: Character, action_type: str) -> int:
     return int(ACTION_CONFIGS.get(action_type, {}).get("mana_cost", 0))
 
 
+def get_sect_reward_multiplier(
+    task_code: str,
+    task_type: str,
+    recent_task_codes: list[str],
+    recent_task_types: list[str],
+    completed_today: int,
+) -> tuple[float, list[str]]:
+    limit = int(SECT_TASK_LIMITS.get("daily_task_limit", 18))
+    if completed_today >= limit:
+        return 0.0, ["daily_limit"]
+
+    reasons: list[str] = []
+    multiplier = 1.0
+    same_task_streak = _prefix_count(recent_task_codes, task_code)
+    same_type_streak = _prefix_count(recent_task_types, task_type)
+    task_decay = SECT_TASK_LIMITS.get("same_task_decay", [1.0])
+    type_decay = SECT_TASK_LIMITS.get("same_type_decay", [1.0])
+
+    if same_task_streak:
+        multiplier *= float(task_decay[min(same_task_streak, len(task_decay) - 1)])
+        reasons.append("same_task_decay")
+    if same_type_streak:
+        multiplier *= float(type_decay[min(same_type_streak, len(type_decay) - 1)])
+        reasons.append("same_type_decay")
+    if recent_task_types and recent_task_types[0] != task_type:
+        multiplier *= float(SECT_TASK_LIMITS.get("rotation_bonus", 1.0))
+        reasons.append("rotation_bonus")
+
+    minimum = float(SECT_TASK_LIMITS.get("minimum_multiplier", 0.25))
+    return round(max(minimum, min(1.08, multiplier)), 4), reasons
+
+
 def apply_item_effects(character: Character, effects: dict) -> dict:
     applied: dict = {}
     if effects.get("recover_mana"):
@@ -106,6 +139,12 @@ def apply_item_effects(character: Character, effects: dict) -> dict:
         character.cultivation = min(character.cultivation_cap, character.cultivation + gain)
         applied["cultivation"] = gain
     return applied
+
+
+def scale_reward_value(value: int, multiplier: float) -> int:
+    if value <= 0:
+        return 0
+    return max(1, int(value * multiplier))
 
 
 def sync_base_and_caps(character: Character) -> None:
@@ -131,6 +170,15 @@ def derived_stats(character: Character) -> dict:
 
 def _method_attack_bonus(character: Character) -> int:
     return 0
+
+
+def _prefix_count(values: list[str], expected: str) -> int:
+    count = 0
+    for value in values:
+        if value != expected:
+            break
+        count += 1
+    return count
 
 
 def _method_defense_bonus(character: Character) -> int:

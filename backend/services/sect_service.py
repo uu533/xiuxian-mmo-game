@@ -12,6 +12,7 @@ from backend.configs.sects import (
     SECT_TASKS,
 )
 from backend.models import Character, Sect, SectMember, SectReputationLog, SectTask, User, utc_now
+from backend.services.calc_service import get_sect_reward_multiplier, scale_reward_value
 from backend.services.inventory_service import add_item_to_main_bag, consume_item_by_code, has_item
 from backend.services.log_service import write_log
 
@@ -193,18 +194,38 @@ def complete_sect_task(db: Session, user: User, task_id: int | None = None) -> t
         return False, f"宗门任务「{config['name']}」尚未达成，当前进度 {task.progress}/{task.target}。", {"reason": "task_not_ready", "task": sect_task_payload(task)}, {}, []
 
     reward = config.get("reward", {})
-    reward_logs = _grant_sect_reward(db, character, reward)
-    contribution = int(reward.get("contribution", 0))
+    multiplier, decay_reasons = _sect_reward_multiplier(db, character, config)
+    if multiplier <= 0:
+        return False, "今日宗门任务已达上限，明日再来领取新的宗门差事。", {"reason": "sect_daily_limit"}, {}, []
+    final_reward = _scaled_reward(reward, multiplier)
+    reward_logs = _grant_sect_reward(db, character, final_reward)
+    contribution = int(final_reward.get("contribution", 0))
     member.contribution += contribution
-    member.reputation += int(config.get("reputation", 0))
+    reputation = scale_reward_value(int(config.get("reputation", 0)), multiplier)
+    member.reputation += reputation
     member.last_task_at = utc_now()
     task.progress = task.target
     task.status = "completed"
     task.completed_at = utc_now()
-    _add_reputation_logs(db, character, member.sect, int(config.get("reputation", 0)), f"sect_task:{task.task_code}")
+    _add_reputation_logs(db, character, member.sect, reputation, f"sect_task:{task.task_code}")
+    if decay_reasons:
+        write_log(
+            db,
+            user,
+            "sect",
+            f"宗门任务奖励倍率 {multiplier}，原因：{','.join(decay_reasons)}。",
+            {"task_code": task.task_code, "task_type": task.task_type, "multiplier": multiplier, "reasons": decay_reasons},
+        )
     db.flush()
     cost: dict = {}
-    return True, f"完成宗门任务「{config['name']}」，获得 {contribution} 贡献。", {"task": sect_task_payload(task), "member": member_payload(member), "reward": reward}, cost, reward_logs
+    return True, f"完成宗门任务「{config['name']}」，获得 {contribution} 贡献。", {
+        "task": sect_task_payload(task),
+        "member": member_payload(member),
+        "reward": final_reward,
+        "base_reward": reward,
+        "reward_multiplier": multiplier,
+        "decay_reasons": decay_reasons,
+    }, cost, reward_logs
 
 
 def record_sect_task_progress(db: Session, user: User, action_type: str, success: bool, result_data: dict | None = None) -> list[str]:
@@ -236,7 +257,17 @@ def record_sect_task_progress(db: Session, user: User, action_type: str, success
         user,
         "sect",
         messages[0],
-        {"task_id": task.id, "task_code": task.task_code, "from": before, "to": task.progress, "target": task.target},
+        {
+            "task_id": task.id,
+            "task_code": task.task_code,
+            "task_type": task.task_type,
+            "action_type": action_type,
+            "event_type": (result_data or {}).get("event_type"),
+            "progress_amount": amount,
+            "from": before,
+            "to": task.progress,
+            "target": task.target,
+        },
     )
     if task.progress >= task.target:
         task.status = "claimable"
@@ -316,6 +347,7 @@ def task_config_payload(task: dict, sect: Sect) -> dict:
         "name": task["name"],
         "type": task["type"],
         "task_type": task["type"],
+        "value_tier": task.get("value_tier", "low"),
         "target_action": task.get("target_action"),
         "target_count": task.get("target_count", task.get("target", 1)),
         "faction": task["faction"],
@@ -340,6 +372,7 @@ def sect_task_payload(task: SectTask) -> dict:
         "task_code": task.task_code,
         "name": config.get("name", task.task_code),
         "task_type": task.task_type,
+        "value_tier": config.get("value_tier", "low"),
         "status": task.status,
         "progress": task.progress,
         "target": task.target,
@@ -400,6 +433,44 @@ def _progress_amount(config: dict, action_type: str, result_data: dict) -> int:
     if task_type == "faction_conflict":
         return 1 if result_data.get("event_type") in set(config.get("target_event_types", [])) else 0
     return 1
+
+
+def _sect_reward_multiplier(db: Session, character: Character, config: dict) -> tuple[float, list[str]]:
+    today = utc_now().date()
+    completed_today = (
+        db.query(SectTask)
+        .filter(
+            SectTask.character_id == character.id,
+            SectTask.status == "completed",
+            func.date(SectTask.completed_at) == today.isoformat(),
+        )
+        .count()
+    )
+    recent = (
+        db.query(SectTask)
+        .filter(SectTask.character_id == character.id, SectTask.status == "completed")
+        .order_by(SectTask.completed_at.desc(), SectTask.id.desc())
+        .limit(8)
+        .all()
+    )
+    return get_sect_reward_multiplier(
+        config["code"],
+        config["type"],
+        [task.task_code for task in recent],
+        [task.task_type for task in recent],
+        completed_today,
+    )
+
+
+def _scaled_reward(reward: dict, multiplier: float) -> dict:
+    scaled = dict(reward)
+    if "contribution" in scaled:
+        scaled["contribution"] = scale_reward_value(int(scaled.get("contribution", 0)), multiplier)
+    if "spirit_stones" in scaled:
+        scaled["spirit_stones"] = scale_reward_value(int(scaled.get("spirit_stones", 0)), multiplier)
+    if "items" in scaled:
+        scaled["items"] = [dict(item) for item in scaled.get("items", [])]
+    return scaled
 
 
 def _grant_sect_reward(db: Session, character: Character, reward: dict) -> list[dict]:

@@ -9,7 +9,9 @@ from backend.configs.drop_tables import DROP_TABLES
 from backend.configs.methods import METHOD_LEVEL_EXP, METHOD_PRACTICE
 from backend.configs.opportunities import LUCKY_EVENT_CONFIG
 from backend.configs.realms import REALM_BY_NAME, REALM_NAMES, STARTING_REALM
+from backend.configs.sects import SECT_TASKS
 from backend.database import BASE_DIR
+from backend.services.calc_service import get_sect_reward_multiplier, scale_reward_value
 from backend.services.realm_service import qi_refining_level
 from backend.utils.random_utils import weighted_choice
 
@@ -36,6 +38,9 @@ def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
         "sect_contribution_gained": 0,
         "sect_reward_stones": 0,
         "sect_reputation_change": Counter(),
+        "sect_task_type_distribution": Counter(),
+        "sect_reward_by_type": Counter(),
+        "sect_decay_reasons": Counter(),
     }
 
     for minute in range(minutes):
@@ -52,6 +57,8 @@ def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
             _simulate_train(state, stats)
         elif action == "breakthrough":
             _simulate_breakthrough(state, stats)
+        elif action == "practice_method":
+            _simulate_practice_method(state, stats)
         else:
             _simulate_explore(state, stats)
         stats["bag_slots_used_peak"] = max(stats["bag_slots_used_peak"], len(state["items"]))
@@ -87,12 +94,24 @@ def _new_state() -> dict:
         "sect_contribution": 0,
         "sect_enabled": False,
         "sect_task_status": None,
+        "sect_position": "outer_disciple",
+        "sect_recent_task_codes": [],
+        "sect_recent_task_types": [],
+        "sect_task_type_counts": Counter(),
+        "sect_completed_today": 0,
+        "sect_task_code": None,
+        "sect_task_type": None,
         "sect_task_progress": 0,
         "sect_task_target": 2,
+        "last_event_type": None,
+        "last_drop_codes": [],
+        "last_battle_won": False,
     }
 
 
 def _choose_action(state: dict, stats: dict) -> str:
+    if state.get("sect_task_status") == "active" and state.get("sect_task_type") == "train_method" and state["method_equipped"]:
+        return "practice_method"
     if state["cultivation"] >= state["cultivation_cap"]:
         return "breakthrough" if _can_attempt_breakthrough(state, stats) else "explore"
     if _needs_exploration(state):
@@ -113,7 +132,7 @@ def _needs_exploration(state: dict) -> bool:
 
 
 def _mana_cost(action: str) -> int:
-    return {"train": 12, "explore": 18, "breakthrough": 35}.get(action, 0)
+    return {"train": 12, "explore": 18, "breakthrough": 35, "practice_method": 10}.get(action, 0)
 
 
 def _auto_prepare(state: dict, stats: dict) -> None:
@@ -297,6 +316,7 @@ def _grant_sim_drop(state: dict, stats: dict) -> None:
     quantity_range = drop.get("quantity", [1, 1])
     quantity = random.randint(quantity_range[0], quantity_range[1])
     state["items"][drop["item"]] += quantity
+    state.setdefault("last_drop_codes", []).extend([drop["item"]] * quantity)
     stats["drops"][drop["item"]] += quantity
 
 
@@ -325,6 +345,176 @@ def _drop_table_key(state: dict) -> str:
     return state["realm_stage"]
 
 
+def _simulate_sect_layer(state: dict, stats: dict, minute: int) -> None:
+    if not state["sect_joined"] and _realm_rank(state["realm"]) >= _realm_rank("炼气三层"):
+        state["sect_joined"] = True
+        state["sect_contribution"] += 30
+        stats["sect_contribution_gained"] += 30
+        stats["sect_reputation_change"]["righteous"] += 10
+        stats["sect_reputation_change"]["demonic"] -= 10
+        stats["sect_reputation_change"]["ghost"] -= 10
+        stats["sect_reputation_change"]["buddhist"] += 3
+        stats["actions"]["join_sect"] += 1
+    if not state["sect_joined"]:
+        return
+    _simulate_sect_promotion_and_exchange(state, stats, minute)
+    if state["sect_task_status"] is None:
+        task = _choose_sect_task(state)
+        if not task:
+            return
+        state["sect_task_status"] = "active"
+        state["sect_task_code"] = task["code"]
+        state["sect_task_type"] = task["type"]
+        state["sect_task_progress"] = 0
+        state["sect_task_target"] = int(task.get("target_count", task.get("target", 1)))
+        stats["actions"]["accept_sect_task"] += 1
+        return
+    if state["sect_task_status"] != "claimable":
+        return
+    task = _task_by_code(state["sect_task_code"])
+    multiplier, reasons = get_sect_reward_multiplier(
+        task["code"],
+        task["type"],
+        state["sect_recent_task_codes"],
+        state["sect_recent_task_types"],
+        state["sect_completed_today"],
+    )
+    if multiplier <= 0:
+        stats["warnings"].append("宗门日常上限触发，模拟停止领取宗门奖励")
+        return
+    reward = task.get("reward", {})
+    contribution = scale_reward_value(int(reward.get("contribution", 0)), multiplier)
+    stones = scale_reward_value(int(reward.get("spirit_stones", 0)), multiplier)
+    state["sect_contribution"] += contribution
+    state["spirit_stones"] += stones
+    for item in reward.get("items", []):
+        quantity = int(item.get("quantity", 1))
+        state["items"][item["code"]] += quantity
+        stats["drops"][item["code"]] += quantity
+    state["sect_task_status"] = None
+    state["sect_task_progress"] = 0
+    state["sect_recent_task_codes"] = [task["code"], *state["sect_recent_task_codes"]][:8]
+    state["sect_recent_task_types"] = [task["type"], *state["sect_recent_task_types"]][:8]
+    state["sect_completed_today"] += 1
+    stats["sect_tasks_completed"] += 1
+    stats["sect_contribution_gained"] += contribution
+    stats["sect_reward_stones"] += stones
+    stats["sect_task_type_distribution"][task["type"]] += 1
+    state["sect_task_type_counts"][task["type"]] += 1
+    stats["sect_reward_by_type"][task["type"]] += stones
+    for reason in reasons:
+        stats["sect_decay_reasons"][reason] += 1
+    reputation = scale_reward_value(int(task.get("reputation", 0)), multiplier)
+    stats["sect_reputation_change"]["righteous"] += reputation
+    stats["sect_reputation_change"]["demonic"] -= reputation
+    stats["sect_reputation_change"]["ghost"] -= reputation
+    stats["sect_reputation_change"]["buddhist"] += max(1, reputation // 3)
+    stats["total_spirit_stones_gained"] += stones
+    stats["actions"]["complete_sect_task"] += 1
+
+
+def _simulate_explore(state: dict, stats: dict) -> None:
+    state["mana"] -= 18
+    state["consecutive_train"] = 0
+    state["explore_count"] += 1
+    state["last_event_type"] = None
+    state["last_drop_codes"] = []
+    state["last_battle_won"] = False
+    stats["actions"]["explore"] += 1
+    if random.random() <= min(LUCKY_EVENT_CONFIG["max_rate"], LUCKY_EVENT_CONFIG["base_rate"] + state["hidden_luck"] * LUCKY_EVENT_CONFIG["luck_factor"]):
+        state["last_event_type"] = random.choice(["hidden_cave", "rare_item", "hidden_opportunity"])
+        stats["actions"]["lucky"] += 1
+        for _ in range(2):
+            _grant_sim_drop(state, stats)
+        _simulate_sect_task_progress(state, stats, "explore")
+        return
+    event_type = random.choices(["stones", "drop", "battle", "empty"], weights=[35, 35, 20, 10], k=1)[0]
+    state["last_event_type"] = "reward_spirit_stones" if event_type == "stones" else event_type
+    if event_type == "stones":
+        stones = random.randint(18, 68) + state["hidden_luck"] // 5
+        state["spirit_stones"] += stones
+        stats["total_spirit_stones_gained"] += stones
+    elif event_type in {"drop", "battle"}:
+        state["last_battle_won"] = event_type == "battle"
+        rolls = 2 if event_type == "battle" else 1
+        for _ in range(rolls):
+            _grant_sim_drop(state, stats)
+    _simulate_sect_task_progress(state, stats, "explore")
+
+
+def _simulate_sect_task_progress(state: dict, stats: dict, action_type: str) -> None:
+    if not state["sect_enabled"] or not state["sect_joined"] or state["sect_task_status"] != "active":
+        return
+    task = _task_by_code(state["sect_task_code"])
+    amount = _sim_progress_amount(task, action_type, state)
+    if amount <= 0:
+        return
+    state["sect_task_progress"] = min(state["sect_task_target"], state["sect_task_progress"] + amount)
+    stats["actions"]["sect_task_progress"] += 1
+    if state["sect_task_progress"] >= state["sect_task_target"]:
+        state["sect_task_status"] = "claimable"
+
+
+def _sim_progress_amount(task: dict, action_type: str, state: dict) -> int:
+    if action_type != task.get("target_action"):
+        return 0
+    task_type = task["type"]
+    if task_type == "patrol":
+        return 1
+    if task_type == "train_method":
+        return 1
+    if task_type == "gather_material":
+        allowed = set(task.get("target_item_codes", []))
+        return sum(1 for code in state.get("last_drop_codes", []) if code in allowed)
+    if task_type == "hunt_beast":
+        return 1 if state.get("last_event_type") == "battle" and state.get("last_battle_won") else 0
+    if task_type in {"explore_secret", "faction_conflict"}:
+        return 1 if state.get("last_event_type") in set(task.get("target_event_types", [])) else 0
+    return 0
+
+
+def _choose_sect_task(state: dict) -> dict | None:
+    available = [task for task in SECT_TASKS if _position_rank(state["sect_position"]) >= _position_rank(task.get("required_position", "outer_disciple"))]
+    high_allowed = state["sect_completed_today"] > 0 and state["sect_completed_today"] % 6 == 5
+    if not high_allowed:
+        available = [task for task in available if task["type"] not in {"explore_secret", "faction_conflict"}]
+    else:
+        available = [task for task in available if task["type"] != "explore_secret"]
+    if not state["method_equipped"]:
+        available = [task for task in available if task["type"] != "train_method"]
+    if not available:
+        return None
+    preferred = ["gather_material", "hunt_beast", "patrol", "train_method", "explore_secret", "faction_conflict"]
+    recent_window = set(state["sect_recent_task_types"][:2])
+    preferred_rank = {task_type: index for index, task_type in enumerate(preferred)}
+    fresh = [task for task in available if task["type"] not in recent_window]
+    pool = fresh or available
+    pool.sort(key=lambda task: (state["sect_task_type_counts"].get(task["type"], 0), preferred_rank.get(task["type"], 99)))
+    return pool[0]
+
+
+def _simulate_sect_promotion_and_exchange(state: dict, stats: dict, minute: int) -> None:
+    if state["sect_position"] == "outer_disciple" and state["sect_contribution"] >= 100 and _realm_rank(state["realm"]) >= _realm_rank("炼气五层"):
+        state["sect_position"] = "inner_disciple"
+        stats["actions"]["promote_sect_position"] += 1
+    elif state["sect_position"] == "inner_disciple" and state["sect_contribution"] >= 260 and _realm_rank(state["realm"]) >= _realm_rank("炼气八层"):
+        state["sect_position"] = "elite_disciple"
+        stats["actions"]["promote_sect_position"] += 1
+    if minute and minute % 90 == 0 and state["sect_contribution"] >= 160 and state["items"]["foundation_pill"] == 0:
+        state["sect_contribution"] -= 160
+        state["items"]["foundation_pill"] += 1
+        stats["actions"]["exchange_sect_reward"] += 1
+
+
+def _task_by_code(code: str | None) -> dict:
+    return next((task for task in SECT_TASKS if task["code"] == code), SECT_TASKS[0])
+
+
+def _position_rank(position: str) -> int:
+    order = ["outer_disciple", "inner_disciple", "elite_disciple", "deacon", "elder", "grand_elder", "leader"]
+    return order.index(position) if position in order else 0
+
+
 def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sect: bool = False) -> dict:
     warnings = _build_warnings(state, stats, minutes)
     attempts = max(1, stats["breakthrough_attempts"])
@@ -333,6 +523,8 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sec
     explore_ratio = stats["actions"].get("explore", 0) / max(1, counted_actions)
     train_ratio = stats["actions"].get("train", 0) / max(1, counted_actions)
     sect_reward_ratio = stats["sect_reward_stones"] / max(1, stats["total_spirit_stones_gained"])
+    sect_distribution = dict(stats["sect_task_type_distribution"])
+    max_task_type_ratio = max(sect_distribution.values(), default=0) / max(1, stats["sect_tasks_completed"])
     return {
         "time": f"{hours:g}h",
         "realm": state["realm"],
@@ -363,6 +555,15 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sec
         "sect_contribution_gained": stats["sect_contribution_gained"],
         "sect_reward_stones": stats["sect_reward_stones"],
         "sect_reputation_change": dict(stats["sect_reputation_change"]),
+        "sect_task_type_distribution": sect_distribution,
+        "sect_reward_by_type": dict(stats["sect_reward_by_type"]),
+        "sect_decay_reasons": dict(stats["sect_decay_reasons"]),
+        "sect_reward_share_by_type": {
+            task_type: round(value / max(1, stats["sect_reward_stones"]), 4)
+            for task_type, value in stats["sect_reward_by_type"].items()
+        },
+        "sect_max_task_type_ratio": round(max_task_type_ratio, 4),
+        "biased_task_type": max(sect_distribution, key=sect_distribution.get) if max_task_type_ratio > 0.6 else None,
         "sect_reward_ratio": round(sect_reward_ratio, 4),
         "simulation_result_file": str(SIMULATION_RESULT_PATH),
     }
@@ -390,6 +591,13 @@ def _build_warnings(state: dict, stats: dict, minutes: int) -> list[str]:
         warnings.append("筑基丹掉率过低")
     if stats.get("sect_reward_stones", 0) / max(1, stats.get("total_spirit_stones_gained", 0)) > 0.45:
         warnings.append("宗门任务灵石奖励占比过高，可能出现只刷宗门任务")
+    sect_completed = stats.get("sect_tasks_completed", 0)
+    if sect_completed:
+        max_type_count = max(stats.get("sect_task_type_distribution", {}).values(), default=0)
+        if max_type_count / max(1, sect_completed) > 0.6:
+            warnings.append("宗门任务类型偏科，可能出现单一任务刷法")
+    if stats.get("sect_reward_stones", 0) / max(1, stats.get("total_spirit_stones_gained", 0)) > 0.35:
+        warnings.append("宗门奖励占比超过 35%，需要继续压低宗门直接收益")
     return sorted(set(warnings))
 
 

@@ -282,6 +282,16 @@ def main():
     assert "action_points" not in table_columns("characters")
     assert not HIDDEN_FIELDS.intersection(me_a["character"].keys())
 
+    force_character(player_b, hp=0, mana=40)
+    dead_explore = action(token_b, "explore")
+    assert dead_explore["success"] is False
+    assert "陨落" in dead_explore["message"]
+    dead_recover = action(token_b, "recover_mana_meditate")
+    assert dead_recover["success"] is False
+    assert "陨落" in dead_recover["message"]
+    assert request("/character/me", token=token_b)["character"]["mana"] == 40
+    force_character(player_b, hp=100, mana=100)
+
     sects = request("/sects")
     assert len(sects) >= 8
     assert {sect["faction"] for sect in sects} >= {"righteous", "demonic", "ghost", "buddhist"}

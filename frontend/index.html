@@ -808,13 +808,15 @@
         document.getElementById("res-stones").textContent = c.spirit_stones;
         document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
         document.getElementById("res-hp").textContent = `${c.hp} / ${c.max_hp} · ${c.life_status}`;
-        document.getElementById("train-rate").textContent = `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
+        const isDead = c.hp <= 0;
+        document.getElementById("train-rate").textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
         document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
-        document.getElementById("train-btn").disabled = c.mana < 12;
-        document.getElementById("explore-btn").disabled = c.mana < 18;
-        document.getElementById("breakthrough-btn").disabled = c.mana < 35;
-        document.getElementById("spirit-stone-btn").disabled = c.spirit_stones < 10 || c.mana >= c.max_mana;
-        document.getElementById("pill-btn").disabled = !data.inventory.some((item) => item.code === "mana_pill" && item.quantity > 0) || c.mana >= c.max_mana;
+        document.getElementById("train-btn").disabled = isDead || c.mana < 12;
+        document.getElementById("explore-btn").disabled = isDead || c.mana < 18;
+        document.getElementById("breakthrough-btn").disabled = isDead || c.mana < 35;
+        document.getElementById("meditate-btn").disabled = isDead || c.mana >= c.max_mana;
+        document.getElementById("spirit-stone-btn").disabled = isDead || c.spirit_stones < 10 || c.mana >= c.max_mana;
+        document.getElementById("pill-btn").disabled = isDead || !data.inventory.some((item) => item.code === "mana_pill" && item.quantity > 0) || c.mana >= c.max_mana;
 
         playerTitle.textContent = `角色：${data.username} ${c.title}`;
         fullTitleName.textContent = `${data.username} ${c.title}`;

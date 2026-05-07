@@ -67,6 +67,11 @@ def execute_action(db: Session, user: User, action_type: str, params: dict | Non
         result = _result(db, user, False, f"未知行为：{action_type}", {}, [], [], action_type)
         db.commit()
         return result
+    if character.hp <= 0:
+        result = _finalize(db, user, False, action_type, "你已经陨落，无法继续行动。", {}, [], {"reason": "dead"})
+        db.commit()
+        db.refresh(character)
+        return result
 
     result = handler(db, user, params)
     db.commit()

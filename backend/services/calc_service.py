@@ -88,8 +88,32 @@ def get_final_defense(character: Character) -> int:
 
 
 def get_action_mana_cost(character: Character, action_type: str) -> int:
+    base = int(ACTION_CONFIGS.get(action_type, {}).get("mana_cost", 0))
+    if action_type == "explore" and getattr(character, "swift_talisman_charges", 0) > 0:
+        return max(1, base - get_swift_talisman_mana_discount(character))
+    return base
+
+
+def get_life_skill_mana_cost(character: Character, recipe: dict) -> int:
     _ = character
-    return int(ACTION_CONFIGS.get(action_type, {}).get("mana_cost", 0))
+    return int(recipe.get("mana_cost", 0))
+
+
+def get_life_skill_success_rate(character: Character, recipe: dict) -> float:
+    _ = character
+    return max(0.05, min(1.0, float(recipe.get("success_rate", 1.0))))
+
+
+def get_scout_talisman_luck_bonus(character: Character) -> int:
+    return 28 if getattr(character, "scout_talisman_charges", 0) > 0 else 0
+
+
+def get_guard_talisman_damage_reduction(character: Character) -> float:
+    return 0.45 if getattr(character, "guard_talisman_charges", 0) > 0 else 0.0
+
+
+def get_swift_talisman_mana_discount(character: Character) -> int:
+    return 6 if getattr(character, "swift_talisman_charges", 0) > 0 else 0
 
 
 def get_sect_reward_multiplier(
@@ -138,6 +162,18 @@ def apply_item_effects(character: Character, effects: dict) -> dict:
         gain = int(effects["cultivation"])
         character.cultivation = min(character.cultivation_cap, character.cultivation + gain)
         applied["cultivation"] = gain
+    if effects.get("scout_talisman_charge"):
+        value = int(effects["scout_talisman_charge"])
+        character.scout_talisman_charges = min(5, character.scout_talisman_charges + value)
+        applied["scout_talisman_charge"] = value
+    if effects.get("guard_talisman_charge"):
+        value = int(effects["guard_talisman_charge"])
+        character.guard_talisman_charges = min(5, character.guard_talisman_charges + value)
+        applied["guard_talisman_charge"] = value
+    if effects.get("swift_talisman_charge"):
+        value = int(effects["swift_talisman_charge"])
+        character.swift_talisman_charges = min(5, character.swift_talisman_charges + value)
+        applied["swift_talisman_charge"] = value
     return applied
 
 

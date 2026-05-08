@@ -6,14 +6,21 @@ from backend.configs.events import EXPLORE_EVENTS
 from backend.configs.drop_tables import DROP_ROLLS_BY_EVENT_TYPE
 from backend.configs.opportunities import LUCKY_EVENT_CONFIG, LUCKY_EVENTS
 from backend.models import Character
-from backend.services.calc_service import get_battle_power_bonus, get_explore_reward_bonus, get_final_attack, get_final_defense
+from backend.services.calc_service import (
+    get_battle_power_bonus,
+    get_explore_reward_bonus,
+    get_final_attack,
+    get_final_defense,
+    get_guard_talisman_damage_reduction,
+    get_scout_talisman_luck_bonus,
+)
 from backend.services.drop_service import grant_drop_items
 from backend.services.realm_service import next_realm_config
 from backend.utils.random_utils import weighted_choice
 
 
 def pick_explore_event(character: Character) -> dict:
-    luck = character.hidden_luck
+    luck = character.hidden_luck + get_scout_talisman_luck_bonus(character)
 
     def event_weight(event: dict) -> float:
         weight = float(event["weight"])
@@ -39,7 +46,7 @@ def resolve_explore_event(db: Session, character: Character, params: dict | None
     data: dict = {"event": event["code"], "event_type": event["type"], "rewards": []}
 
     if event["type"] == "reward_spirit_stones":
-        amount = int((_roll_range(event["rewards"]["spirit_stones"]) + character.hidden_luck // 5) * (1 + get_explore_reward_bonus(character)))
+        amount = int((_roll_range(event["rewards"]["spirit_stones"]) + (character.hidden_luck + get_scout_talisman_luck_bonus(character)) // 5) * (1 + get_explore_reward_bonus(character)))
         character.spirit_stones += amount
         rewards.append({"type": "spirit_stones", "quantity": amount})
         messages.append(f"你发现一处废弃矿脉，获得 {amount} 灵石。")
@@ -78,6 +85,8 @@ def resolve_explore_event(db: Session, character: Character, params: dict | None
 
     elif event["type"] == "trap":
         damage = _roll_range(event["risks"].get("hp_damage", [1, 1]))
+        reduction = get_guard_talisman_damage_reduction(character)
+        damage = max(1, int(damage * (1 - reduction)))
         character.hp = max(0, character.hp - damage)
         messages.append(f"你误入迷阵，损失 {damage} 气血。")
 
@@ -91,7 +100,7 @@ def resolve_explore_event(db: Session, character: Character, params: dict | None
 def resolve_lucky_event(db: Session, character: Character, force_lucky_code: str | None = None) -> dict | None:
     chance = min(
         LUCKY_EVENT_CONFIG["max_rate"],
-        LUCKY_EVENT_CONFIG["base_rate"] + character.hidden_luck * LUCKY_EVENT_CONFIG["luck_factor"],
+        LUCKY_EVENT_CONFIG["base_rate"] + (character.hidden_luck + get_scout_talisman_luck_bonus(character)) * LUCKY_EVENT_CONFIG["luck_factor"],
     )
     if not force_lucky_code and random.random() > chance:
         return None
@@ -151,6 +160,8 @@ def resolve_battle(character: Character) -> dict:
             rounds.append(f"第{index}回合击退{enemy}")
             break
         taken = max(1, enemy_attack + random.randint(0, 6) - player_defense)
+        reduction = get_guard_talisman_damage_reduction(character)
+        taken = max(1, int(taken * (1 - reduction)))
         damage_taken += taken
         character.hp = max(0, character.hp - taken)
         if character.hp <= 0:

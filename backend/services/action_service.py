@@ -15,6 +15,7 @@ from backend.services.calc_service import (
 from backend.services.character_service import character_payload
 from backend.services.event_service import resolve_explore_event
 from backend.services.inventory_service import consume_slot_item, inventory_payload
+from backend.services.life_skill_service import run_life_skill
 from backend.services.log_service import write_action_record, write_log
 from backend.services.progression_service import (
     equip_artifact_from_slot,
@@ -61,6 +62,9 @@ def execute_action(db: Session, user: User, action_type: str, params: dict | Non
         "complete_sect_task": _complete_sect_task,
         "promote_sect_position": _promote_sect_position,
         "exchange_sect_reward": _exchange_sect_reward,
+        "alchemy": _alchemy,
+        "talisman": _talisman,
+        "crafting": _crafting,
     }
     handler = handlers.get(action_type)
     if not handler:
@@ -121,6 +125,7 @@ def _explore(db: Session, user: User, params: dict) -> dict:
     if not ok:
         return _finalize(db, user, False, "explore", error or MANA_HELP_TEXT, cost, [], {"reason": "insufficient_mana"})
     event_result = resolve_explore_event(db, character, params)
+    _consume_explore_charges(character)
     character.cultivation = min(character.cultivation_cap, character.cultivation + random.randint(4, 16))
     character.updated_at = utc_now()
     message = f"外出探索消耗 {cost['mana']} 点法力。{event_result['message']}"
@@ -284,6 +289,33 @@ def _promote_sect_position(db: Session, user: User, params: dict) -> dict:
 def _exchange_sect_reward(db: Session, user: User, params: dict) -> dict:
     ok, message, data = exchange_reward(db, user, str(params.get("reward_code", "")))
     return _finalize(db, user, ok, "exchange_sect_reward", message, {"reward_code": params.get("reward_code")}, [{"type": "sect_exchange", **data}] if ok else [], data)
+
+
+def _alchemy(db: Session, user: User, params: dict) -> dict:
+    return _life_skill(db, user, "alchemy", params)
+
+
+def _talisman(db: Session, user: User, params: dict) -> dict:
+    return _life_skill(db, user, "talisman", params)
+
+
+def _crafting(db: Session, user: User, params: dict) -> dict:
+    return _life_skill(db, user, "crafting", params)
+
+
+def _life_skill(db: Session, user: User, skill_type: str, params: dict) -> dict:
+    recipe_id = str(params.get("recipe_id", ""))
+    ok, message, data, cost, rewards = run_life_skill(db, user.character, skill_type, recipe_id)
+    return _finalize(db, user, ok, skill_type, message, cost, rewards, data)
+
+
+def _consume_explore_charges(character) -> None:
+    if getattr(character, "scout_talisman_charges", 0) > 0:
+        character.scout_talisman_charges -= 1
+    if getattr(character, "guard_talisman_charges", 0) > 0:
+        character.guard_talisman_charges -= 1
+    if getattr(character, "swift_talisman_charges", 0) > 0:
+        character.swift_talisman_charges -= 1
 
 
 def _finalize(

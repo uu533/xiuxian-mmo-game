@@ -20,6 +20,9 @@ class CharacterResponse(BaseModel):
     max_hp: int
     mana: int
     max_mana: int
+    scout_talisman_charges: int
+    guard_talisman_charges: int
+    swift_talisman_charges: int
     attack: int
     defense: int
     base_attack: int

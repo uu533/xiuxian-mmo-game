@@ -90,7 +90,7 @@ def add_item_to_main_bag(db: Session, character: Character, item_code: str, quan
             item_template_id=template.id,
             owner_character_id=character.id,
             bound=False,
-            rarity=_roll_rarity() if template.type == "magic_artifact" else "白",
+            rarity=_roll_rarity() if _should_roll_rarity(template.code, template.type) else "白",
             extra_json={},
         )
         db.add(instance)
@@ -187,3 +187,7 @@ def consume_item_by_code(db: Session, character: Character, item_code: str, quan
 
 def _roll_rarity() -> str:
     return weighted_choice(RARITY_WEIGHTS, lambda item: item["weight"])["rarity"]
+
+
+def _should_roll_rarity(item_code: str, item_type: str) -> bool:
+    return item_type == "magic_artifact" and item_code in {"low_artifact", "mid_artifact", "high_artifact"}

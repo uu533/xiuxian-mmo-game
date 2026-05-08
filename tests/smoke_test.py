@@ -116,6 +116,23 @@ def remove_item_from_bag(username, code):
         conn.commit()
 
 
+def first_slot_with_code(username, code):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT inventory_slots.slot_index
+            FROM inventory_slots
+            JOIN item_templates ON item_templates.id = inventory_slots.item_template_id
+            WHERE inventory_slots.character_id = ? AND item_templates.code = ?
+            ORDER BY inventory_slots.slot_index
+            LIMIT 1
+            """,
+            (character_id, code),
+        ).fetchone()
+    return row[0] if row else None
+
+
 def add_explore_records(username, count):
     _user_id, character_id = get_ids(username)
     with sqlite3.connect(DB_PATH) as conn:
@@ -211,6 +228,20 @@ def fill_inventory(username):
         conn.commit()
 
 
+def clear_inventory(username):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE inventory_slots
+            SET item_template_id = NULL, quantity = 0, item_instance_id = NULL
+            WHERE character_id = ?
+            """,
+            (character_id,),
+        )
+        conn.commit()
+
+
 def count_action_records(character_id, action_type):
     with sqlite3.connect(DB_PATH) as conn:
         return conn.execute("SELECT COUNT(*) FROM action_records WHERE character_id = ? AND action_type = ?", (character_id, action_type)).fetchone()[0]
@@ -249,6 +280,7 @@ def main():
         "sect_members",
         "sect_tasks",
         "sect_reputation_logs",
+        "life_skill_records",
     ]:
         assert table in summary["tables"]
     assert summary["sects"] >= 8
@@ -346,6 +378,27 @@ def main():
     assert request("/sects/me", token=token_s)["sect"] is None
     rejoined = action(token_s, "join_sect", {"sect_code": "taiqing_alchemy_pavilion"})
     assert rejoined["success"] is True
+
+    force_character(player_s, mana=500)
+    clear_inventory(player_s)
+    add_item_to_bag(player_s, "low_material", 10)
+    add_item_to_bag(player_s, "low_spirit_stone", 40)
+    add_item_to_bag(player_s, "broken_jade_slip", 2)
+    add_item_to_bag(player_s, "black_iron_shard", 1)
+    crafted_pill = action(token_s, "alchemy", {"recipe_id": "alchemy_mana_pill"})
+    assert crafted_pill["success"] is True
+    crafted_talisman = action(token_s, "talisman", {"recipe_id": "talisman_scout"})
+    assert crafted_talisman["success"] is True
+    talisman_slot = first_slot_with_code(player_s, "scout_talisman")
+    assert talisman_slot is not None
+    used_talisman = action(token_s, "use_item", {"slot_index": talisman_slot})
+    assert used_talisman["success"] is True
+    assert used_talisman["character"]["scout_talisman_charges"] >= 1
+    crafted_artifact = action(token_s, "crafting", {"recipe_id": "craft_low_sword"})
+    assert crafted_artifact["success"] is True
+    _user_s_id, character_s_id = get_ids(player_s)
+    with sqlite3.connect(DB_PATH) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM life_skill_records WHERE character_id = ?", (character_s_id,)).fetchone()[0] >= 3
 
     force_character(player_a, mana=500, hidden_luck=150)
     for _ in range(5):

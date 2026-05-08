@@ -305,7 +305,8 @@ def shop_payload(db: Session, character: Character) -> list[dict]:
     member = active_member(db, character)
     if not member:
         return []
-    return [{**item, "faction": member.sect.faction} for item in SECT_SHOP.get(member.sect.faction, [])]
+    items = [*SECT_SHOP.get(member.sect.faction, []), *SECT_SHOP.get("life_skill", [])]
+    return [{**item, "faction": member.sect.faction} for item in items]
 
 
 def exchange_reward(db: Session, user: User, reward_code: str) -> tuple[bool, str, dict]:
@@ -313,7 +314,7 @@ def exchange_reward(db: Session, user: User, reward_code: str) -> tuple[bool, st
     member = active_member(db, character)
     if not member:
         return False, "你尚未加入宗门。", {"reason": "not_in_sect"}
-    reward = next((item for item in SECT_SHOP.get(member.sect.faction, []) if item["code"] == reward_code), None)
+    reward = next((item for item in [*SECT_SHOP.get(member.sect.faction, []), *SECT_SHOP.get("life_skill", [])] if item["code"] == reward_code), None)
     if not reward:
         return False, "没有找到这个宗门兑换奖励。", {"reason": "reward_not_found"}
     cost = int(reward["cost"])
@@ -432,6 +433,8 @@ def _progress_amount(config: dict, action_type: str, result_data: dict) -> int:
         return 1 if result_data.get("event_type") in set(config.get("target_event_types", [])) else 0
     if task_type == "faction_conflict":
         return 1 if result_data.get("event_type") in set(config.get("target_event_types", [])) else 0
+    if task_type in {"alchemy", "talisman", "crafting"}:
+        return 1
     return 1
 
 

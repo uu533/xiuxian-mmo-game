@@ -29,6 +29,9 @@ class Character(Base):
     base_defense: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
     hidden_luck: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
     hidden_inner_demon: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    scout_talisman_charges: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    guard_talisman_charges: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    swift_talisman_charges: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     spirit_stones: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
     sect_id: Mapped[int | None] = mapped_column(ForeignKey("sects.id"), nullable=True)
     sect_position: Mapped[str] = mapped_column(String(32), default="散修", nullable=False)
@@ -43,6 +46,7 @@ class Character(Base):
     artifacts: Mapped[list["CharacterArtifact"]] = relationship(back_populates="character", cascade="all, delete-orphan")
     action_records: Mapped[list["ActionRecord"]] = relationship(back_populates="character", cascade="all, delete-orphan")
     game_logs: Mapped[list["GameLog"]] = relationship(back_populates="character", cascade="all, delete-orphan")
+    life_skill_records: Mapped[list["LifeSkillRecord"]] = relationship(back_populates="character", cascade="all, delete-orphan")
     derived_stats: Mapped["CharacterDerivedStats | None"] = relationship(back_populates="character", cascade="all, delete-orphan", uselist=False)
     tasks: Mapped[list["CharacterTask"]] = relationship(back_populates="character", cascade="all, delete-orphan")
 

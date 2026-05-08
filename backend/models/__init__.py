@@ -1,6 +1,7 @@
 from backend.models.character import Character, CharacterDerivedStats
 from backend.models.inventory import InventorySlot
 from backend.models.item import ItemInstance, ItemTemplate
+from backend.models.life_skill import LifeSkillRecord
 from backend.models.log import ActionRecord, GameLog
 from backend.models.progression import CharacterArtifact, CharacterMethod
 from backend.models.sect import Sect, SectMember, SectReputationLog, SectTask
@@ -22,6 +23,7 @@ __all__ = [
     "InventorySlot",
     "ItemInstance",
     "ItemTemplate",
+    "LifeSkillRecord",
     "Message",
     "Sect",
     "SectMember",

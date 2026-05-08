@@ -30,6 +30,24 @@ ARTIFACT_EFFECTS_BY_CODE = {
         "explore_reward_bonus_per_level": 0.05,
         "battle_power_per_level": 18,
     },
+    "crafted_low_sword": {
+        "attack_per_level": 6,
+        "defense_per_level": 3,
+        "explore_reward_bonus_per_level": 0.01,
+        "battle_power_per_level": 2,
+    },
+    "gathering_artifact": {
+        "attack_per_level": 3,
+        "defense_per_level": 4,
+        "explore_reward_bonus_per_level": 0.012,
+        "battle_power_per_level": 1,
+    },
+    "explore_puppet": {
+        "attack_per_level": 2,
+        "defense_per_level": 3,
+        "explore_reward_bonus_per_level": 0.015,
+        "battle_power_per_level": 1,
+    },
 }
 
 RARITY_WEIGHTS = [

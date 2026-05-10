@@ -12,6 +12,7 @@ from backend.configs.opportunities import LUCKY_EVENT_CONFIG
 from backend.configs.realms import REALM_BY_NAME, REALM_NAMES, STARTING_REALM
 from backend.configs.recipes_alchemy import ALCHEMY_RECIPES
 from backend.configs.recipes_crafting import CRAFTING_RECIPES
+from backend.configs.recipes_formation import FORMATION_RECIPES
 from backend.configs.recipes_talisman import TALISMAN_RECIPES
 from backend.configs.sects import SECT_TASKS
 from backend.database import BASE_DIR
@@ -50,6 +51,8 @@ def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
         "life_skill_outputs": Counter(),
         "life_skill_reward_value": 0,
         "life_skill_by_type": Counter(),
+        "active_effects_triggered": Counter(),
+        "active_effects_expired": Counter(),
     }
 
     for minute in range(minutes):
@@ -100,6 +103,7 @@ def _new_state() -> dict:
         "scout_talisman_charges": 0,
         "guard_talisman_charges": 0,
         "swift_talisman_charges": 0,
+        "active_effects": {},
         "artifact_rarity": "白",
         "consecutive_train": 0,
         "explore_count": 0,
@@ -153,8 +157,8 @@ def _mana_cost(action: str, state: dict | None = None) -> int:
         recipe = _sect_life_skill_recipe(action)
         return int(recipe["mana_cost"]) if recipe else 0
     cost = {"train": 12, "explore": 18, "breakthrough": 35, "practice_method": 10}.get(action, 0)
-    if action == "explore" and state and state.get("swift_talisman_charges", 0) > 0:
-        return max(1, cost - 6)
+    if action == "explore" and state and _sim_effect_value(state, "explore_mana_discount") > 0:
+        return max(1, cost - int(_sim_effect_value(state, "explore_mana_discount")))
     return cost
 
 
@@ -179,14 +183,22 @@ def _auto_prepare(state: dict, stats: dict) -> None:
 
 
 def _auto_life_skills(state: dict, stats: dict) -> None:
-    if state["mana"] >= 18 and state["items"]["scout_talisman"] > 0 and state.get("scout_talisman_charges", 0) <= 0:
+    if state["mana"] >= 18 and state["items"]["scout_talisman"] > 0 and not _sim_effect_value(state, "explore_luck_bonus"):
         state["items"]["scout_talisman"] -= 1
-        state["scout_talisman_charges"] = state.get("scout_talisman_charges", 0) + 1
+        _activate_sim_effect(state, "explore_luck_bonus", 0.06, 1, "scout_talisman")
         stats["actions"]["use_scout_talisman"] += 1
-    if state["mana"] >= 18 and state["items"]["swift_talisman"] > 0 and state.get("swift_talisman_charges", 0) <= 0:
+    if state["mana"] >= 18 and state["items"]["swift_talisman"] > 0 and not _sim_effect_value(state, "explore_mana_discount"):
         state["items"]["swift_talisman"] -= 1
-        state["swift_talisman_charges"] = state.get("swift_talisman_charges", 0) + 1
+        _activate_sim_effect(state, "explore_mana_discount", 6, 1, "swift_talisman")
         stats["actions"]["use_swift_talisman"] += 1
+    if stats["actions"].get("formation", 0) < max(1, state["explore_count"] // 90 + 1):
+        formation_index = stats["actions"].get("formation", 0) % 3
+        if formation_index == 1 and not _sim_effect_value(state, "explore_reward_bonus"):
+            _try_recipe(state, stats, "formation", FORMATION_RECIPES[2])
+        elif formation_index == 2 and not _sim_effect_value(state, "explore_damage_reduction"):
+            _try_recipe(state, stats, "formation", FORMATION_RECIPES[1])
+        elif state["cultivation"] < state["cultivation_cap"] and not _sim_effect_value(state, "train_cultivation_bonus"):
+            _try_recipe(state, stats, "formation", FORMATION_RECIPES[0])
     if stats["actions"].get("crafting", 0) < 2:
         _try_recipe(state, stats, "crafting", CRAFTING_RECIPES[0])
     if stats["actions"].get("talisman", 0) < max(1, state["explore_count"] // 30 + 1):
@@ -203,6 +215,19 @@ def _try_recipe(state: dict, stats: dict, skill_type: str, recipe: dict) -> bool
     state["mana"] -= int(recipe["mana_cost"])
     for item in recipe.get("required_items", []):
         state["items"][item["code"]] -= int(item.get("quantity", 1))
+    if skill_type == "formation":
+        effect_id = recipe.get("output_effect_id", recipe["id"])
+        if effect_id == "formation_gather_spirit":
+            _activate_sim_effect(state, "train_cultivation_bonus", 0.12, 3, effect_id)
+        elif effect_id == "formation_guard":
+            _activate_sim_effect(state, "explore_damage_reduction", 0.35, 3, effect_id)
+        elif effect_id == "formation_draw_spirit":
+            _activate_sim_effect(state, "explore_reward_bonus", 0.08, 3, effect_id)
+        stats["actions"][skill_type] += 1
+        stats["life_skill_by_type"][skill_type] += 1
+        stats["life_skill_outputs"][effect_id] += 1
+        stats["life_skill_reward_value"] += _life_skill_output_value(effect_id, 1)
+        return True
     output = recipe["output_item_id"]
     quantity = int(recipe.get("output_count", 1))
     state["items"][output] += quantity
@@ -235,8 +260,41 @@ def _life_skill_output_value(output: str, quantity: int) -> int:
         "crafted_low_sword": 45,
         "gathering_artifact": 36,
         "explore_puppet": 42,
+        "formation_gather_spirit": 24,
+        "formation_guard": 18,
+        "formation_draw_spirit": 22,
     }
     return values.get(output, 6) * quantity
+
+
+def _activate_sim_effect(state: dict, effect_type: str, value: float, remaining_uses: int, source: str) -> None:
+    current = state["active_effects"].get(effect_type)
+    if current:
+        if value > current["value"]:
+            current["value"] = value
+            current["source"] = source
+        current["remaining_uses"] = max(current["remaining_uses"], remaining_uses)
+        return
+    state["active_effects"][effect_type] = {"value": value, "remaining_uses": remaining_uses, "source": source}
+
+
+def _sim_effect_value(state: dict, effect_type: str) -> float:
+    effect = state["active_effects"].get(effect_type)
+    if not effect or effect["remaining_uses"] <= 0:
+        return 0.0
+    return float(effect["value"])
+
+
+def _consume_sim_effects(state: dict, stats: dict, effect_types: list[str]) -> None:
+    for effect_type in effect_types:
+        effect = state["active_effects"].get(effect_type)
+        if not effect or effect["remaining_uses"] <= 0:
+            continue
+        effect["remaining_uses"] -= 1
+        stats["active_effects_triggered"][effect_type] += 1
+        if effect["remaining_uses"] <= 0:
+            stats["active_effects_expired"][effect_type] += 1
+            del state["active_effects"][effect_type]
 
 
 def _simulate_life_skill_action(state: dict, stats: dict, skill_type: str) -> None:
@@ -255,6 +313,8 @@ def _sect_life_skill_recipe(skill_type: str) -> dict | None:
         return TALISMAN_RECIPES[0]
     if skill_type == "crafting":
         return CRAFTING_RECIPES[0]
+    if skill_type == "formation":
+        return FORMATION_RECIPES[0]
     return None
 
 
@@ -297,11 +357,12 @@ def _simulate_train(state: dict, stats: dict) -> None:
     state["mana"] -= 12
     speed = 1.0 + state["method_level"] * 0.04
     efficiency = [1.0, 0.8, 0.6, 0.4][state["consecutive_train"]] if state["consecutive_train"] < 4 else 0.2
-    gain = max(1, int((random.randint(16, 28) * speed + state["max_mana"] * 0.03) * efficiency))
+    gain = max(1, int((random.randint(16, 28) * speed + state["max_mana"] * 0.03) * efficiency * (1 + _sim_effect_value(state, "train_cultivation_bonus"))))
     state["cultivation"] = min(state["cultivation_cap"], state["cultivation"] + gain)
     stats["total_cultivation_gained"] += gain
     stats["actions"]["train"] += 1
     state["consecutive_train"] += 1
+    _consume_sim_effects(state, stats, ["train_cultivation_bonus"])
 
 
 def _simulate_explore(state: dict, stats: dict) -> None:
@@ -310,7 +371,7 @@ def _simulate_explore(state: dict, stats: dict) -> None:
     state["explore_count"] += 1
     stats["actions"]["explore"] += 1
     _simulate_sect_task_progress(state, stats, "explore")
-    luck = state["hidden_luck"] + (28 if state.get("scout_talisman_charges", 0) > 0 else 0)
+    luck = state["hidden_luck"] + int(1000 * _sim_effect_value(state, "explore_luck_bonus"))
     if random.random() <= min(LUCKY_EVENT_CONFIG["max_rate"], LUCKY_EVENT_CONFIG["base_rate"] + luck * LUCKY_EVENT_CONFIG["luck_factor"]):
         stats["actions"]["lucky"] += 1
         for _ in range(2):
@@ -558,12 +619,12 @@ def _simulate_explore(state: dict, stats: dict) -> None:
         for _ in range(2):
             _grant_sim_drop(state, stats)
         _simulate_sect_task_progress(state, stats, "explore")
-        _consume_sim_explore_charges(state)
+        _consume_sim_effects(state, stats, ["explore_luck_bonus", "explore_damage_reduction", "explore_mana_discount", "explore_reward_bonus"])
         return
     event_type = random.choices(["stones", "drop", "battle", "empty"], weights=[35, 35, 20, 10], k=1)[0]
     state["last_event_type"] = "reward_spirit_stones" if event_type == "stones" else event_type
     if event_type == "stones":
-        stones = random.randint(18, 68) + luck // 5
+        stones = int((random.randint(18, 68) + luck // 5) * (1 + _sim_effect_value(state, "explore_reward_bonus")))
         state["spirit_stones"] += stones
         stats["total_spirit_stones_gained"] += stones
     elif event_type in {"drop", "battle"}:
@@ -572,7 +633,7 @@ def _simulate_explore(state: dict, stats: dict) -> None:
         for _ in range(rolls):
             _grant_sim_drop(state, stats)
     _simulate_sect_task_progress(state, stats, "explore")
-    _consume_sim_explore_charges(state)
+    _consume_sim_effects(state, stats, ["explore_luck_bonus", "explore_damage_reduction", "explore_mana_discount", "explore_reward_bonus"])
 
 
 def _simulate_sect_task_progress(state: dict, stats: dict, action_type: str) -> None:
@@ -606,12 +667,6 @@ def _sim_progress_amount(task: dict, action_type: str, state: dict) -> int:
     if task_type in {"alchemy", "talisman", "crafting"}:
         return 1
     return 0
-
-
-def _consume_sim_explore_charges(state: dict) -> None:
-    for key in ("scout_talisman_charges", "guard_talisman_charges", "swift_talisman_charges"):
-        if state.get(key, 0) > 0:
-            state[key] -= 1
 
 
 def _choose_sect_task(state: dict) -> dict | None:
@@ -700,7 +755,15 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sec
         "life_skill_action_ratio": round(life_skill_actions / max(1, total_actions), 4),
         "life_skill_reward_ratio": round(life_skill_reward_ratio, 4),
         "life_skill_by_type": dict(stats["life_skill_by_type"]),
+        "life_skill_ratio_by_type": {
+            skill_type: round(count / max(1, total_actions), 4)
+            for skill_type, count in stats["life_skill_by_type"].items()
+        },
+        "formation_count": stats["actions"].get("formation", 0),
         "life_skill_outputs": dict(stats["life_skill_outputs"]),
+        "active_effects_triggered": dict(stats["active_effects_triggered"]),
+        "active_effects_expired": dict(stats["active_effects_expired"]),
+        "active_effects_remaining": dict(state["active_effects"]),
         "life_skill_only_growth_risk": bool(life_skill_actions and stats["actions"].get("explore", 0) / max(1, life_skill_actions) < 1.5),
         "with_sect": with_sect,
         "sect_joined": state["sect_joined"],

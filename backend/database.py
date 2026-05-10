@@ -249,6 +249,7 @@ def db_summary() -> dict:
             "character_tasks": _count(conn, "character_tasks"),
             "game_logs": _count(conn, "game_logs"),
             "action_records": _count(conn, "action_records"),
+            "active_effects": _count(conn, "active_effects"),
             "life_skill_records": _count(conn, "life_skill_records"),
             "sects": _count(conn, "sects"),
             "sect_members": _count(conn, "sect_members"),

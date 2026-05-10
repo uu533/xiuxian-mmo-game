@@ -49,6 +49,7 @@ class Character(Base):
     life_skill_records: Mapped[list["LifeSkillRecord"]] = relationship(back_populates="character", cascade="all, delete-orphan")
     derived_stats: Mapped["CharacterDerivedStats | None"] = relationship(back_populates="character", cascade="all, delete-orphan", uselist=False)
     tasks: Mapped[list["CharacterTask"]] = relationship(back_populates="character", cascade="all, delete-orphan")
+    active_effects: Mapped[list["ActiveEffect"]] = relationship(back_populates="character", cascade="all, delete-orphan")
 
 
 class CharacterDerivedStats(Base):

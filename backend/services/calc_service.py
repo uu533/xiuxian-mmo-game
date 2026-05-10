@@ -8,6 +8,7 @@ from backend.configs.formulas import (
 from backend.configs.methods import METHOD_EFFECTS_BY_CODE
 from backend.configs.sects import SECT_TASK_LIMITS
 from backend.models import Character
+from backend.services.active_effect_service import effect_value
 from backend.services.realm_service import current_realm_config, normalize_realm, qi_refining_level
 from backend.services.spiritual_root_service import root_rate
 
@@ -66,6 +67,10 @@ def get_cultivation_efficiency(character: Character) -> float:
     return [1.0, 0.8, 0.6, 0.4][consecutive_trains] if consecutive_trains < 4 else 0.2
 
 
+def get_train_cultivation_bonus(character: Character) -> float:
+    return min(0.18, effect_value(character, "train_cultivation_bonus"))
+
+
 def get_breakthrough_rate(character: Character) -> float:
     config = current_realm_config(character)
     rate = config.breakthrough_rate
@@ -89,7 +94,7 @@ def get_final_defense(character: Character) -> int:
 
 def get_action_mana_cost(character: Character, action_type: str) -> int:
     base = int(ACTION_CONFIGS.get(action_type, {}).get("mana_cost", 0))
-    if action_type == "explore" and getattr(character, "swift_talisman_charges", 0) > 0:
+    if action_type == "explore" and effect_value(character, "explore_mana_discount") > 0:
         return max(1, base - get_swift_talisman_mana_discount(character))
     return base
 
@@ -105,15 +110,15 @@ def get_life_skill_success_rate(character: Character, recipe: dict) -> float:
 
 
 def get_scout_talisman_luck_bonus(character: Character) -> int:
-    return 28 if getattr(character, "scout_talisman_charges", 0) > 0 else 0
+    return int(1000 * effect_value(character, "explore_luck_bonus"))
 
 
 def get_guard_talisman_damage_reduction(character: Character) -> float:
-    return 0.45 if getattr(character, "guard_talisman_charges", 0) > 0 else 0.0
+    return min(0.5, effect_value(character, "explore_damage_reduction"))
 
 
 def get_swift_talisman_mana_discount(character: Character) -> int:
-    return 6 if getattr(character, "swift_talisman_charges", 0) > 0 else 0
+    return int(effect_value(character, "explore_mana_discount"))
 
 
 def get_sect_reward_multiplier(
@@ -164,15 +169,12 @@ def apply_item_effects(character: Character, effects: dict) -> dict:
         applied["cultivation"] = gain
     if effects.get("scout_talisman_charge"):
         value = int(effects["scout_talisman_charge"])
-        character.scout_talisman_charges = min(5, character.scout_talisman_charges + value)
         applied["scout_talisman_charge"] = value
     if effects.get("guard_talisman_charge"):
         value = int(effects["guard_talisman_charge"])
-        character.guard_talisman_charges = min(5, character.guard_talisman_charges + value)
         applied["guard_talisman_charge"] = value
     if effects.get("swift_talisman_charge"):
         value = int(effects["swift_talisman_charge"])
-        character.swift_talisman_charges = min(5, character.swift_talisman_charges + value)
         applied["swift_talisman_charge"] = value
     return applied
 
@@ -282,7 +284,7 @@ def get_explore_reward_bonus(character: Character) -> float:
             continue
         config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
         total += float(config.get("explore_reward_bonus_per_level", 0)) * artifact.item_instance.level
-    return total
+    return total + min(0.1, effect_value(character, "explore_reward_bonus"))
 
 
 def get_battle_power_bonus(character: Character) -> int:

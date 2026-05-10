@@ -1,3 +1,4 @@
+from backend.models.active_effect import ActiveEffect
 from backend.models.character import Character, CharacterDerivedStats
 from backend.models.inventory import InventorySlot
 from backend.models.item import ItemInstance, ItemTemplate
@@ -12,6 +13,7 @@ from backend.utils.time_utils import utc_now
 
 __all__ = [
     "ActionRecord",
+    "ActiveEffect",
     "AuthToken",
     "Character",
     "CharacterDerivedStats",

@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 
 from backend.configs.recipes_alchemy import ALCHEMY_RECIPES
 from backend.configs.recipes_crafting import CRAFTING_RECIPES
+from backend.configs.recipes_formation import FORMATION_RECIPES
 from backend.configs.recipes_talisman import TALISMAN_RECIPES
 from backend.configs.realms import REALM_NAMES
 from backend.models import Character, LifeSkillRecord
+from backend.services.active_effect_service import activate_formation_effect
 from backend.services.calc_service import get_life_skill_mana_cost, get_life_skill_success_rate
 from backend.services.inventory_service import add_item_to_main_bag, consume_item_by_code, has_item
 
@@ -14,6 +16,7 @@ RECIPES_BY_SKILL = {
     "alchemy": ALCHEMY_RECIPES,
     "talisman": TALISMAN_RECIPES,
     "crafting": CRAFTING_RECIPES,
+    "formation": FORMATION_RECIPES,
 }
 
 
@@ -69,6 +72,11 @@ def run_life_skill(db: Session, character: Character, skill_type: str, recipe_id
     rewards: list[dict] = []
     data = {"recipe_id": recipe_id, "skill_type": skill_type, "success_rate": success_rate, "recipe": recipe}
     if success:
+        if recipe.get("output_effect_id"):
+            active_effect = activate_formation_effect(db, character.user, recipe["output_effect_id"])
+            data.update({"output_effect_id": recipe["output_effect_id"], "active_effect": active_effect})
+            _record(db, character, skill_type, recipe_id, True, cost, data)
+            return True, f"{recipe['name']} activated.", data, cost, [{"type": "active_effect", **active_effect}]
         ok, message, payload = add_item_to_main_bag(db, character, recipe["output_item_id"], int(recipe.get("output_count", 1)))
         if not ok:
             data.update({"reason": "inventory_full", "stored": False, "item": payload})

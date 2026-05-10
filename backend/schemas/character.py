@@ -23,6 +23,7 @@ class CharacterResponse(BaseModel):
     scout_talisman_charges: int
     guard_talisman_charges: int
     swift_talisman_charges: int
+    active_effects: list[dict] = Field(default_factory=list)
     attack: int
     defense: int
     base_attack: int

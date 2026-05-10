@@ -5,6 +5,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from backend.configs.realms import REALM_NAMES
+
 BASE_URL = "http://127.0.0.1:8000"
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "game.db"
@@ -280,6 +282,7 @@ def main():
         "sect_members",
         "sect_tasks",
         "sect_reputation_logs",
+        "active_effects",
         "life_skill_records",
     ]:
         assert table in summary["tables"]
@@ -396,9 +399,19 @@ def main():
     assert used_talisman["character"]["scout_talisman_charges"] >= 1
     crafted_artifact = action(token_s, "crafting", {"recipe_id": "craft_low_sword"})
     assert crafted_artifact["success"] is True
+    force_character(player_s, realm=REALM_NAMES[2], realm_stage="炼气", mana=500)
+    add_item_to_bag(player_s, "low_material", 3)
+    add_item_to_bag(player_s, "low_spirit_stone", 16)
+    formed = action(token_s, "formation", {"recipe_id": "formation_gather_spirit"})
+    assert formed["success"] is True
+    assert any(effect["effect_type"] == "train_cultivation_bonus" for effect in formed["character"]["active_effects"])
+    trained_with_formation = action(token_s, "train")
+    assert trained_with_formation["success"] is True
+    assert trained_with_formation["character"]["active_effects"]
     _user_s_id, character_s_id = get_ids(player_s)
     with sqlite3.connect(DB_PATH) as conn:
         assert conn.execute("SELECT COUNT(*) FROM life_skill_records WHERE character_id = ?", (character_s_id,)).fetchone()[0] >= 3
+        assert conn.execute("SELECT COUNT(*) FROM active_effects WHERE character_id = ?", (character_s_id,)).fetchone()[0] >= 1
 
     force_character(player_a, mana=500, hidden_luck=150)
     for _ in range(5):

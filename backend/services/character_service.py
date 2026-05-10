@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from backend.models import Character, User, utc_now
 from backend.services.calc_service import derived_stats, get_breakthrough_rate, sync_base_and_caps
+from backend.services.active_effect_service import active_effects_payload
 from backend.services.realm_service import normalize_realm, normalize_title, unlocked_titles
 from backend.services.sect_service import derive_sect_position, identity_status
 
@@ -29,9 +30,10 @@ def character_payload(character: Character) -> dict:
         "max_hp": character.max_hp,
         "mana": character.mana,
         "max_mana": character.max_mana,
-        "scout_talisman_charges": character.scout_talisman_charges,
-        "guard_talisman_charges": character.guard_talisman_charges,
-        "swift_talisman_charges": character.swift_talisman_charges,
+        "scout_talisman_charges": _remaining_effect_uses(character, "explore_luck_bonus"),
+        "guard_talisman_charges": _remaining_effect_uses(character, "explore_damage_reduction"),
+        "swift_talisman_charges": _remaining_effect_uses(character, "explore_mana_discount"),
+        "active_effects": active_effects_payload(character),
         "attack": stats["final_attack"],
         "defense": stats["final_defense"],
         "base_attack": character.base_attack,
@@ -46,6 +48,10 @@ def character_payload(character: Character) -> dict:
         "sect_position": position,
         "identity_status": identity_status(character),
     }
+
+
+def _remaining_effect_uses(character: Character, effect_type: str) -> int:
+    return sum(effect.remaining_uses for effect in character.active_effects if effect.effect_type == effect_type and effect.remaining_uses > 0)
 
 
 def set_title(db: Session, user: User, title: str) -> dict:

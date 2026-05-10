@@ -327,7 +327,7 @@ ITEM_TEMPLATES = [
         "description": "服用后恢复少量法力。",
         "stackable": True,
         "max_stack": 99,
-        "effects": {"recover_mana": 30},
+        "effects": {"recover_mana": 8},
     },
     {
         "code": "scout_talisman",

@@ -41,6 +41,11 @@ def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
         "sect_task_type_distribution": Counter(),
         "sect_reward_by_type": Counter(),
         "sect_decay_reasons": Counter(),
+        "alchemy_count": 0,
+        "talisman_count": 0,
+        "crafting_count": 0,
+        "formation_count": 0,
+        "life_skill_mana_used": 0,
     }
 
     for minute in range(minutes):
@@ -59,6 +64,14 @@ def run_simulation(hours: float = 1, with_sect: bool = False) -> dict:
             _simulate_breakthrough(state, stats)
         elif action == "practice_method":
             _simulate_practice_method(state, stats)
+        elif action == "alchemy":
+            _simulate_alchemy(state, stats)
+        elif action == "talisman":
+            _simulate_talisman(state, stats)
+        elif action == "crafting":
+            _simulate_crafting(state, stats)
+        elif action == "formation":
+            _simulate_formation(state, stats)
         else:
             _simulate_explore(state, stats)
         stats["bag_slots_used_peak"] = max(stats["bag_slots_used_peak"], len(state["items"]))
@@ -118,7 +131,23 @@ def _choose_action(state: dict, stats: dict) -> str:
         return "explore"
     if state["consecutive_train"] >= 1:
         return "explore"
+    life_skill = _try_life_skill(state)
+    if life_skill:
+        return life_skill
     return "train"
+
+
+def _try_life_skill(state: dict) -> str | None:
+    for skill_type, recipe in [
+        ("alchemy", ("spirit_grass", 2, "clear_dew", 1)),
+        ("alchemy", ("healing_herb", 2, None, None)),
+        ("talisman", ("spirit_paper", 2, "spirit_ink", 1)),
+        ("crafting", ("black_iron_shard", 3, "low_material", 2)),
+    ]:
+        item1, need1, item2, need2 = recipe
+        if state["items"].get(item1, 0) >= need1 and (item2 is None or state["items"].get(item2, 0) >= need2):
+            return skill_type
+    return None
 
 
 def _needs_exploration(state: dict) -> bool:
@@ -132,7 +161,7 @@ def _needs_exploration(state: dict) -> bool:
 
 
 def _mana_cost(action: str) -> int:
-    return {"train": 12, "explore": 18, "breakthrough": 35, "practice_method": 10}.get(action, 0)
+    return {"train": 12, "explore": 18, "breakthrough": 35, "practice_method": 10, "alchemy": 10, "talisman": 8, "crafting": 15, "formation": 20}.get(action, 0)
 
 
 def _auto_prepare(state: dict, stats: dict) -> None:
@@ -199,26 +228,56 @@ def _simulate_train(state: dict, stats: dict) -> None:
     state["consecutive_train"] += 1
 
 
-def _simulate_explore(state: dict, stats: dict) -> None:
-    state["mana"] -= 18
-    state["consecutive_train"] = 0
-    state["explore_count"] += 1
-    stats["actions"]["explore"] += 1
-    _simulate_sect_task_progress(state, stats, "explore")
-    if random.random() <= min(LUCKY_EVENT_CONFIG["max_rate"], LUCKY_EVENT_CONFIG["base_rate"] + state["hidden_luck"] * LUCKY_EVENT_CONFIG["luck_factor"]):
-        stats["actions"]["lucky"] += 1
-        for _ in range(2):
-            _grant_sim_drop(state, stats)
-        return
-    event_type = random.choices(["stones", "drop", "battle", "empty"], weights=[35, 35, 20, 10], k=1)[0]
-    if event_type == "stones":
-        stones = random.randint(18, 68) + state["hidden_luck"] // 5
-        state["spirit_stones"] += stones
-        stats["total_spirit_stones_gained"] += stones
-    elif event_type in {"drop", "battle"}:
-        rolls = 2 if event_type == "battle" else 1
-        for _ in range(rolls):
-            _grant_sim_drop(state, stats)
+def _simulate_alchemy(state: dict, stats: dict) -> None:
+    state["mana"] -= 10
+    stats["life_skill_mana_used"] += 10
+    stats["alchemy_count"] += 1
+    stats["actions"]["alchemy"] += 1
+    if state["items"].get("spirit_grass", 0) >= 2 and state["items"].get("clear_dew", 0) >= 1:
+        state["items"]["spirit_grass"] -= 2
+        state["items"]["clear_dew"] -= 1
+        if random.random() < 1.0:
+            state["items"]["qi_recovery_pill"] = state["items"].get("qi_recovery_pill", 0) + 1
+    elif state["items"].get("healing_herb", 0) >= 2:
+        state["items"]["healing_herb"] -= 2
+        if random.random() < 1.0:
+            state["items"]["healing_pill"] = state["items"].get("healing_pill", 0) + 1
+
+
+def _simulate_talisman(state: dict, stats: dict) -> None:
+    state["mana"] -= 8
+    stats["life_skill_mana_used"] += 8
+    stats["talisman_count"] += 1
+    stats["actions"]["talisman"] += 1
+    if state["items"].get("spirit_paper", 0) >= 2 and state["items"].get("spirit_ink", 0) >= 1:
+        state["items"]["spirit_paper"] -= 2
+        state["items"]["spirit_ink"] -= 1
+        if random.random() < 1.0:
+            state["items"]["scout_talisman"] = state["items"].get("scout_talisman", 0) + 1
+
+
+def _simulate_crafting(state: dict, stats: dict) -> None:
+    state["mana"] -= 15
+    stats["life_skill_mana_used"] += 15
+    stats["crafting_count"] += 1
+    stats["actions"]["crafting"] += 1
+    if state["items"].get("black_iron_shard", 0) >= 3 and state["items"].get("low_material", 0) >= 2:
+        state["items"]["black_iron_shard"] -= 3
+        state["items"]["low_material"] -= 2
+        if random.random() < 0.75:
+            state["items"]["low_artifact"] = state["items"].get("low_artifact", 0) + 1
+
+
+def _simulate_formation(state: dict, stats: dict) -> None:
+    state["mana"] -= 20
+    stats["life_skill_mana_used"] += 20
+    stats["formation_count"] += 1
+    stats["actions"]["formation"] += 1
+    if state["items"].get("formation_flag", 0) >= 3 and state["items"].get("spirit_stone_chip", 0) >= 5:
+        state["items"]["formation_flag"] -= 3
+        state["items"]["spirit_stone_chip"] -= 5
+        if random.random() < 1.0:
+            state["items"]["spirit_gather_formation"] = state["items"].get("spirit_gather_formation", 0) + 1
 
 
 def _simulate_practice_method(state: dict, stats: dict) -> None:
@@ -566,6 +625,12 @@ def _build_result(hours: float, state: dict, stats: dict, minutes: int, with_sec
         "biased_task_type": max(sect_distribution, key=sect_distribution.get) if max_task_type_ratio > 0.6 else None,
         "sect_reward_ratio": round(sect_reward_ratio, 4),
         "simulation_result_file": str(SIMULATION_RESULT_PATH),
+        "alchemy_count": stats["alchemy_count"],
+        "talisman_count": stats["talisman_count"],
+        "crafting_count": stats["crafting_count"],
+        "formation_count": stats["formation_count"],
+        "life_skill_mana_used": stats["life_skill_mana_used"],
+        "life_skill_mana_ratio": round(stats["life_skill_mana_used"] / max(1, stats["life_skill_mana_used"] + 12 * stats["actions"].get("train", 0) + 18 * stats["actions"].get("explore", 0)), 4),
     }
 
 

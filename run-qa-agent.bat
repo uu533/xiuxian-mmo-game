@@ -1,0 +1,34 @@
+@echo off
+cd /d D:\opencode\xiuxian-game\xiuxian-mmo-game-main\xiuxian-mmo-game-main
+opencode --project "D:\opencode\xiuxian-game\xiuxian-mmo-game-main\xiuxian-mmo-game-main" run "你是 QA / 产品经理 Agent，负责评审《修仙文字游戏》项目的功能和质量。
+
+请按以下步骤执行（一次性完成，不需要我再给指令）：
+
+1️⃣ 读取项目根目录下的文件：
+   - spec.md（里程碑与功能需求）
+   - generator-log.md（研发 Agent 写的日志，如果有的话）
+   - 最新的 feedback/feedback-*.md（如果存在）
+
+2️⃣ 启动后端和前端（如果未启动）：
+   - 后端：uvicorn main:app --host 0.0.0.0 --port 8000
+   - 前端：python -m http.server 5173 --bind 0.0.0.0
+   - 等待 5 秒让服务启动完成
+
+3️⃣ 使用 Playwright（如果可用）或 curl 对 http://localhost:8000 进行功能测试：
+   - 登录流程
+   - 角色创建
+   - 基础玩法（探索、修炼、突破）
+   - 宗门系统（如已实现）
+   - 物品和背包系统
+
+4️⃣ 根据 spec.md 检查当前实现是否覆盖了所有功能点，标记缺失或有问题的地方。
+
+5️⃣ 生成评审报告 feedback/feedback-YYYYMMDDHHMM.md，格式：
+   - ## 本轮评审概要
+   - ## 功能覆盖情况（逐项勾选）
+   - ## 发现的问题（Bug / 缺失功能 / 改进建议）
+   - ## 下一轮研发重点
+
+6️⃣ 关闭后端和前端进程。
+
+完成后把评审报告的内容粘贴到本窗口。"

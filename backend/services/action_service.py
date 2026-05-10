@@ -12,6 +12,7 @@ from backend.services.calc_service import (
     get_cultivation_efficiency,
     sync_base_and_caps,
 )
+from backend.services.life_skill_service import execute_recipe
 from backend.services.character_service import character_payload
 from backend.services.event_service import resolve_explore_event
 from backend.services.inventory_service import consume_slot_item, inventory_payload
@@ -61,6 +62,10 @@ def execute_action(db: Session, user: User, action_type: str, params: dict | Non
         "complete_sect_task": _complete_sect_task,
         "promote_sect_position": _promote_sect_position,
         "exchange_sect_reward": _exchange_sect_reward,
+        "alchemy": _alchemy,
+        "talisman": _talisman,
+        "crafting": _crafting,
+        "formation": _formation,
     }
     handler = handlers.get(action_type)
     if not handler:
@@ -376,3 +381,38 @@ def _item_name(db: Session, item_code: str) -> str:
 
     template = get_template_by_code(db, item_code)
     return template.name if template else item_code
+
+
+LIFE_SKILL_TYPES = {"alchemy", "talisman", "crafting", "formation"}
+
+
+def _alchemy(db: Session, user: User, params: dict) -> dict:
+    recipe_id = params.get("recipe_id", "")
+    return _life_skill_handler(db, user, "alchemy", recipe_id)
+
+
+def _talisman(db: Session, user: User, params: dict) -> dict:
+    recipe_id = params.get("recipe_id", "")
+    return _life_skill_handler(db, user, "talisman", recipe_id)
+
+
+def _crafting(db: Session, user: User, params: dict) -> dict:
+    recipe_id = params.get("recipe_id", "")
+    return _life_skill_handler(db, user, "crafting", recipe_id)
+
+
+def _formation(db: Session, user: User, params: dict) -> dict:
+    recipe_id = params.get("recipe_id", "")
+    return _life_skill_handler(db, user, "formation", recipe_id)
+
+
+def _life_skill_handler(db: Session, user: User, skill_type: str, recipe_id: str) -> dict:
+    character = user.character
+    if not recipe_id:
+        return _finalize(db, user, False, skill_type, "缺少 recipe_id 参数。", {}, [], {"reason": "missing_recipe_id"})
+
+    ok, message, data = execute_recipe(db, user, character, recipe_id)
+    rewards = []
+    if ok and data.get("packed"):
+        rewards.append({"type": "life_skill_item", "code": data.get("output_item_id"), "quantity": data.get("output_count", 1)})
+    return _finalize(db, user, ok, skill_type, message, {"mana_cost": (data or {}).get("mana_cost", 0)}, rewards, data)

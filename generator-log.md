@@ -1,4 +1,4 @@
-# 研发日志 - v2.0.1 统一配方系统基础版（第三轮修复）
+# 研发日志 - v2.0 生活技能系统（第 4 轮确认）
 
 ## 本轮完成
 - 修复回气丹无限续航问题：将 `recover_mana` 从 30 降低到 8
@@ -26,3 +26,30 @@
   - 实现丹药使用效果（必须走 use_item）
   - 验证不出现"只炼丹最优"
   - 验证回气丹不导致无限续航
+
+---
+
+## 第 4 轮 - 2026-05-11
+
+### 本轮完成
+- 分析 feedback-202605101430.md：确认 simulation 已包含生活技能统计字段（之前已实现）
+- 确认 healing_herb 已在 drop_tables.py 中配置掉落来源（"炼气前期"和"炼气"阶段都有）
+- 确认 recipes.py 已有 required_faction 和 required_reputation 字段
+- 确认宗门商店空数组是正常行为（需要先加入宗门）
+- 代码审查：life_skill_service.py 错误信息使用中文，无乱码问题
+- 编译检查通过
+- smoke_test 通过
+
+### 修改文件
+- 无代码修改（均为确认性检查）
+
+### 测试结果
+- `python -m compileall -q backend tests` - 通过
+- `python tests/smoke_test.py` - 通过
+
+### 下一轮任务
+- v2.0.2 炼丹系统
+  - 实现丹药使用效果（服用回气丹/疗伤丹等必须走 /action/execute + use_item）
+  - 丹药效果在 calc_service.py 的 apply_item_effects 中实现
+  - 关键检查：验证不出现"只炼丹最优"
+  - 关键检查：验证回气丹不导致无限续航（recover_mana=8，炼丹消耗=10，已防止）

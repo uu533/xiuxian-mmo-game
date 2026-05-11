@@ -895,7 +895,15 @@
         return ITEM_NAMES[code] || code;
       }
 
-      function getEffectTypeName(type) {
+      
+      function _formatEffectValue(value) {
+        if (typeof value !== "number") return String(value);
+        if (value < 1 && value > 0) return (value * 100).toFixed(0) + "%";
+        if (Number.isInteger(value)) return String(value);
+        return value.toFixed(2);
+      }
+
+function getEffectTypeName(type) {
         return EFFECT_TYPE_NAMES[type] || type;
       }
 
@@ -998,7 +1006,7 @@
           charEffectList.innerHTML = validEffects.map(e => `
             <div class="effect-card">
               <div class="effect-name">${getEffectTypeName(e.effect_type)}</div>
-              <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${(e.value * 100).toFixed(0)}%</div>
+              <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
             </div>
           `).join("");
         }
@@ -1014,7 +1022,7 @@
             skillEffectList.innerHTML = validEffects.map(e => `
               <div class="effect-card">
                 <div class="effect-name">${getEffectTypeName(e.effect_type)}</div>
-                <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${(e.value * 100).toFixed(0)}%</div>
+                <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
               </div>
             `).join("");
           }
@@ -1081,9 +1089,13 @@
         // Inventory
         inventory.innerHTML = `<div class="bag-grid">${data.inventory.map(item => {
           if (!item.name) return `<div class="bag-slot empty-slot"><span>${item.slot_index}</span></div>`;
-          const actionLabel = item.type === "pill" ? "服用" : item.type === "talisman" ? "使用" : item.type === "cultivation_method" ? "学习" : item.type === "magic_artifact" ? "装备" : "";
-          const useAction = (item.type === "pill" || item.type === "talisman") ? "use_item" : "";
-          return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span>${actionLabel && useAction ? `<button data-slot-action="${useAction}" data-slot-index="${item.slot_index}">${actionLabel}</button>` : actionLabel ? `<button data-slot-action="use_item" data-slot-index="${item.slot_index}">${actionLabel}</button>` : ""}</div>`;
+          const actionBtn = (() => {
+            if (item.type === "cultivation_method") return `<button data-slot-action="learn_method" data-slot-index="${item.slot_index}">学习</button>`;
+            if (item.type === "magic_artifact") return `<button data-slot-action="equip_artifact" data-slot-index="${item.slot_index}">装备</button>`;
+            if (item.type === "pill" || item.type === "talisman") return `<button data-slot-action="use_item" data-slot-index="${item.slot_index}">${item.type === "pill" ? "服用" : "使用"}</button>`;
+            return "";
+          })();
+          return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span>${actionBtn}</div>`;
         }).join("")}</div>`;
 
         renderActiveEffects();

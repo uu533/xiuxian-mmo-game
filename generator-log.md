@@ -106,3 +106,103 @@ python tests/smoke_test.py
 4. 放入一个法宝，点击"装备" — 验证发出的是 `equip_artifact`
 5. 放入一个回灵丹，点击"服用" — 验证发出的是 `use_item`
 6. 放入一个探查符，点击"使用" — 验证发出的是 `use_item`，之后 active_effects 增加
+
+---
+
+## 本轮任务
+
+【生活技能 v1.3：配方查询接口 + 前端改为后端读取配方】
+
+## 当前分支
+
+`ai/lab-life-skills-content`（确认）
+
+## 修改文件
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `backend/routes/life_skills.py` | 新增 | `/life-skills/recipes` 路由，259 字节 |
+| `backend/services/life_skill_service.py` | 修改 | 新增 `get_all_recipes()` |
+| `backend/main.py` | 修改 | 注册 `life_skills` router |
+| `frontend/index.html` | 修改 | 移除静态 `RECIPES`，改用 API 读取 |
+| `tests/smoke_test.py` | 修改 | 新增接口测试 15 行 |
+
+## 完成内容
+
+### 后端
+
+- 新增 `GET /life-skills/recipes` 接口
+- 返回 `{ alchemy, talisman, crafting, formation }` 四类配方列表
+- 数据来源：`configs/recipes_alchemy.py` 等，无重复硬编码
+- 无认证限制，无副作用
+
+### 前端
+
+- 移除前端静态 `RECIPES` 对象（大段写死数据）
+- 新增 `fetchedRecipes` 变量存储 API 数据
+- `loadRecipes()` 异步请求 `/life-skills/recipes`
+- `loadMe()` 登录后自动调用 `loadRecipes()`
+- `renderRecipes()` 从 `fetchedRecipes` 读取，接口失败显示 toast
+
+## 测试结果
+
+```
+# compileall
+cd /d E:\opencolw\game\xiuxian-mmo-game && C:\Python\Python310\python.exe -m compileall -q backend tests
+```
+✅ 通过（无输出）
+
+```
+# smoke_test（Python 3.10 启动，端口 8000）
+C:\Users\WTT\AppData\Local\Programs\Python\Python310\python.exe tests\smoke_test.py
+```
+✅ `Smoke test passed.`
+
+### 新增测试断言
+
+```python
+recipes = request("/life-skills/recipes")
+assert "alchemy" in recipes
+assert "talisman" in recipes
+assert "crafting" in recipes
+assert "formation" in recipes
+for skill_type in ["alchemy", "talisman", "crafting", "formation"]:
+    assert len(recipes[skill_type]) >= 1
+    for recipe in recipes[skill_type]:
+        assert "id" in recipe
+        assert "name" in recipe
+        assert "skill_type" in recipe
+        assert "mana_cost" in recipe
+        assert "output_item_id" in recipe or "output_effect_id" in recipe
+```
+
+## 回归检查
+
+| 操作 | action_type | 状态 |
+|------|-------------|------|
+| 学习功法 | `learn_method` | ✅ 未改动 |
+| 装备法宝 | `equip_artifact` | ✅ 未改动 |
+| 使用丹药/符箓 | `use_item` | ✅ 未改动 |
+| 制作丹药 | `alchemy` | ✅ 未改动 |
+| 制作符箓 | `talisman` | ✅ 未改动 |
+| 制作法器 | `crafting` | ✅ 未改动 |
+| 激活阵法 | `formation` | ✅ 未改动 |
+| active_effects 展示 | — | ✅ 未改动 |
+
+## 风险检查
+
+1. 是否修改 main：否
+2. 是否删除核心文件：否
+3. 是否存在大量删除：否（删除前端静态数据，+37/-25 行，属正常替换）
+4. 是否可能出现单一最优玩法：否，本轮只做接口解耦，不涉及数值或平衡
+5. 是否需要人工审核：建议验证生活技能面板配方数量与后端一致
+
+## 遗留问题
+
+- 配方 `required_realm` 在 API 返回中显示为乱码（REALM_NAMES 中文编码问题），但数据结构正确，界面显示由前端处理后正常
+
+## 下一轮建议
+
+1. 手动验收生活技能面板配方数量是否与后端一致（alchemy 3 / talisman 3 / crafting 3 / formation 3）
+2. 可考虑在配方接口增加中文 `required_realm_name` 字段，避免前端依赖 REALM_NAMES 索引
+3. 可选：增加 `/life-skills/recipes?skill_type=alchemy` 按类型过滤参数

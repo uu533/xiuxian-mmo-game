@@ -515,6 +515,21 @@ def main():
     assert request("/methods", token=relogin_token)[0]["level"] >= 3
     assert request("/artifacts", token=relogin_token)[0]["level"] >= 2
 
+    # Life Skills Recipes API
+    recipes = request("/life-skills/recipes")
+    assert "alchemy" in recipes
+    assert "talisman" in recipes
+    assert "crafting" in recipes
+    assert "formation" in recipes
+    for skill_type in ["alchemy", "talisman", "crafting", "formation"]:
+        assert len(recipes[skill_type]) >= 1
+        for recipe in recipes[skill_type]:
+            assert "id" in recipe
+            assert "name" in recipe
+            assert "skill_type" in recipe
+            assert "mana_cost" in recipe
+            assert "output_item_id" in recipe or "output_effect_id" in recipe
+
     print("Smoke test passed.")
 
 

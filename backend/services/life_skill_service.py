@@ -24,6 +24,16 @@ def get_recipe(skill_type: str, recipe_id: str) -> dict | None:
     return next((recipe for recipe in RECIPES_BY_SKILL.get(skill_type, []) if recipe["id"] == recipe_id), None)
 
 
+def get_all_recipes() -> dict[str, list[dict]]:
+    """Return all recipes grouped by skill type, for API exposure."""
+    return {
+        "alchemy": ALCHEMY_RECIPES,
+        "talisman": TALISMAN_RECIPES,
+        "crafting": CRAFTING_RECIPES,
+        "formation": FORMATION_RECIPES,
+    }
+
+
 def run_life_skill(db: Session, character: Character, skill_type: str, recipe_id: str) -> tuple[bool, str, dict, dict, list[dict]]:
     recipe = get_recipe(skill_type, recipe_id)
     if not recipe:

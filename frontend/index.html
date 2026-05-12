@@ -848,30 +848,15 @@
       let currentSectShop = [];
       let currentActiveEffects = [];
       let currentSkillTab = "alchemy";
+      let fetchedRecipes = null;
 
-      // ========== LIFE SKILL RECIPES (同步后端配置) ==========
-      const RECIPES = {
-        alchemy: [
-          { id: "alchemy_mana_pill", name: "回灵丹", skill_type: "alchemy", required_items: [{ code: "low_material", quantity: 2 }, { code: "low_spirit_stone", quantity: 8 }], mana_cost: 22, output_item_id: "mana_pill", output_count: 1, required_realm: "炼气期", success_rate: 1.0 },
-          { id: "alchemy_qi_powder", name: "聚气散", skill_type: "alchemy", required_items: [{ code: "healing_pill", quantity: 1 }, { code: "low_material", quantity: 1 }, { code: "low_spirit_stone", quantity: 4 }], mana_cost: 18, output_item_id: "qi_powder", output_count: 1, required_realm: "炼气期", success_rate: 1.0 },
-          { id: "alchemy_foundation_pill", name: "筑基丹", skill_type: "alchemy", required_items: [{ code: "healing_pill", quantity: 4 }, { code: "beast_core", quantity: 1 }, { code: "low_material", quantity: 6 }], mana_cost: 45, output_item_id: "foundation_pill", output_count: 1, required_realm: "筑基期", success_rate: 1.0, unlock_item: "foundation_pill_formula" },
-        ],
-        talisman: [
-          { id: "talisman_scout", name: "探查符", skill_type: "talisman", required_items: [{ code: "low_material", quantity: 1 }, { code: "low_spirit_stone", quantity: 4 }], mana_cost: 16, output_item_id: "scout_talisman", output_count: 1, required_realm: "炼气期", success_rate: 1.0 },
-          { id: "talisman_guard", name: "护身符", skill_type: "talisman", required_items: [{ code: "calm_talisman", quantity: 1 }, { code: "low_material", quantity: 1 }], mana_cost: 16, output_item_id: "guard_talisman", output_count: 1, required_realm: "炼气期", success_rate: 1.0 },
-          { id: "talisman_swift", name: "速行符", skill_type: "talisman", required_items: [{ code: "low_material", quantity: 2 }, { code: "low_spirit_stone", quantity: 6 }], mana_cost: 22, output_item_id: "swift_talisman", output_count: 1, required_realm: "筑基中期", success_rate: 1.0, unlock_item: "swift_talisman_formula" },
-        ],
-        crafting: [
-          { id: "craft_low_sword", name: "低阶剑", skill_type: "crafting", required_items: [{ code: "low_material", quantity: 6 }, { code: "low_spirit_stone", quantity: 16 }], mana_cost: 28, output_item_id: "crafted_low_sword", output_count: 1, required_realm: "炼气期", success_rate: 1.0 },
-          { id: "craft_gathering_artifact", name: "聚灵器", skill_type: "crafting", required_items: [{ code: "low_material", quantity: 6 }, { code: "low_spirit_stone", quantity: 12 }], mana_cost: 30, output_item_id: "gathering_artifact", output_count: 1, required_realm: "筑基初期", success_rate: 1.0 },
-          { id: "craft_explore_puppet", name: "探索傀儡", skill_type: "crafting", required_items: [{ code: "low_material", quantity: 8 }, { code: "beast_core", quantity: 1 }], mana_cost: 38, output_item_id: "explore_puppet", output_count: 1, required_realm: "筑基后期", success_rate: 1.0, unlock_item: "explore_puppet_formula" },
-        ],
-        formation: [
-          { id: "formation_gather_spirit", name: "聚灵阵", skill_type: "formation", required_items: [{ code: "low_spirit_stone", quantity: 10 }, { code: "low_material", quantity: 2 }], mana_cost: 32, output_effect_id: "formation_gather_spirit", output_name: "聚灵阵·修炼加成12%", required_realm: "筑基初期", success_rate: 1.0 },
-          { id: "formation_guard", name: "防护阵", skill_type: "formation", required_items: [{ code: "low_spirit_stone", quantity: 14 }, { code: "low_material", quantity: 2 }], mana_cost: 30, output_effect_id: "formation_guard", output_name: "防护阵·减伤35%", required_realm: "筑基初期", success_rate: 1.0 },
-          { id: "formation_draw_spirit", name: "引灵阵", skill_type: "formation", required_items: [{ code: "low_spirit_stone", quantity: 18 }, { code: "low_material", quantity: 3 }], mana_cost: 36, output_effect_id: "formation_draw_spirit", output_name: "引灵阵·奖励加成8%", required_realm: "筑基后期", success_rate: 1.0 },
-        ],
-      };
+      async function loadRecipes() {
+        try {
+          fetchedRecipes = await request("/life-skills/recipes");
+        } catch (e) {
+          showToast("配方加载失败：" + e.message);
+        }
+      }
 
       // 物品名称映射（用于显示）
       const ITEM_NAMES = {
@@ -951,7 +936,7 @@ function getEffectTypeName(type) {
       // ========== Life Skills Rendering ==========
       function renderRecipes(skillType) {
         currentSkillTab = skillType;
-        const recipes = RECIPES[skillType] || [];
+        const recipes = (fetchedRecipes && fetchedRecipes[skillType]) || [];
         const container = document.getElementById("recipes-list");
         const char = currentUser?.character;
 
@@ -1125,6 +1110,7 @@ function getEffectTypeName(type) {
         await loadProgression();
         await loadSect();
         await loadLogs();
+        await loadRecipes();
         showGame(true);
         if (currentSkillTab) renderRecipes(currentSkillTab);
       }

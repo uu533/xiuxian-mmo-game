@@ -166,7 +166,7 @@ def _breakthrough(db: Session, user: User, params: dict) -> dict:
     item_bonus = _consume_breakthrough_requirements(db, character, target.name)
 
     rate = get_breakthrough_rate(character)
-    rate = min(0.95, rate + effect_value(character, "breakthrough_next_bonus"))
+    rate = min(0.95, rate + item_bonus + effect_value(character, "breakthrough_next_bonus"))
     forced_success = character.hidden_luck >= 100
     forced_failure = character.hidden_inner_demon >= 100
     if forced_success or (not forced_failure and random.random() <= rate):

@@ -57,13 +57,11 @@ ARTIFACT_EFFECTS_BY_CODE = {
     "juqi_jade": {
         "attack_per_level": 2,
         "defense_per_level": 2,
-        "cultivation_speed_per_level": 0.015,
         "battle_power_per_level": 1,
     },
     "hushen_bell": {
         "attack_per_level": 3,
         "defense_per_level": 3,
-        "explore_damage_reduction_per_level": 0.04,
         "battle_power_per_level": 2,
     },
 }

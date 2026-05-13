@@ -571,6 +571,25 @@ def main():
     assert attack_after_juqi > attack_before_juqi or defense_after_juqi > defense_before_juqi, \
         f"juqi_jade stats should increase after equipping: attack {attack_before_juqi}->{attack_after_juqi}, defense {defense_before_juqi}->{defense_after_juqi}"
 
+    # Test hushen_bell: attack/defense changes after equipping
+    clear_inventory(player_s)
+    add_item_to_bag(player_s, "low_material", 5)
+    add_item_to_bag(player_s, "low_spirit_stone", 14)
+    crafted_hushen2 = action(token_s, "crafting", {"recipe_id": "craft_hushen_bell"})
+    assert crafted_hushen2["success"] is True
+    slot_hushen2 = first_slot_with_code(player_s, "hushen_bell")
+    assert slot_hushen2 is not None
+    me_before_hushen = request("/character/me", token=token_s)
+    attack_before_hushen = me_before_hushen["character"]["attack"]
+    defense_before_hushen = me_before_hushen["character"]["defense"]
+    equipped_hushen = action(token_s, "equip_artifact", {"slot_index": slot_hushen2})
+    assert equipped_hushen["success"] is True
+    me_after_hushen = request("/character/me", token=token_s)
+    attack_after_hushen = me_after_hushen["character"]["attack"]
+    defense_after_hushen = me_after_hushen["character"]["defense"]
+    assert attack_after_hushen > attack_before_hushen or defense_after_hushen > defense_before_hushen, \
+        f"hushen_bell stats should increase after equipping: attack {attack_before_hushen}->{attack_after_hushen}, defense {defense_before_hushen}->{defense_after_hushen}"
+
     print("[PASS] Life skills v2: new recipes and items verified")
 
     force_character(player_a, mana=500, hidden_luck=150)

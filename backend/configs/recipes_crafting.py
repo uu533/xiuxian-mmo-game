@@ -3,6 +3,48 @@ from backend.configs.realms import REALM_NAMES
 
 CRAFTING_RECIPES = [
     {
+        "id": "craft_qingmu_pendant",
+        "name": "青木佩",
+        "skill_type": "crafting",
+        "required_items": [
+            {"code": "low_material", "quantity": 4},
+            {"code": "low_spirit_stone", "quantity": 10},
+        ],
+        "mana_cost": 24,
+        "output_item_id": "qingmu_pendant",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[1],
+        "success_rate": 1.0,
+    },
+    {
+        "id": "craft_juqi_jade",
+        "name": "聚气玉",
+        "skill_type": "crafting",
+        "required_items": [
+            {"code": "low_material", "quantity": 4},
+            {"code": "low_spirit_stone", "quantity": 12},
+        ],
+        "mana_cost": 26,
+        "output_item_id": "juqi_jade",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[2],
+        "success_rate": 1.0,
+    },
+    {
+        "id": "craft_hushen_bell",
+        "name": "护身铃",
+        "skill_type": "crafting",
+        "required_items": [
+            {"code": "low_material", "quantity": 5},
+            {"code": "low_spirit_stone", "quantity": 14},
+        ],
+        "mana_cost": 28,
+        "output_item_id": "hushen_bell",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[3],
+        "success_rate": 1.0,
+    },
+    {
         "id": "craft_low_sword",
         "name": "Low Grade Sword",
         "skill_type": "crafting",

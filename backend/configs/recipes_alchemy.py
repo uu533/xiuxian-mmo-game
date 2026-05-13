@@ -46,7 +46,7 @@ ALCHEMY_RECIPES = [
     },
     {
         "id": "alchemy_mana_pill",
-        "name": "Huiqi Dan",
+        "name": "回灵丹",
         "skill_type": "alchemy",
         "required_items": [
             {"code": "low_material", "quantity": 2},
@@ -60,7 +60,7 @@ ALCHEMY_RECIPES = [
     },
     {
         "id": "alchemy_qi_powder",
-        "name": "Juqi San",
+        "name": "聚气散",
         "skill_type": "alchemy",
         "required_items": [
             {"code": "healing_pill", "quantity": 1},
@@ -75,7 +75,7 @@ ALCHEMY_RECIPES = [
     },
     {
         "id": "alchemy_foundation_pill",
-        "name": "Foundation Pill",
+        "name": "筑基丹",
         "skill_type": "alchemy",
         "required_items": [
             {"code": "healing_pill", "quantity": 4},

@@ -46,7 +46,7 @@ TALISMAN_RECIPES = [
     },
     {
         "id": "talisman_scout",
-        "name": "Scout Talisman",
+        "name": "探路符",
         "skill_type": "talisman",
         "required_items": [
             {"code": "low_material", "quantity": 1},
@@ -60,7 +60,7 @@ TALISMAN_RECIPES = [
     },
     {
         "id": "talisman_guard",
-        "name": "Guard Talisman",
+        "name": "护身符",
         "skill_type": "talisman",
         "required_items": [
             {"code": "calm_talisman", "quantity": 1},
@@ -74,7 +74,7 @@ TALISMAN_RECIPES = [
     },
     {
         "id": "talisman_swift",
-        "name": "Swift Talisman",
+        "name": "疾风符",
         "skill_type": "talisman",
         "required_items": [
             {"code": "low_material", "quantity": 2},

@@ -46,7 +46,7 @@ CRAFTING_RECIPES = [
     },
     {
         "id": "craft_low_sword",
-        "name": "Low Grade Sword",
+        "name": "低阶长剑",
         "skill_type": "crafting",
         "required_items": [
             {"code": "low_material", "quantity": 6},
@@ -60,7 +60,7 @@ CRAFTING_RECIPES = [
     },
     {
         "id": "craft_gathering_artifact",
-        "name": "Gathering Artifact",
+        "name": "聚灵器",
         "skill_type": "crafting",
         "required_items": [
             {"code": "low_material", "quantity": 6},
@@ -74,7 +74,7 @@ CRAFTING_RECIPES = [
     },
     {
         "id": "craft_explore_puppet",
-        "name": "Explore Puppet",
+        "name": "探索傀儡",
         "skill_type": "crafting",
         "required_items": [
             {"code": "low_material", "quantity": 8},

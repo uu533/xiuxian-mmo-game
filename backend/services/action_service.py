@@ -103,9 +103,10 @@ def _train(db: Session, user: User, params: dict) -> dict:
 
     efficiency = get_cultivation_efficiency(character)
     effect_bonus = get_train_cultivation_bonus(character)
+    next_bonus = effect_value(character, "train_next_bonus")
     base_gain = int(random.randint(16, 28) * character_payload(character)["cultivation_speed"] + character.max_mana * 0.03)
-    gain = max(1, int(base_gain * efficiency * (1 + effect_bonus)))
-    effect_result = consume_effects(db, user, ["train_cultivation_bonus"]) if effect_bonus else {"consumed": [], "expired": []}
+    gain = max(1, int(base_gain * efficiency * (1 + effect_bonus) * (1 + next_bonus)))
+    effect_result = consume_effects(db, user, ["train_cultivation_bonus", "train_next_bonus"])
     character.cultivation = min(character.cultivation_cap, character.cultivation + gain)
     character.hidden_inner_demon = min(100, character.hidden_inner_demon + random.choice([0, 0, 1]))
     character.updated_at = utc_now()
@@ -165,7 +166,7 @@ def _breakthrough(db: Session, user: User, params: dict) -> dict:
     item_bonus = _consume_breakthrough_requirements(db, character, target.name)
 
     rate = get_breakthrough_rate(character)
-    rate = min(0.95, rate + item_bonus)
+    rate = min(0.95, rate + effect_value(character, "breakthrough_next_bonus"))
     forced_success = character.hidden_luck >= 100
     forced_failure = character.hidden_inner_demon >= 100
     if forced_success or (not forced_failure and random.random() <= rate):
@@ -177,6 +178,7 @@ def _breakthrough(db: Session, user: User, params: dict) -> dict:
         character.hidden_inner_demon = max(0, character.hidden_inner_demon - 10)
         sync_base_and_caps(character)
         character.mana = character.max_mana
+        consume_effects(db, user, ["breakthrough_next_bonus"])
         message = (
             f"突破消耗 {cost['mana']} 点法力。大境界突破成功！你踏入「{character.realm}」。"
             if is_major_breakthrough(from_realm, character.realm)
@@ -187,6 +189,7 @@ def _breakthrough(db: Session, user: User, params: dict) -> dict:
     character.cultivation = int(character.cultivation_cap * 0.42)
     character.hidden_inner_demon = min(100, character.hidden_inner_demon + random.randint(10, 18))
     character.hp = max(20, character.hp - random.randint(8, 22))
+    consume_effects(db, user, ["breakthrough_next_bonus"])
     message = f"突破消耗 {cost['mana']} 点法力。突破失败，心魔反噬。当前突破成功率约 {int(rate * 100)}%。"
     return _finalize(db, user, False, "breakthrough", message, cost, [], {"success_rate": rate})
 

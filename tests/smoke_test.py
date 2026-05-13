@@ -498,6 +498,74 @@ def main():
     slot_hushen = first_slot_with_code(player_s, "hushen_bell")
     assert slot_hushen is not None, "hushen_bell should be in inventory after crafting"
 
+    # Test train_next_bonus: must be consumed after successful training
+    # First, use yangqi_pill again (player_s may have cleared effects)
+    add_item_to_bag(player_s, "healing_herb", 6)
+    add_item_to_bag(player_s, "low_spirit_stone", 20)
+    slot_yangqi2 = add_item_to_bag(player_s, "yangqi_pill")
+    used_yangqi2 = action(token_s, "use_item", {"slot_index": slot_yangqi2})
+    assert used_yangqi2["success"] is True
+    effects_before_train = used_yangqi2["character"]["active_effects"]
+    train_next_active = any(e["effect_type"] == "train_next_bonus" for e in effects_before_train)
+    assert train_next_active, f"train_next_bonus should be active before training: {effects_before_train}"
+    # Train once
+    train_result = action(token_s, "train")
+    assert train_result["success"] is True
+    # After training, train_next_bonus should be consumed (expired/removed)
+    remaining_effects = train_result["character"]["active_effects"]
+    train_next_still_active = any(e["effect_type"] == "train_next_bonus" for e in remaining_effects)
+    assert not train_next_still_active, f"train_next_bonus should be consumed after training: {remaining_effects}"
+
+    # Test breakthrough_next_bonus: must be consumed after breakthrough attempt
+    # Set up player_s for breakthrough (REALM_NAMES[3] = 炼气四层 -> 炼气五层)
+    force_character(player_s, realm=REALM_NAMES[3], realm_stage="炼气", cultivation_cap=480, cultivation=480, mana=1000, hidden_luck=0, hidden_inner_demon=0)
+    add_item_to_bag(player_s, "healing_herb", 9)
+    add_item_to_bag(player_s, "low_spirit_stone", 36)
+    slot_guyu2 = add_item_to_bag(player_s, "guyu_pill")
+    used_guyu2 = action(token_s, "use_item", {"slot_index": slot_guyu2})
+    assert used_guyu2["success"] is True
+    effects_guyu_before = used_guyu2["character"]["active_effects"]
+    bt_next_active = any(e["effect_type"] == "breakthrough_next_bonus" for e in effects_guyu_before)
+    assert bt_next_active, f"breakthrough_next_bonus should be active before breakthrough: {effects_guyu_before}"
+    # Attempt breakthrough
+    bt_result = action(token_s, "breakthrough")
+    # Either success or failure, effect should be consumed
+    remaining_bt_effects = bt_result["character"]["active_effects"]
+    bt_next_still_active = any(e["effect_type"] == "breakthrough_next_bonus" for e in remaining_bt_effects)
+    assert not bt_next_still_active, f"breakthrough_next_bonus should be consumed after breakthrough attempt: {remaining_bt_effects}"
+
+    # Test qingmu_pendant: stats change after equipping
+    force_character(player_s, realm=REALM_NAMES[3], realm_stage="炼气", mana=500)
+    clear_inventory(player_s)
+    crafted_qingmu2 = action(token_s, "crafting", {"recipe_id": "craft_qingmu_pendant"})
+    assert crafted_qingmu2["success"] is True
+    slot_qingmu2 = first_slot_with_code(player_s, "qingmu_pendant")
+    assert slot_qingmu2 is not None
+    me_before_equip = request("/character/me", token=token_s)
+    attack_before_qingmu = me_before_equip["character"]["attack"]
+    defense_before_qingmu = me_before_equip["character"]["defense"]
+    equipped_qingmu = action(token_s, "equip_artifact", {"slot_index": slot_qingmu2})
+    assert equipped_qingmu["success"] is True
+    me_after_equip = request("/character/me", token=token_s)
+    attack_after_qingmu = me_after_equip["character"]["attack"]
+    assert attack_after_qingmu > attack_before_qingmu, f"attack should increase after equipping qingmu_pendant: before={attack_before_qingmu}, after={attack_after_qingmu}"
+
+    # Test juqi_jade: cultivation_speed changes after equipping
+    clear_inventory(player_s)
+    add_item_to_bag(player_s, "low_material", 4)
+    add_item_to_bag(player_s, "low_spirit_stone", 12)
+    crafted_juqi2 = action(token_s, "crafting", {"recipe_id": "craft_juqi_jade"})
+    assert crafted_juqi2["success"] is True
+    slot_juqi2 = first_slot_with_code(player_s, "juqi_jade")
+    assert slot_juqi2 is not None
+    me_before_juqi = request("/character/me", token=token_s)
+    speed_before_juqi = me_before_juqi["character"]["cultivation_speed"]
+    equipped_juqi = action(token_s, "equip_artifact", {"slot_index": slot_juqi2})
+    assert equipped_juqi["success"] is True
+    me_after_juqi = request("/character/me", token=token_s)
+    speed_after_juqi = me_after_juqi["character"]["cultivation_speed"]
+    assert speed_after_juqi > speed_before_juqi, f"cultivation_speed should increase after equipping juqi_jade: before={speed_before_juqi}, after={speed_after_juqi}"
+
     print("[PASS] Life skills v2: new recipes and items verified")
 
     force_character(player_a, mana=500, hidden_luck=150)

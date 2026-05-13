@@ -13,7 +13,7 @@ from backend.services.calc_service import (
     get_train_cultivation_bonus,
     sync_base_and_caps,
 )
-from backend.services.active_effect_service import activate_item_effect, consume_effects
+from backend.services.active_effect_service import activate_item_effect, consume_effects, effect_value
 from backend.services.character_service import character_payload
 from backend.services.event_service import resolve_explore_event
 from backend.services.inventory_service import consume_slot_item, inventory_payload

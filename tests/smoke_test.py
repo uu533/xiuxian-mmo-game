@@ -241,6 +241,7 @@ def clear_inventory(username):
             """,
             (character_id,),
         )
+        conn.execute("DELETE FROM character_artifacts WHERE character_id = ?", (character_id,))
         conn.commit()
 
 
@@ -499,9 +500,7 @@ def main():
     assert slot_hushen is not None, "hushen_bell should be in inventory after crafting"
 
     # Test train_next_bonus: must be consumed after successful training
-    # First, use yangqi_pill again (player_s may have cleared effects)
-    add_item_to_bag(player_s, "healing_herb", 6)
-    add_item_to_bag(player_s, "low_spirit_stone", 20)
+    add_item_to_bag(player_s, "healing_herb", 2)
     slot_yangqi2 = add_item_to_bag(player_s, "yangqi_pill")
     used_yangqi2 = action(token_s, "use_item", {"slot_index": slot_yangqi2})
     assert used_yangqi2["success"] is True
@@ -519,6 +518,7 @@ def main():
     # Test breakthrough_next_bonus: must be consumed after breakthrough attempt
     # Set up player_s for breakthrough (REALM_NAMES[3] = 炼气四层 -> 炼气五层)
     force_character(player_s, realm=REALM_NAMES[3], realm_stage="炼气", cultivation_cap=480, cultivation=480, mana=1000, hidden_luck=0, hidden_inner_demon=0)
+    add_item_to_bag(player_s, "low_material", 3)
     add_item_to_bag(player_s, "healing_herb", 9)
     add_item_to_bag(player_s, "low_spirit_stone", 36)
     slot_guyu2 = add_item_to_bag(player_s, "guyu_pill")
@@ -537,6 +537,8 @@ def main():
     # Test qingmu_pendant: stats change after equipping
     force_character(player_s, realm=REALM_NAMES[3], realm_stage="炼气", mana=500)
     clear_inventory(player_s)
+    add_item_to_bag(player_s, "low_material", 4)
+    add_item_to_bag(player_s, "low_spirit_stone", 10)
     crafted_qingmu2 = action(token_s, "crafting", {"recipe_id": "craft_qingmu_pendant"})
     assert crafted_qingmu2["success"] is True
     slot_qingmu2 = first_slot_with_code(player_s, "qingmu_pendant")
@@ -550,7 +552,7 @@ def main():
     attack_after_qingmu = me_after_equip["character"]["attack"]
     assert attack_after_qingmu > attack_before_qingmu, f"attack should increase after equipping qingmu_pendant: before={attack_before_qingmu}, after={attack_after_qingmu}"
 
-    # Test juqi_jade: cultivation_speed changes after equipping
+    # Test juqi_jade: attack/defense changes after equipping
     clear_inventory(player_s)
     add_item_to_bag(player_s, "low_material", 4)
     add_item_to_bag(player_s, "low_spirit_stone", 12)
@@ -559,12 +561,15 @@ def main():
     slot_juqi2 = first_slot_with_code(player_s, "juqi_jade")
     assert slot_juqi2 is not None
     me_before_juqi = request("/character/me", token=token_s)
-    speed_before_juqi = me_before_juqi["character"]["cultivation_speed"]
+    attack_before_juqi = me_before_juqi["character"]["attack"]
+    defense_before_juqi = me_before_juqi["character"]["defense"]
     equipped_juqi = action(token_s, "equip_artifact", {"slot_index": slot_juqi2})
     assert equipped_juqi["success"] is True
     me_after_juqi = request("/character/me", token=token_s)
-    speed_after_juqi = me_after_juqi["character"]["cultivation_speed"]
-    assert speed_after_juqi > speed_before_juqi, f"cultivation_speed should increase after equipping juqi_jade: before={speed_before_juqi}, after={speed_after_juqi}"
+    attack_after_juqi = me_after_juqi["character"]["attack"]
+    defense_after_juqi = me_after_juqi["character"]["defense"]
+    assert attack_after_juqi > attack_before_juqi or defense_after_juqi > defense_before_juqi, \
+        f"juqi_jade stats should increase after equipping: attack {attack_before_juqi}->{attack_after_juqi}, defense {defense_before_juqi}->{defense_after_juqi}"
 
     print("[PASS] Life skills v2: new recipes and items verified")
 

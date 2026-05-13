@@ -55,7 +55,7 @@
         cursor: not-allowed;
       }
 
-      input {
+      input, select {
         width: 100%;
         min-height: 42px;
         border: 1px solid rgba(204, 223, 202, 0.2);
@@ -188,6 +188,12 @@
         background: rgba(73, 28, 25, 0.92);
         color: #ffe7dd;
         font-weight: 800;
+      }
+
+      .toast.success {
+        border-left-color: #64c7a6;
+        background: rgba(38, 76, 63, 0.92);
+        color: #d7f6e7;
       }
 
       .content {
@@ -329,15 +335,6 @@
         font-size: 12px;
       }
 
-      .title-editor select {
-        min-height: 36px;
-        border: 1px solid rgba(204, 223, 202, 0.2);
-        border-radius: 8px;
-        padding: 0 8px;
-        color: #f6eed9;
-        background: #0b1815;
-      }
-
       .root-line {
         display: flex;
         align-items: center;
@@ -437,8 +434,7 @@
         background: rgba(16, 35, 31, 0.52);
       }
 
-      .bag-slot strong,
-      .bag-slot span {
+      .bag-slot strong, .bag-slot span {
         overflow: hidden;
         text-overflow: ellipsis;
       }
@@ -470,42 +466,120 @@
         color: #c8d2c1;
       }
 
-      .tabs {
-        position: fixed;
-        left: 50%;
-        bottom: 0;
-        transform: translateX(-50%);
-        width: min(560px, 100%);
-        padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+      /* Life Skills Tab */
+      .life-skills-subtabs {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        background: rgba(8, 17, 15, 0.94);
-        border-top: 1px solid rgba(204, 223, 202, 0.12);
-        backdrop-filter: blur(10px);
+        gap: 6px;
+        margin-bottom: 10px;
       }
 
-      .tabs button {
-        min-height: 54px;
-        padding: 6px 4px;
+      .life-skills-subtabs button {
+        min-height: 36px;
+        padding: 0 6px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .life-skills-subtabs button.active {
+        background: #e5c568;
+        color: #17130c;
+      }
+
+      .life-skills-subtabs button:not(.active) {
+        background: #1e3a2e;
+        color: #c8d2c1;
+      }
+
+      .recipe-card {
+        border: 1px solid rgba(204, 223, 202, 0.12);
+        border-radius: 8px;
+        padding: 10px;
+        background: #10231f;
+        display: grid;
+        gap: 4px;
+      }
+
+      .recipe-card .recipe-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .recipe-card .recipe-header strong {
+        font-size: 14px;
+      }
+
+      .recipe-card .recipe-info {
+        font-size: 11px;
+        color: #8faa8f;
         display: grid;
         gap: 2px;
-        color: #c8d2c1;
-        background: transparent;
       }
 
-      .tabs button.active {
-        color: #15130c;
-        background: #e5c568;
+      .recipe-card .recipe-info span {
+        display: block;
       }
 
-      .tab-icon {
-        font-size: 19px;
-        line-height: 1;
+      .recipe-card .recipe-output {
+        font-size: 11px;
+        color: #64c7a6;
+        font-weight: 700;
       }
 
-      .tabs span {
+      .recipe-card button {
+        min-height: 32px;
         font-size: 12px;
+        padding: 0 10px;
+        margin-top: 4px;
+      }
+
+      /* Active Effects */
+      .effect-card {
+        border: 1px solid rgba(100, 199, 166, 0.2);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: rgba(38, 76, 63, 0.4);
+        display: grid;
+        gap: 2px;
+        font-size: 12px;
+      }
+
+      .effect-card .effect-name {
+        font-weight: 800;
+        color: #64c7a6;
+        font-size: 13px;
+      }
+
+      .effect-card .effect-detail {
+        color: #8faa8f;
+      }
+
+      .effect-card.expired {
+        border-color: rgba(200, 210, 193, 0.1);
+        background: rgba(16, 35, 31, 0.3);
+        opacity: 0.5;
+      }
+
+      /* Debug Info */
+      .debug-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 4px;
+      }
+
+      .debug-item {
+        font-size: 11px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        background: rgba(8, 17, 15, 0.6);
+        color: #8faa8f;
+      }
+
+      .debug-item strong {
+        color: #e5c568;
       }
 
       @media (min-width: 720px) {
@@ -516,23 +590,10 @@
       }
 
       @media (max-width: 380px) {
-        .identity h1 {
-          font-size: 32px;
-        }
-
-        .hero {
-          align-items: flex-start;
-          flex-direction: column;
-          justify-content: flex-end;
-        }
-
-        .row {
-          grid-template-columns: 1fr;
-        }
-
-        .row button {
-          width: 100%;
-        }
+        .identity h1 { font-size: 32px; }
+        .hero { align-items: flex-start; flex-direction: column; justify-content: flex-end; }
+        .row { grid-template-columns: 1fr; }
+        .row button { width: 100%; }
       }
     </style>
   </head>
@@ -598,7 +659,6 @@
                 <button id="pill-btn" class="secondary">服丹药</button>
               </div>
             </div>
-
             <div class="panel">
               <div class="panel-title">
                 <h2>最近游历</h2>
@@ -622,6 +682,12 @@
                 <select id="title-select" title="选择称号"></select>
               </div>
               <div id="character-grid" class="stats-grid"></div>
+              <!-- Debug info -->
+              <div class="debug-strip" id="debug-strip">
+                <div class="debug-item">境界：<strong id="dbg-realm">-</strong></div>
+                <div class="debug-item">背包：<strong id="dbg-bag">-</strong></div>
+                <div class="debug-item">宗门贡献：<strong id="dbg-contribution">-</strong></div>
+              </div>
             </div>
             <div class="panel">
               <div class="panel-title">
@@ -637,6 +703,13 @@
               </div>
               <div id="artifacts-list" class="list"></div>
             </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>当前临时效果</h2>
+                <span id="effect-count">0 个有效</span>
+              </div>
+              <div id="active-effects-list" class="list"></div>
+            </div>
           </div>
 
           <div id="tab-bag" class="tab-panel hidden">
@@ -646,6 +719,29 @@
                 <span>探索所得</span>
               </div>
               <div id="inventory" class="list"></div>
+            </div>
+          </div>
+
+          <div id="tab-life-skills" class="tab-panel hidden">
+            <div class="panel">
+              <div class="panel-title">
+                <h2>生活技能</h2>
+                <span>资源转化</span>
+              </div>
+              <div class="life-skills-subtabs">
+                <button class="active" data-skill="alchemy">炼丹</button>
+                <button data-skill="talisman">符箓</button>
+                <button data-skill="crafting">炼器</button>
+                <button data-skill="formation">阵法</button>
+              </div>
+              <div id="recipes-list" class="list"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">
+                <h2>当前临时效果</h2>
+                <span id="skill-effect-count">0 个有效</span>
+              </div>
+              <div id="skill-effects-list" class="list"></div>
             </div>
           </div>
 
@@ -696,6 +792,7 @@
         <button class="active" data-tab="cultivation"><span class="tab-icon">✦</span><span>修炼</span></button>
         <button data-tab="character"><span class="tab-icon">◇</span><span>角色</span></button>
         <button data-tab="bag"><span class="tab-icon">▣</span><span>背包</span></button>
+        <button data-tab="life-skills"><span class="tab-icon">☯</span><span>生活</span></button>
         <button data-tab="sect"><span class="tab-icon">▲</span><span>宗门</span></button>
         <button data-tab="logs"><span class="tab-icon">☰</span><span>日志</span></button>
       </nav>
@@ -749,6 +846,51 @@
       let availableSectTasks = [];
       let mySectTasks = [];
       let currentSectShop = [];
+      let currentActiveEffects = [];
+      let currentSkillTab = "alchemy";
+      let fetchedRecipes = null;
+
+      async function loadRecipes() {
+        try {
+          fetchedRecipes = await request("/life-skills/recipes");
+        } catch (e) {
+          showToast("配方加载失败：" + e.message);
+        }
+      }
+
+      // 物品名称映射（用于显示）
+      const ITEM_NAMES = {
+        low_spirit_stone: "下品灵石", low_material: "低阶炼器材", healing_pill: "疗伤丹",
+        beast_core: "妖兽内丹", mana_pill: "回灵丹", qi_powder: "聚气散",
+        foundation_pill: "筑基丹", scout_talisman: "探查符", guard_talisman: "护身符",
+        swift_talisman: "速行符", calm_talisman: "清心符", crafted_low_sword: "低阶剑",
+        gathering_artifact: "聚灵器", explore_puppet: "探索傀儡",
+        foundation_pill_formula: "筑基丹配方", swift_talisman_formula: "速行符配方",
+        explore_puppet_formula: "探索傀儡配方",
+      };
+
+      // 效果类型中文名
+      const EFFECT_TYPE_NAMES = {
+        explore_luck_bonus: "探查运气加成", explore_damage_reduction: "探索减伤",
+        explore_mana_discount: "探索法力折扣", train_cultivation_bonus: "修炼加成",
+        explore_reward_bonus: "探索奖励加成",
+      };
+
+      function getItemName(code) {
+        return ITEM_NAMES[code] || code;
+      }
+
+      
+      function _formatEffectValue(value) {
+        if (typeof value !== "number") return String(value);
+        if (value < 1 && value > 0) return (value * 100).toFixed(0) + "%";
+        if (Number.isInteger(value)) return String(value);
+        return value.toFixed(2);
+      }
+
+function getEffectTypeName(type) {
+        return EFFECT_TYPE_NAMES[type] || type;
+      }
 
       function getToken() {
         return localStorage.getItem(tokenKey);
@@ -762,24 +904,19 @@
         localStorage.removeItem(tokenKey);
       }
 
-      function showToast(text) {
+      function showToast(text, isSuccess = false) {
         message.textContent = text || "";
         message.classList.toggle("hidden", !text);
+        message.classList.toggle("success", isSuccess);
       }
 
       async function request(path, options = {}) {
         const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
         const token = getToken();
         if (token) headers.Authorization = `Bearer ${token}`;
-
-        const response = await fetch(`${API_BASE}${path}`, {
-          ...options,
-          headers,
-        });
+        const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
         const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.detail || "请求失败");
-        }
+        if (!response.ok) throw new Error(data.detail || "请求失败");
         return data;
       }
 
@@ -790,16 +927,98 @@
       }
 
       function setTab(tab) {
-        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.add("hidden"));
+        document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
         document.getElementById(`tab-${tab}`).classList.remove("hidden");
-        document.querySelectorAll(".tabs button").forEach((button) => {
-          button.classList.toggle("active", button.dataset.tab === tab);
-        });
+        document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+        if (tab === "life-skills") renderRecipes(currentSkillTab);
+      }
+
+      // ========== Life Skills Rendering ==========
+      function renderRecipes(skillType) {
+        currentSkillTab = skillType;
+        const recipes = (fetchedRecipes && fetchedRecipes[skillType]) || [];
+        const container = document.getElementById("recipes-list");
+        const char = currentUser?.character;
+
+        if (!char) {
+          container.innerHTML = `<div class="empty">请先登录</div>`;
+          return;
+        }
+
+        if (recipes.length === 0) {
+          container.innerHTML = `<div class="empty">暂无配方</div>`;
+          return;
+        }
+
+        container.innerHTML = recipes.map((recipe) => {
+          const isLocked = recipe.unlock_item && !_hasItem(recipe.unlock_item);
+          const materialsHtml = recipe.required_items.map(i => `${getItemName(i.code)} x${i.quantity}`).join(" · ");
+          const outputName = recipe.output_name || (recipe.output_item_id ? getItemName(recipe.output_item_id) : getItemName(recipe.output_effect_id));
+          const canCraft = !isLocked && char.mana >= recipe.mana_cost;
+
+          return `<div class="recipe-card">
+            <div class="recipe-header">
+              <strong>${recipe.name}</strong>
+              <span style="font-size:11px;color:#e5c568">${recipe.mana_cost}法力</span>
+            </div>
+            <div class="recipe-info">
+              <span>需求：${recipe.required_realm}</span>
+              <span>材料：${materialsHtml}</span>
+              ${recipe.unlock_item ? `<span style="color:#d95f45">需配方：${getItemName(recipe.unlock_item)}</span>` : ""}
+            </div>
+            <div class="recipe-output">产出：${outputName}${recipe.output_count > 1 ? ` x${recipe.output_count}` : ""}</div>
+            <button data-recipe-id="${recipe.id}" data-skill-type="${skillType}" ${canCraft ? "" : "disabled"}>${isLocked ? "未解锁" : "制作"}</button>
+          </div>`;
+        }).join("");
+      }
+
+      function _hasItem(code) {
+        return currentUser?.inventory.some(i => i.code === code && i.quantity > 0) || false;
+      }
+
+      function renderActiveEffects() {
+        const effects = currentActiveEffects || [];
+        const validEffects = effects.filter(e => e.remaining_uses > 0);
+
+        // Character tab
+        const charEffectList = document.getElementById("active-effects-list");
+        const countEl = document.getElementById("effect-count");
+        if (countEl) countEl.textContent = `${validEffects.length} 个有效`;
+
+        if (validEffects.length === 0) {
+          charEffectList.innerHTML = `<div class="empty">暂无临时效果</div>`;
+        } else {
+          charEffectList.innerHTML = validEffects.map(e => `
+            <div class="effect-card">
+              <div class="effect-name">${getEffectTypeName(e.effect_type)}</div>
+              <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
+            </div>
+          `).join("");
+        }
+
+        // Life skills tab
+        const skillEffectList = document.getElementById("skill-effects-list");
+        const skillCountEl = document.getElementById("skill-effect-count");
+        if (skillCountEl) skillCountEl.textContent = `${validEffects.length} 个有效`;
+        if (skillEffectList) {
+          if (validEffects.length === 0) {
+            skillEffectList.innerHTML = `<div class="empty">暂无临时效果</div>`;
+          } else {
+            skillEffectList.innerHTML = validEffects.map(e => `
+              <div class="effect-card">
+                <div class="effect-name">${getEffectTypeName(e.effect_type)}</div>
+                <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
+              </div>
+            `).join("");
+          }
+        }
       }
 
       function renderCharacter(data) {
         currentUser = data;
         const c = data.character;
+        currentActiveEffects = c.active_effects || [];
+
         document.getElementById("hero-name").textContent = `${data.username} ${c.title}`;
         document.getElementById("hero-realm").textContent = `${c.realm}`;
         document.getElementById("hero-subtitle").textContent = `${c.spiritual_root} · ${c.age}岁 · ${c.identity_status}`;
@@ -816,60 +1035,55 @@
         document.getElementById("breakthrough-btn").disabled = isDead || c.mana < 35;
         document.getElementById("meditate-btn").disabled = isDead || c.mana >= c.max_mana;
         document.getElementById("spirit-stone-btn").disabled = isDead || c.spirit_stones < 10 || c.mana >= c.max_mana;
-        document.getElementById("pill-btn").disabled = isDead || !data.inventory.some((item) => item.code === "mana_pill" && item.quantity > 0) || c.mana >= c.max_mana;
+        document.getElementById("pill-btn").disabled = isDead || !data.inventory.some(item => item.code === "mana_pill" && item.quantity > 0) || c.mana >= c.max_mana;
 
         playerTitle.textContent = `角色：${data.username} ${c.title}`;
         fullTitleName.textContent = `${data.username} ${c.title}`;
-        titleSelect.innerHTML = c.unlocked_titles.map((title) => `<option value="${title}">${title}</option>`).join("");
+        titleSelect.innerHTML = c.unlocked_titles.map(t => `<option value="${t}">${t}</option>`).join("");
         titleSelect.value = c.title;
+
+        // Debug info
+        document.getElementById("dbg-realm").textContent = c.realm;
+        const usedSlots = data.inventory.filter(i => i.name).length;
+        const totalSlots = data.inventory.length || 36;
+        document.getElementById("dbg-bag").textContent = `${usedSlots}/${totalSlots}`;
+        document.getElementById("dbg-contribution").textContent = c.sect_position?.contribution || "无宗门";
+
         const stats = [
-          ["境界", c.realm],
-          ["修为", `${c.cultivation} / ${c.cultivation_cap}`],
-          ["灵根", c.spiritual_root, true],
-          ["年龄", c.age],
-          ["身份", c.identity_status],
-          ["宗门地位", c.sect_position],
-          ["寿元", c.lifespan],
-          ["气血", `${c.hp} / ${c.max_hp}（0则死亡）`],
-          ["生命状态", c.life_status],
-          ["法力", `${c.mana} / ${c.max_mana}`],
+          ["境界", c.realm], ["修为", `${c.cultivation} / ${c.cultivation_cap}`],
+          ["灵根", c.spiritual_root, true], ["年龄", c.age],
+          ["身份", c.identity_status], ["宗门地位", c.sect_position || "散修"],
+          ["寿元", c.lifespan], ["气血", `${c.hp} / ${c.max_hp}（0则死亡）`],
+          ["生命状态", c.life_status], ["法力", `${c.mana} / ${c.max_mana}`],
           ["攻击", `${c.attack}（基础${c.base_attack}+加成${c.attack_bonus}）`],
           ["防御", `${c.defense}（基础${c.base_defense}+加成${c.defense_bonus}）`],
           ["突破率", `${Math.round(c.breakthrough_rate * 100)}%`],
           ["灵石", c.spirit_stones],
         ];
-        grid.innerHTML = stats
-          .map(([label, value, hasHelp]) => {
-            const valueHtml = hasHelp
-              ? `<div class="root-line"><strong>${value}</strong><button class="help-btn" id="root-help-btn" title="查看灵根说明">?</button></div>`
-              : `<strong>${value}</strong>`;
-            return `<div class="mini-stat"><span>${label}</span>${valueHtml}</div>`;
-          })
-          .join("");
-        const helpButton = document.getElementById("root-help-btn");
-        if (helpButton) {
-          helpButton.addEventListener("click", () => {
-            rootCurrent.textContent = `当前灵根：${currentUser.character.spiritual_root}`;
-            rootHelp.classList.remove("hidden");
-          });
-        }
+        grid.innerHTML = stats.map(([label, value, hasHelp]) => {
+          const valueHtml = hasHelp ? `<div class="root-line"><strong>${value}</strong><button class="help-btn" id="root-help-btn" title="查看灵根说明">?</button></div>` : `<strong>${value}</strong>`;
+          return `<div class="mini-stat"><span>${label}</span>${valueHtml}</div>`;
+        }).join("");
 
-        inventory.innerHTML = `<div class="bag-grid">${data.inventory
-          .map((item) => {
-            if (!item.name) {
-              return `<div class="bag-slot empty-slot"><span>${item.slot_index}</span></div>`;
-            }
-            const actionLabel =
-              item.type === "pill"
-                ? "服用"
-                : item.type === "cultivation_method"
-                  ? "学习"
-                  : item.type === "magic_artifact"
-                    ? "装备"
-                    : "";
-            return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span>${actionLabel ? `<button data-slot-action="${item.type}" data-slot-index="${item.slot_index}">${actionLabel}</button>` : ""}</div>`;
-          })
-          .join("")}</div>`;
+        const helpButton = document.getElementById("root-help-btn");
+        if (helpButton) helpButton.addEventListener("click", () => {
+          rootCurrent.textContent = `当前灵根：${currentUser.character.spiritual_root}`;
+          rootHelp.classList.remove("hidden");
+        });
+
+        // Inventory
+        inventory.innerHTML = `<div class="bag-grid">${data.inventory.map(item => {
+          if (!item.name) return `<div class="bag-slot empty-slot"><span>${item.slot_index}</span></div>`;
+          const actionBtn = (() => {
+            if (item.type === "cultivation_method") return `<button data-slot-action="learn_method" data-slot-index="${item.slot_index}">学习</button>`;
+            if (item.type === "magic_artifact") return `<button data-slot-action="equip_artifact" data-slot-index="${item.slot_index}">装备</button>`;
+            if (item.type === "pill" || item.type === "talisman") return `<button data-slot-action="use_item" data-slot-index="${item.slot_index}">${item.type === "pill" ? "服用" : "使用"}</button>`;
+            return "";
+          })();
+          return `<div class="bag-slot" title="${item.name} x${item.quantity}"><strong>${item.name}</strong><span>x${item.quantity}</span>${actionBtn}</div>`;
+        }).join("")}</div>`;
+
+        renderActiveEffects();
         renderTask(data.active_task);
       }
 
@@ -882,22 +1096,12 @@
       }
 
       function renderProgression() {
-        methodsList.innerHTML = currentMethods.length
-          ? currentMethods
-              .map(
-                (method) =>
-                  `<div class="row"><div><strong>${method.name} ${method.equipped ? "· 主修" : ""}</strong><span>${method.level}层 · 经验 ${method.exp}${method.next_exp ? ` / ${method.next_exp}` : ""}</span></div><button data-method-equip="${method.id}" ${method.equipped ? "disabled" : ""}>主修</button><button data-method-practice="${method.id}" class="secondary">修炼</button></div>`
-              )
-              .join("")
-          : `<div class="empty">尚未学习功法</div>`;
-        artifactsList.innerHTML = currentArtifacts.length
-          ? currentArtifacts
-              .map(
-                (artifact) =>
-                  `<div class="row"><div><strong>${artifact.rarity}品 ${artifact.name}</strong><span>强化 +${artifact.level} · ${artifact.equipped ? "已装备" : "未装备"}</span></div><button data-artifact-upgrade="${artifact.id}">强化</button><button data-artifact-unequip="${artifact.id}" class="secondary">卸下</button></div>`
-              )
-              .join("")
-          : `<div class="empty">尚未装备法宝</div>`;
+        methodsList.innerHTML = currentMethods.length ? currentMethods.map(method =>
+          `<div class="row"><div><strong>${method.name} ${method.equipped ? "· 主修" : ""}</strong><span>${method.level}层 · 经验 ${method.exp}${method.next_exp ? ` / ${method.next_exp}` : ""}</span></div><button data-method-equip="${method.id}" ${method.equipped ? "disabled" : ""}>主修</button><button data-method-practice="${method.id}" class="secondary">修炼</button></div>`
+        ).join("") : `<div class="empty">尚未学习功法</div>`;
+        artifactsList.innerHTML = currentArtifacts.length ? currentArtifacts.map(artifact =>
+          `<div class="row"><div><strong>${artifact.rarity}品 ${artifact.name}</strong><span>强化 +${artifact.level} · ${artifact.equipped ? "已装备" : "未装备"}</span></div><button data-artifact-upgrade="${artifact.id}">强化</button><button data-artifact-unequip="${artifact.id}" class="secondary">卸下</button></div>`
+        ).join("") : `<div class="empty">尚未装备法宝</div>`;
       }
 
       async function loadMe() {
@@ -906,7 +1110,9 @@
         await loadProgression();
         await loadSect();
         await loadLogs();
+        await loadRecipes();
         showGame(true);
+        if (currentSkillTab) renderRecipes(currentSkillTab);
       }
 
       async function loadProgression() {
@@ -917,13 +1123,9 @@
 
       async function loadLogs() {
         const data = await request("/logs?limit=30");
-        const items = data.length
-          ? data.map((log) => `<p><small>${new Date(log.created_at).toLocaleString()}</small><br />${log.content}</p>`).join("")
-          : `<div class="empty">暂无日志</div>`;
+        const items = data.length ? data.map(log => `<p><small>${new Date(log.created_at).toLocaleString()}</small><br />${log.content}</p>`).join("") : `<div class="empty">暂无日志</div>`;
         logs.innerHTML = items;
-        recentLogs.innerHTML = data.slice(0, 5).length
-          ? data.slice(0, 5).map((log) => `<p>${log.content}</p>`).join("")
-          : `<div class="empty">暂无游历记录</div>`;
+        recentLogs.innerHTML = data.slice(0, 5).length ? data.slice(0, 5).map(log => `<p>${log.content}</p>`).join("") : `<div class="empty">暂无游历记录</div>`;
       }
 
       async function loadSect() {
@@ -945,195 +1147,143 @@
           const sect = currentSect.sect;
           const member = currentSect.member;
           sectSummary.innerHTML = `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${member.position_name} · 贡献 ${member.contribution} · 声望 ${member.reputation}</span><span>正道 ${reputations.righteous || 0} / 魔道 ${reputations.demonic || 0} / 鬼道 ${reputations.ghost || 0} / 佛道 ${reputations.buddhist || 0}</span></div><button data-sect-action="promote">晋升</button><button data-sect-action="leave" class="danger">退出</button></div>`;
-          sectTasks.innerHTML = `${mySectTasks
-            .filter((task) => task.status === "active" || task.status === "claimable")
-            .map((task) => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span><span>进度：${task.progress} / ${task.target} · ${task.status === "claimable" ? "可领取" : "进行中"}</span></div><button data-complete-sect-task="${task.id}" ${task.status === "claimable" ? "" : "disabled"}>${task.status === "claimable" ? "领取奖励" : "未达成"}</button></div>`)
-            .join("")}${availableSectTasks
-            .map((task) => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward.contribution || 0} · 灵石 ${task.reward.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`)
-            .join("") || `<div class="empty">暂无可接任务</div>`}`;
-          sectShop.innerHTML = currentSectShop.length
-            ? currentSectShop.map((item) => `<div class="row"><div><strong>${item.name}</strong><span>消耗 ${item.cost} 贡献 · 获得 ${item.item_code} x${item.quantity}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("")
-            : `<div class="empty">暂无可兑换奖励</div>`;
+          sectTasks.innerHTML = `${mySectTasks.filter(task => task.status === "active" || task.status === "claimable").map(task => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span><span>进度：${task.progress} / ${task.target} · ${task.status === "claimable" ? "可领取" : "进行中"}</span></div><button data-complete-sect-task="${task.id}" ${task.status === "claimable" ? "" : "disabled"}>${task.status === "claimable" ? "领取奖励" : "未达成"}</button></div>`).join("")}${availableSectTasks.map(task => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward.contribution || 0} · 灵石 ${task.reward.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`).join("") || `<div class="empty">暂无可接任务</div>`}`;
+          sectShop.innerHTML = currentSectShop.length ? currentSectShop.map(item => `<div class="row"><div><strong>${item.name}</strong><span>消耗 ${item.cost} 贡献 · 获得 ${item.item_code} x${item.quantity}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("") : `<div class="empty">暂无可兑换奖励</div>`;
         }
-        sectList.innerHTML = sectCatalog
-          .map((sect) => `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${sect.description}</span><span>要求：${sect.required_realm} · 灵石 ${sect.required_spirit_stones || 0} · 偏好灵根 ${sect.preferred_root.join("、") || "不限"}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""}>拜入</button></div>`)
-          .join("");
+        sectList.innerHTML = sectCatalog.map(sect => `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${sect.description}</span><span>要求：${sect.required_realm} · 灵石 ${sect.required_spirit_stones || 0} · 偏好灵根 ${sect.preferred_root.join("、") || "不限"}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""}>拜入</button></div>`).join("");
       }
 
       async function auth(path) {
         showToast("");
         const username = document.getElementById("username").value.trim();
         const password = document.getElementById("password").value;
-        const data = await request(path, {
-          method: "POST",
-          body: JSON.stringify({ username, password }),
-        });
+        const data = await request(path, { method: "POST", body: JSON.stringify({ username, password }) });
         setToken(data.token);
         await loadMe();
       }
 
       async function doAction(actionType, params = {}) {
         showToast("");
-        const data = await request("/action/execute", {
-          method: "POST",
-          body: JSON.stringify({ action_type: actionType, params }),
-        });
-        showToast(data.message);
-        await loadMe();
+        try {
+          const data = await request("/action/execute", { method: "POST", body: JSON.stringify({ action_type: actionType, params }) });
+          showToast(data.message, data.success);
+          await loadMe();
+        } catch (error) {
+          showToast(error.message);
+        }
       }
 
       async function changeTitle(title) {
         showToast("");
-        const data = await request("/character/title", {
-          method: "POST",
-          body: JSON.stringify({ title }),
-        });
-        showToast(data.message);
-        await loadMe();
+        try {
+          const data = await request("/character/title", { method: "POST", body: JSON.stringify({ title }) });
+          showToast(data.message, data.success);
+          await loadMe();
+        } catch (error) {
+          showToast(error.message);
+        }
       }
 
-      document.getElementById("register-btn").addEventListener("click", () => {
-        auth("/register").catch((error) => showToast(error.message));
-      });
-
-      document.getElementById("login-btn").addEventListener("click", () => {
-        auth("/login").catch((error) => showToast(error.message));
-      });
-
+      // ========== Event Listeners ==========
+      document.getElementById("register-btn").addEventListener("click", () => auth("/register").catch(e => showToast(e.message)));
+      document.getElementById("login-btn").addEventListener("click", () => auth("/login").catch(e => showToast(e.message)));
       document.getElementById("logout-btn").addEventListener("click", () => {
-        clearToken();
-        currentUser = null;
-        showToast("");
-        showGame(false);
+        clearToken(); currentUser = null; showToast(""); showGame(false);
         document.getElementById("hero-name").textContent = "云游散修";
         document.getElementById("hero-realm").textContent = "太虚问道";
         document.getElementById("hero-subtitle").textContent = "多人在线修仙文字游戏";
         document.getElementById("hero-pill").textContent = "联网存档";
       });
 
-      document.getElementById("train-btn").addEventListener("click", () => {
-        doAction("train").catch((error) => showToast(error.message));
-      });
-
-      document.getElementById("explore-btn").addEventListener("click", () => {
-        doAction("explore").catch((error) => showToast(error.message));
-      });
-
-      document.getElementById("breakthrough-btn").addEventListener("click", () => {
-        doAction("breakthrough").catch((error) => showToast(error.message));
-      });
-
-      document.getElementById("meditate-btn").addEventListener("click", () => {
-        doAction("recover_mana_meditate").catch((error) => showToast(error.message));
-      });
-
-      document.getElementById("spirit-stone-btn").addEventListener("click", () => {
-        doAction("recover_mana_stone").catch((error) => showToast(error.message));
-      });
-
+      document.getElementById("train-btn").addEventListener("click", () => doAction("train").catch(e => showToast(e.message)));
+      document.getElementById("explore-btn").addEventListener("click", () => doAction("explore").catch(e => showToast(e.message)));
+      document.getElementById("breakthrough-btn").addEventListener("click", () => doAction("breakthrough").catch(e => showToast(e.message)));
+      document.getElementById("meditate-btn").addEventListener("click", () => doAction("recover_mana_meditate").catch(e => showToast(e.message)));
+      document.getElementById("spirit-stone-btn").addEventListener("click", () => doAction("recover_mana_stone").catch(e => showToast(e.message)));
       document.getElementById("pill-btn").addEventListener("click", () => {
-        const slot = currentUser?.inventory.find((item) => item.code === "mana_pill" && item.quantity > 0);
-        doAction("use_item", { slot_index: slot ? slot.slot_index : 0 }).catch((error) => showToast(error.message));
+        const slot = currentUser?.inventory.find(item => item.code === "mana_pill" && item.quantity > 0);
+        doAction("use_item", { slot_index: slot ? slot.slot_index : 0 }).catch(e => showToast(e.message));
       });
 
-      document.getElementById("refresh-btn").addEventListener("click", () => {
-        loadMe().catch((error) => showToast(error.message));
-      });
+      document.getElementById("refresh-btn").addEventListener("click", () => loadMe().catch(e => showToast(e.message)));
+      document.getElementById("refresh-sect-btn").addEventListener("click", () => loadSect().catch(e => showToast(e.message)));
 
-      document.getElementById("refresh-sect-btn").addEventListener("click", () => {
-        loadSect().catch((error) => showToast(error.message));
-      });
+      titleSelect.addEventListener("change", () => changeTitle(titleSelect.value).catch(e => showToast(e.message)));
 
-      titleSelect.addEventListener("change", () => {
-        changeTitle(titleSelect.value).catch((error) => showToast(error.message));
-      });
+      document.getElementById("close-root-help").addEventListener("click", () => rootHelp.classList.add("hidden"));
+      rootHelp.addEventListener("click", e => { if (e.target === rootHelp) rootHelp.classList.add("hidden"); });
 
-      document.getElementById("close-root-help").addEventListener("click", () => {
-        rootHelp.classList.add("hidden");
-      });
-
-      rootHelp.addEventListener("click", (event) => {
-        if (event.target === rootHelp) {
-          rootHelp.classList.add("hidden");
-        }
-      });
-
-      inventory.addEventListener("click", (event) => {
+      // Inventory click
+      inventory.addEventListener("click", event => {
         const button = event.target.closest("button[data-slot-action]");
         if (!button) return;
         const slotIndex = Number(button.dataset.slotIndex);
-        const type = button.dataset.slotAction;
-        const actionType = type === "pill" ? "use_item" : type === "cultivation_method" ? "learn_method" : "equip_artifact";
-        doAction(actionType, { slot_index: slotIndex }).catch((error) => showToast(error.message));
+        const actionType = button.dataset.slotAction;
+        doAction(actionType, { slot_index: slotIndex }).catch(e => showToast(e.message));
       });
 
-      methodsList.addEventListener("click", (event) => {
+      // Methods
+      methodsList.addEventListener("click", event => {
         const equip = event.target.closest("button[data-method-equip]");
         const practice = event.target.closest("button[data-method-practice]");
-        if (equip) {
-          doAction("equip_method", { method_id: Number(equip.dataset.methodEquip) }).catch((error) => showToast(error.message));
-        }
-        if (practice) {
-          doAction("practice_method", { method_id: Number(practice.dataset.methodPractice) }).catch((error) => showToast(error.message));
-        }
+        if (equip) doAction("equip_method", { method_id: Number(equip.dataset.methodEquip) }).catch(e => showToast(e.message));
+        if (practice) doAction("practice_method", { method_id: Number(practice.dataset.methodPractice) }).catch(e => showToast(e.message));
       });
 
-      artifactsList.addEventListener("click", (event) => {
+      // Artifacts
+      artifactsList.addEventListener("click", event => {
         const upgrade = event.target.closest("button[data-artifact-upgrade]");
         const unequip = event.target.closest("button[data-artifact-unequip]");
-        if (upgrade) {
-          doAction("upgrade_artifact", { artifact_id: Number(upgrade.dataset.artifactUpgrade) }).catch((error) => showToast(error.message));
-        }
-        if (unequip) {
-          doAction("unequip_artifact", { artifact_id: Number(unequip.dataset.artifactUnequip) }).catch((error) => showToast(error.message));
-        }
+        if (upgrade) doAction("upgrade_artifact", { artifact_id: Number(upgrade.dataset.artifactUpgrade) }).catch(e => showToast(e.message));
+        if (unequip) doAction("unequip_artifact", { artifact_id: Number(unequip.dataset.artifactUnequip) }).catch(e => showToast(e.message));
       });
 
-      sectList.addEventListener("click", (event) => {
+      // Life Skills subtabs
+      document.querySelectorAll(".life-skills-subtabs button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".life-skills-subtabs button").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          renderRecipes(btn.dataset.skill);
+        });
+      });
+
+      // Life Skills recipe clicks
+      document.getElementById("recipes-list").addEventListener("click", event => {
+        const button = event.target.closest("button[data-recipe-id]");
+        if (!button || button.disabled) return;
+        const recipeId = button.dataset.recipeId;
+        const skillType = button.dataset.skillType;
+        doAction(skillType, { recipe_id: recipeId }).catch(e => showToast(e.message));
+      });
+
+      // Sect
+      sectList.addEventListener("click", event => {
         const join = event.target.closest("button[data-join-sect]");
-        if (join) {
-          doAction("join_sect", { sect_code: join.dataset.joinSect }).catch((error) => showToast(error.message));
-        }
+        if (join) doAction("join_sect", { sect_code: join.dataset.joinSect }).catch(e => showToast(e.message));
       });
-
-      sectTasks.addEventListener("click", (event) => {
+      sectTasks.addEventListener("click", event => {
         const accept = event.target.closest("button[data-accept-sect-task]");
         const complete = event.target.closest("button[data-complete-sect-task]");
-        if (accept) {
-          doAction("accept_sect_task", { task_code: accept.dataset.acceptSectTask }).catch((error) => showToast(error.message));
-        }
-        if (complete) {
-          doAction("complete_sect_task", { task_id: Number(complete.dataset.completeSectTask) }).catch((error) => showToast(error.message));
-        }
+        if (accept) doAction("accept_sect_task", { task_code: accept.dataset.acceptSectTask }).catch(e => showToast(e.message));
+        if (complete) doAction("complete_sect_task", { task_id: Number(complete.dataset.completeSectTask) }).catch(e => showToast(e.message));
       });
-
-      sectShop.addEventListener("click", (event) => {
+      sectShop.addEventListener("click", event => {
         const exchange = event.target.closest("button[data-exchange-sect-reward]");
-        if (exchange) {
-          doAction("exchange_sect_reward", { reward_code: exchange.dataset.exchangeSectReward }).catch((error) => showToast(error.message));
-        }
+        if (exchange) doAction("exchange_sect_reward", { reward_code: exchange.dataset.exchangeSectReward }).catch(e => showToast(e.message));
       });
-
-      sectSummary.addEventListener("click", (event) => {
+      sectSummary.addEventListener("click", event => {
         const action = event.target.closest("button[data-sect-action]");
         if (!action) return;
-        if (action.dataset.sectAction === "promote") {
-          doAction("promote_sect_position").catch((error) => showToast(error.message));
-        }
-        if (action.dataset.sectAction === "leave") {
-          doAction("leave_sect").catch((error) => showToast(error.message));
-        }
+        if (action.dataset.sectAction === "promote") doAction("promote_sect_position").catch(e => showToast(e.message));
+        if (action.dataset.sectAction === "leave") doAction("leave_sect").catch(e => showToast(e.message));
       });
 
-      document.querySelectorAll(".tabs button").forEach((button) => {
+      document.querySelectorAll(".tabs button").forEach(button => {
         button.addEventListener("click", () => setTab(button.dataset.tab));
       });
 
       if (getToken()) {
-        loadMe().catch(() => {
-          clearToken();
-          showGame(false);
-        });
+        loadMe().catch(() => { clearToken(); showGame(false); });
       }
     </script>
   </body>

@@ -344,7 +344,7 @@ ITEM_TEMPLATES = [
         "name": "护身铃",
         "type": "magic_artifact",
         "grade": 1,
-        "description": "小幅降低探索受伤风险，适合探索型玩家。",
+        "description": "提升护身能力，小幅增加攻防，适合探索与战斗。",
         "stackable": False,
         "max_stack": 1,
         "effects": {"defense": 3},

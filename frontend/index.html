@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" href="data:," />
     <title>太虚问道</title>
     <style>
       :root {
@@ -814,7 +815,10 @@
 
     <script>
       const API_HOST = window.location.hostname || "127.0.0.1";
-      const API_BASE = `http://${API_HOST}:8000`;
+      const apiParams = new URLSearchParams(window.location.search);
+      const configuredApiPort = apiParams.get("apiPort") || localStorage.getItem("xiuxian_api_port") || "8000";
+      if (apiParams.get("apiPort")) localStorage.setItem("xiuxian_api_port", apiParams.get("apiPort"));
+      const API_BASE = `${window.location.protocol}//${API_HOST}:${configuredApiPort}`;
       const tokenKey = "xiuxian_mmo_token";
 
       const authSection = document.getElementById("auth-section");
@@ -860,24 +864,29 @@
 
       // 物品名称映射（用于显示）
       const ITEM_NAMES = {
-        low_spirit_stone: "下品灵石", low_material: "低阶炼器材", healing_pill: "疗伤丹",
+        low_spirit_stone: "下品灵石", low_material: "下品材料", healing_herb: "疗伤草", formula_scroll: "空白配方卷",
         beast_core: "妖兽内丹", mana_pill: "回灵丹", qi_powder: "聚气散",
+        yangqi_pill: "养气丹", guyu_pill: "固元丹", huichun_pill: "回春丹",
         foundation_pill: "筑基丹", scout_talisman: "探查符", guard_talisman: "护身符",
         swift_talisman: "速行符", calm_talisman: "清心符", crafted_low_sword: "低阶剑",
+        explore_luck_talisman: "寻机符", avoid_harm_talisman: "避害符", spirit_gather_talisman: "聚灵符",
+        qingmu_pendant: "青木坠", juqi_jade: "聚气玉", hushen_bell: "护身铃",
         gathering_artifact: "聚灵器", explore_puppet: "探索傀儡",
         foundation_pill_formula: "筑基丹配方", swift_talisman_formula: "速行符配方",
         explore_puppet_formula: "探索傀儡配方",
+        formation_gather_spirit: "聚灵阵", formation_guard: "护身阵", formation_draw_spirit: "引灵阵",
       };
 
       // 效果类型中文名
       const EFFECT_TYPE_NAMES = {
         explore_luck_bonus: "探查运气加成", explore_damage_reduction: "探索减伤",
         explore_mana_discount: "探索法力折扣", train_cultivation_bonus: "修炼加成",
+        train_next_bonus: "下次修炼收益提升", breakthrough_next_bonus: "下次突破概率提升",
         explore_reward_bonus: "探索奖励加成",
       };
 
       function getItemName(code) {
-        return ITEM_NAMES[code] || code;
+        return ITEM_NAMES[code] || "未知物品";
       }
 
       
@@ -889,7 +898,7 @@
       }
 
 function getEffectTypeName(type) {
-        return EFFECT_TYPE_NAMES[type] || type;
+        return EFFECT_TYPE_NAMES[type] || "未知效果";
       }
 
       function getToken() {
@@ -952,8 +961,11 @@ function getEffectTypeName(type) {
 
         container.innerHTML = recipes.map((recipe) => {
           const isLocked = recipe.unlock_item && !_hasItem(recipe.unlock_item);
-          const materialsHtml = recipe.required_items.map(i => `${getItemName(i.code)} x${i.quantity}`).join(" · ");
-          const outputName = recipe.output_name || (recipe.output_item_id ? getItemName(recipe.output_item_id) : getItemName(recipe.output_effect_id));
+          const materials = recipe.materials || recipe.required_items || [];
+          const materialsHtml = materials.map(i => `${i.name || getItemName(i.code || i.item_id)} x${i.quantity || i.count}`).join(" · ");
+          const outputName = recipe.output_name || recipe.output_item_name || recipe.output_effect_name || (recipe.output_item_id ? getItemName(recipe.output_item_id) : getItemName(recipe.output_effect_id));
+          const summary = recipe.effect_summary || recipe.output_item_description || recipe.output_effect_description || "";
+          const requirement = recipe.realm_requirement || recipe.required_realm || "无";
           const canCraft = !isLocked && char.mana >= recipe.mana_cost;
 
           return `<div class="recipe-card">
@@ -962,11 +974,12 @@ function getEffectTypeName(type) {
               <span style="font-size:11px;color:#e5c568">${recipe.mana_cost}法力</span>
             </div>
             <div class="recipe-info">
-              <span>需求：${recipe.required_realm}</span>
+              <span>需求：${requirement}</span>
               <span>材料：${materialsHtml}</span>
-              ${recipe.unlock_item ? `<span style="color:#d95f45">需配方：${getItemName(recipe.unlock_item)}</span>` : ""}
+              ${recipe.unlock_item ? `<span style="color:#d95f45">需配方：${recipe.unlock_item_name || getItemName(recipe.unlock_item)}</span>` : ""}
             </div>
             <div class="recipe-output">产出：${outputName}${recipe.output_count > 1 ? ` x${recipe.output_count}` : ""}</div>
+            ${summary ? `<div class="recipe-info"><span>说明：${summary}</span></div>` : ""}
             <button data-recipe-id="${recipe.id}" data-skill-type="${skillType}" ${canCraft ? "" : "disabled"}>${isLocked ? "未解锁" : "制作"}</button>
           </div>`;
         }).join("");
@@ -990,8 +1003,8 @@ function getEffectTypeName(type) {
         } else {
           charEffectList.innerHTML = validEffects.map(e => `
             <div class="effect-card">
-              <div class="effect-name">${getEffectTypeName(e.effect_type)}</div>
-              <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
+              <div class="effect-name">${e.effect_name || getEffectTypeName(e.effect_type)}</div>
+              <div class="effect-detail">来源：${e.source_name || getItemName(e.source_item_or_recipe)} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
             </div>
           `).join("");
         }
@@ -1006,8 +1019,8 @@ function getEffectTypeName(type) {
           } else {
             skillEffectList.innerHTML = validEffects.map(e => `
               <div class="effect-card">
-                <div class="effect-name">${getEffectTypeName(e.effect_type)}</div>
-                <div class="effect-detail">来源：${e.source_item_or_recipe} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
+                <div class="effect-name">${e.effect_name || getEffectTypeName(e.effect_type)}</div>
+                <div class="effect-detail">来源：${e.source_name || getItemName(e.source_item_or_recipe)} · 剩余：${e.remaining_uses}次 · 数值：${_formatEffectValue(e.value)}</div>
               </div>
             `).join("");
           }
@@ -1140,7 +1153,7 @@ function getEffectTypeName(type) {
       function renderSect() {
         const reputations = currentSect?.reputations || {};
         if (!currentSect?.sect) {
-          sectSummary.innerHTML = `<div class="empty">你目前是散修，可以选择一个 NPC 宗门拜入。</div>`;
+          sectSummary.innerHTML = `<div class="empty">你目前是散修，可以选择一个宗门拜入。</div>`;
           sectTasks.innerHTML = `<div class="empty">加入宗门后可接取任务。</div>`;
           sectShop.innerHTML = `<div class="empty">加入宗门后可使用贡献兑换奖励。</div>`;
         } else {
@@ -1148,7 +1161,7 @@ function getEffectTypeName(type) {
           const member = currentSect.member;
           sectSummary.innerHTML = `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${member.position_name} · 贡献 ${member.contribution} · 声望 ${member.reputation}</span><span>正道 ${reputations.righteous || 0} / 魔道 ${reputations.demonic || 0} / 鬼道 ${reputations.ghost || 0} / 佛道 ${reputations.buddhist || 0}</span></div><button data-sect-action="promote">晋升</button><button data-sect-action="leave" class="danger">退出</button></div>`;
           sectTasks.innerHTML = `${mySectTasks.filter(task => task.status === "active" || task.status === "claimable").map(task => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span><span>进度：${task.progress} / ${task.target} · ${task.status === "claimable" ? "可领取" : "进行中"}</span></div><button data-complete-sect-task="${task.id}" ${task.status === "claimable" ? "" : "disabled"}>${task.status === "claimable" ? "领取奖励" : "未达成"}</button></div>`).join("")}${availableSectTasks.map(task => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward.contribution || 0} · 灵石 ${task.reward.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`).join("") || `<div class="empty">暂无可接任务</div>`}`;
-          sectShop.innerHTML = currentSectShop.length ? currentSectShop.map(item => `<div class="row"><div><strong>${item.name}</strong><span>消耗 ${item.cost} 贡献 · 获得 ${item.item_code} x${item.quantity}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("") : `<div class="empty">暂无可兑换奖励</div>`;
+          sectShop.innerHTML = currentSectShop.length ? currentSectShop.map(item => `<div class="row"><div><strong>${item.name || item.item_name || getItemName(item.item_code)}</strong><span>${item.exchange_summary || `消耗 ${item.cost} 贡献：获得 ${item.item_name || getItemName(item.item_code)} x${item.quantity}`}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("") : `<div class="empty">暂无可兑换奖励</div>`;
         }
         sectList.innerHTML = sectCatalog.map(sect => `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${sect.description}</span><span>要求：${sect.required_realm} · 灵石 ${sect.required_spirit_stones || 0} · 偏好灵根 ${sect.preferred_root.join("、") || "不限"}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""}>拜入</button></div>`).join("");
       }

@@ -251,7 +251,7 @@ SECT_TASKS = [
     },
     {
         "code": "sect_alchemy_supply",
-        "name": "Alchemy Supply",
+        "name": "丹药供给",
         "type": "alchemy",
         "value_tier": "mid",
         "target_action": "alchemy",
@@ -261,11 +261,11 @@ SECT_TASKS = [
         "target": 1,
         "reward": {"contribution": 24, "spirit_stones": 8, "items": [{"code": "healing_herb", "quantity": 1}]},
         "reputation": 5,
-        "description": "Use gathered materials to refine basic pills for the sect.",
+        "description": "使用收集到的材料为宗门炼制基础丹药。",
     },
     {
         "code": "sect_talisman_supply",
-        "name": "Talisman Supply",
+        "name": "符箓供给",
         "type": "talisman",
         "value_tier": "mid",
         "target_action": "talisman",
@@ -275,11 +275,11 @@ SECT_TASKS = [
         "target": 1,
         "reward": {"contribution": 22, "spirit_stones": 8, "items": [{"code": "calm_talisman", "quantity": 1}]},
         "reputation": 5,
-        "description": "Make a talisman that supports later exploration.",
+        "description": "绘制一张可辅助后续探索的符箓。",
     },
     {
         "code": "sect_crafting_supply",
-        "name": "Crafting Supply",
+        "name": "炼器供给",
         "type": "crafting",
         "value_tier": "mid",
         "target_action": "crafting",
@@ -289,7 +289,7 @@ SECT_TASKS = [
         "target": 1,
         "reward": {"contribution": 30, "spirit_stones": 10, "items": [{"code": "low_material", "quantity": 1}]},
         "reputation": 6,
-        "description": "Craft a simple tool or artifact for sect logistics.",
+        "description": "炼制一件用于宗门杂务的基础器物。",
     },
 ]
 
@@ -309,10 +309,10 @@ SECT_SHOP = {
         {"code": "sect_foundation_pill", "name": "筑基丹", "cost": 260, "item_code": "foundation_pill", "quantity": 1},
     ],
     "life_skill": [
-        {"code": "formula_foundation_pill", "name": "Foundation Pill Formula", "cost": 180, "item_code": "foundation_pill_formula", "quantity": 1},
-        {"code": "formula_swift_talisman", "name": "Swift Talisman Formula", "cost": 90, "item_code": "swift_talisman_formula", "quantity": 1},
-        {"code": "formula_explore_puppet", "name": "Explore Puppet Formula", "cost": 140, "item_code": "explore_puppet_formula", "quantity": 1},
-        {"code": "rare_beast_core", "name": "Beast Core", "cost": 70, "item_code": "beast_core", "quantity": 1},
+        {"code": "formula_foundation_pill", "name": "筑基丹丹方", "cost": 180, "item_code": "foundation_pill_formula", "quantity": 1},
+        {"code": "formula_swift_talisman", "name": "速行符符方", "cost": 90, "item_code": "swift_talisman_formula", "quantity": 1},
+        {"code": "formula_explore_puppet", "name": "探索傀儡图谱", "cost": 140, "item_code": "explore_puppet_formula", "quantity": 1},
+        {"code": "rare_beast_core", "name": "妖兽内丹", "cost": 70, "item_code": "beast_core", "quantity": 1},
     ],
     "demonic": [
         {"code": "blood_mana_pill", "name": "血炼回灵丹", "cost": 35, "item_code": "mana_pill", "quantity": 2, "inner_demon": 2},

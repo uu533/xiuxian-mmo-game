@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from backend.configs.effects import ACTIVE_EFFECT_LIMITS, FORMATION_EFFECTS, ITEM_ACTIVE_EFFECTS
 from backend.models import ActiveEffect, Character, User
+from backend.services.display_service import active_effect_display
 from backend.services.log_service import write_log
 
 
@@ -10,6 +11,7 @@ def active_effect_payload(effect: ActiveEffect) -> dict:
         "id": effect.id,
         "effect_type": effect.effect_type,
         "source_item_or_recipe": effect.source_item_or_recipe,
+        **active_effect_display(effect.effect_type, effect.source_item_or_recipe),
         "remaining_uses": effect.remaining_uses,
         "value": effect.value,
         "expires_at": effect.expires_at.isoformat() if effect.expires_at else None,
@@ -48,7 +50,8 @@ def activate_effect(db: Session, user: User, source: str, config: dict) -> dict:
         if ACTIVE_EFFECT_LIMITS.get("refresh_remaining_uses", True):
             current.remaining_uses = max(current.remaining_uses, remaining_uses)
         db.flush()
-        write_log(db, user, "effect", f"Active effect refreshed: {effect_type}.", active_effect_payload(current))
+        payload = active_effect_payload(current)
+        write_log(db, user, "effect", f"临时效果已刷新：{payload['effect_name']}。", payload)
         return active_effect_payload(current)
     effect = ActiveEffect(
         effect_type=effect_type,
@@ -58,7 +61,8 @@ def activate_effect(db: Session, user: User, source: str, config: dict) -> dict:
     )
     character.active_effects.append(effect)
     db.flush()
-    write_log(db, user, "effect", f"Active effect activated: {effect_type}.", active_effect_payload(effect))
+    payload = active_effect_payload(effect)
+    write_log(db, user, "effect", f"临时效果已生效：{payload['effect_name']}。", payload)
     return active_effect_payload(effect)
 
 
@@ -76,10 +80,11 @@ def consume_effects(db: Session, user: User, effect_types: list[str]) -> dict:
             continue
         effect.remaining_uses -= 1
         consumed.append(active_effect_payload(effect))
-        write_log(db, user, "effect", f"Active effect consumed: {effect.effect_type}.", active_effect_payload(effect))
+        payload = active_effect_payload(effect)
+        write_log(db, user, "effect", f"临时效果已触发：{payload['effect_name']}。", payload)
         if effect.remaining_uses <= 0:
             expired.append(active_effect_payload(effect))
-            write_log(db, user, "effect", f"Active effect expired: {effect.effect_type}.", active_effect_payload(effect))
+            write_log(db, user, "effect", f"临时效果已耗尽：{payload['effect_name']}。", payload)
             db.delete(effect)
     db.flush()
     return {"consumed": consumed, "expired": expired}

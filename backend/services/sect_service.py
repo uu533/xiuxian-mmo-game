@@ -13,6 +13,7 @@ from backend.configs.sects import (
 )
 from backend.models import Character, Sect, SectMember, SectReputationLog, SectTask, User, utc_now
 from backend.services.calc_service import get_sect_reward_multiplier, scale_reward_value
+from backend.services.display_service import item_name, item_description
 from backend.services.inventory_service import add_item_to_main_bag, consume_item_by_code, has_item
 from backend.services.log_service import write_log
 
@@ -306,7 +307,21 @@ def shop_payload(db: Session, character: Character) -> list[dict]:
     if not member:
         return []
     items = [*SECT_SHOP.get(member.sect.faction, []), *SECT_SHOP.get("life_skill", [])]
-    return [{**item, "faction": member.sect.faction} for item in items]
+    payload = []
+    for item in items:
+        reward_name = item_name(item["item_code"])
+        quantity = int(item.get("quantity", 1))
+        payload.append(
+            {
+                **item,
+                "name": reward_name,
+                "item_name": reward_name,
+                "item_description": item_description(item["item_code"]),
+                "exchange_summary": f"消耗 {int(item['cost'])} 贡献：获得 {reward_name} x{quantity}",
+                "faction": member.sect.faction,
+            }
+        )
+    return payload
 
 
 def exchange_reward(db: Session, user: User, reward_code: str) -> tuple[bool, str, dict]:
@@ -327,7 +342,9 @@ def exchange_reward(db: Session, user: User, reward_code: str) -> tuple[bool, st
     if reward.get("inner_demon"):
         character.hidden_inner_demon = max(0, min(100, character.hidden_inner_demon + int(reward["inner_demon"])))
     db.flush()
-    return True, f"消耗 {cost} 贡献，兑换{reward['name']}。", {"reward": reward, "item": payload, "member": member_payload(member)}
+    reward_name = item_name(reward["item_code"])
+    quantity = int(reward.get("quantity", 1))
+    return True, f"消耗 {cost} 贡献，获得 {reward_name} x{quantity}。", {"reward": {**reward, "item_name": reward_name}, "item": payload, "member": member_payload(member)}
 
 
 def reputation_summary(db: Session, character: Character) -> dict:
@@ -407,7 +424,7 @@ def _pay_task_cost(db: Session, character: Character, config: dict) -> tuple[boo
         code = item["code"]
         quantity = int(item.get("quantity", 1))
         if not has_item(db, character, code, quantity):
-            return False, f"缺少任务所需物品：{code} x{quantity}", {"items": config.get("required_items", [])}
+            return False, f"缺少任务所需物品：{item_name(code)} x{quantity}", {"items": config.get("required_items", [])}
         consume_item_by_code(db, character, code, quantity)
     return True, "", cost
 

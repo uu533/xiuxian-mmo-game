@@ -19,6 +19,31 @@ ITEM_ACTIVE_EFFECTS = {
         "remaining_uses": 1,
         "value": 6,
     },
+    "explore_luck_talisman": {
+        "effect_type": "explore_luck_bonus",
+        "remaining_uses": 1,
+        "value": 0.05,
+    },
+    "avoid_harm_talisman": {
+        "effect_type": "explore_damage_reduction",
+        "remaining_uses": 1,
+        "value": 0.25,
+    },
+    "spirit_gather_talisman": {
+        "effect_type": "train_cultivation_bonus",
+        "remaining_uses": 1,
+        "value": 0.04,
+    },
+    "yangqi_pill": {
+        "effect_type": "train_next_bonus",
+        "remaining_uses": 1,
+        "value": 1,
+    },
+    "guyu_pill": {
+        "effect_type": "breakthrough_next_bonus",
+        "remaining_uses": 1,
+        "value": 1,
+    },
 }
 
 FORMATION_EFFECTS = {

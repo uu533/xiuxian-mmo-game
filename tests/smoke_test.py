@@ -241,6 +241,7 @@ def clear_inventory(username):
             """,
             (character_id,),
         )
+        conn.execute("DELETE FROM character_artifacts WHERE character_id = ?", (character_id,))
         conn.commit()
 
 
@@ -412,6 +413,184 @@ def main():
     with sqlite3.connect(DB_PATH) as conn:
         assert conn.execute("SELECT COUNT(*) FROM life_skill_records WHERE character_id = ?", (character_s_id,)).fetchone()[0] >= 3
         assert conn.execute("SELECT COUNT(*) FROM active_effects WHERE character_id = ?", (character_s_id,)).fetchone()[0] >= 1
+
+    # Life skills v2: test new recipes
+    recipes = request("/life-skills/recipes")
+    assert len(recipes["alchemy"]) >= 6, f"alchemy: expected >=6, got {len(recipes['alchemy'])}"
+    assert len(recipes["talisman"]) >= 6, f"talisman: expected >=6, got {len(recipes['talisman'])}"
+    assert len(recipes["crafting"]) >= 6, f"crafting: expected >=6, got {len(recipes['crafting'])}"
+    assert len(recipes["formation"]) >= 3, f"formation: expected >=3, got {len(recipes['formation'])}"
+    new_ids = {
+        "alchemy_yangqi_pill", "alchemy_guyu_pill", "alchemy_huichun_pill",
+        "talisman_explore_luck", "talisman_avoid_harm", "talisman_spirit_gather",
+        "craft_qingmu_pendant", "craft_juqi_jade", "craft_hushen_bell",
+    }
+    all_recipe_ids = {r["id"] for skill in recipes.values() for r in skill}
+    missing = new_ids - all_recipe_ids
+    assert not missing, f"Missing new recipe IDs: {missing}"
+    for skill_type, recipe_list in recipes.items():
+        for recipe in recipe_list:
+            for field in ["id", "name", "skill_type", "mana_cost"]:
+                assert field in recipe, f"Recipe {recipe['id']} missing field '{field}'"
+            assert "output_item_id" in recipe or "output_effect_id" in recipe, f"Recipe {recipe['id']} missing output"
+
+    # Test new pill items
+    add_item_to_bag(player_s, "healing_herb", 10)
+    add_item_to_bag(player_s, "low_spirit_stone", 30)
+    hp_before = request("/character/me", token=token_s)["character"]["hp"]
+    # huichun_pill: recover_hp=40
+    slot_huichun = add_item_to_bag(player_s, "huichun_pill")
+    used_huichun = action(token_s, "use_item", {"slot_index": slot_huichun})
+    assert used_huichun["success"] is True
+    hp_after = used_huichun["character"]["hp"]
+    assert hp_after > hp_before, f"huichun_pill should restore HP"
+
+    # Test yangqi_pill: train_next_bonus active effect
+    slot_yangqi = add_item_to_bag(player_s, "yangqi_pill")
+    used_yangqi = action(token_s, "use_item", {"slot_index": slot_yangqi})
+    assert used_yangqi["success"] is True
+    active_effects = used_yangqi["character"]["active_effects"]
+    assert any(e["effect_type"] == "train_next_bonus" for e in active_effects), f"yangqi_pill should activate train_next_bonus: {active_effects}"
+
+    # Test guyu_pill: breakthrough_next_bonus active effect
+    slot_guyu = add_item_to_bag(player_s, "guyu_pill")
+    used_guyu = action(token_s, "use_item", {"slot_index": slot_guyu})
+    assert used_guyu["success"] is True
+    active_effects_g = used_guyu["character"]["active_effects"]
+    assert any(e["effect_type"] == "breakthrough_next_bonus" for e in active_effects_g), f"guyu_pill should activate breakthrough_next_bonus"
+
+    # Test new talismans
+    slot_explore_luck = add_item_to_bag(player_s, "explore_luck_talisman")
+    used_talisman2 = action(token_s, "use_item", {"slot_index": slot_explore_luck})
+    assert used_talisman2["success"] is True
+    effects2 = used_talisman2["character"]["active_effects"]
+    assert any(e["effect_type"] == "explore_luck_bonus" for e in effects2), f"explore_luck_talisman should activate explore_luck_bonus"
+
+    slot_avoid_harm = add_item_to_bag(player_s, "avoid_harm_talisman")
+    used_avoid = action(token_s, "use_item", {"slot_index": slot_avoid_harm})
+    assert used_avoid["success"] is True
+    effects_avoid = used_avoid["character"]["active_effects"]
+    assert any(e["effect_type"] == "explore_damage_reduction" for e in effects_avoid), f"avoid_harm_talisman should activate explore_damage_reduction"
+
+    slot_spirit_gather = add_item_to_bag(player_s, "spirit_gather_talisman")
+    used_spirit = action(token_s, "use_item", {"slot_index": slot_spirit_gather})
+    assert used_spirit["success"] is True
+    effects_spirit = used_spirit["character"]["active_effects"]
+    assert any(e["effect_type"] == "train_cultivation_bonus" for e in effects_spirit), f"spirit_gather_talisman should activate train_cultivation_bonus"
+
+    # Test new crafting recipes (verify success, item ends up in inventory)
+    # Note: player_s realm is set to REALM_NAMES[2] (炼气三层) above.
+    # craft_hushen_bell requires REALM_NAMES[3] (炼气四层), so set to 炼气四层 first.
+    force_character(player_s, realm=REALM_NAMES[3], realm_stage="炼气", mana=500)
+    add_item_to_bag(player_s, "low_material", 20)
+    add_item_to_bag(player_s, "low_spirit_stone", 60)
+    crafted_qingmu = action(token_s, "crafting", {"recipe_id": "craft_qingmu_pendant"})
+    assert crafted_qingmu["success"] is True
+    slot_qingmu = first_slot_with_code(player_s, "qingmu_pendant")
+    assert slot_qingmu is not None, "qingmu_pendant should be in inventory after crafting"
+
+    crafted_juqi = action(token_s, "crafting", {"recipe_id": "craft_juqi_jade"})
+    assert crafted_juqi["success"] is True
+    slot_juqi = first_slot_with_code(player_s, "juqi_jade")
+    assert slot_juqi is not None, "juqi_jade should be in inventory after crafting"
+
+    crafted_hushen = action(token_s, "crafting", {"recipe_id": "craft_hushen_bell"})
+    assert crafted_hushen["success"] is True
+    slot_hushen = first_slot_with_code(player_s, "hushen_bell")
+    assert slot_hushen is not None, "hushen_bell should be in inventory after crafting"
+
+    # Test train_next_bonus: must be consumed after successful training
+    add_item_to_bag(player_s, "healing_herb", 2)
+    slot_yangqi2 = add_item_to_bag(player_s, "yangqi_pill")
+    used_yangqi2 = action(token_s, "use_item", {"slot_index": slot_yangqi2})
+    assert used_yangqi2["success"] is True
+    effects_before_train = used_yangqi2["character"]["active_effects"]
+    train_next_active = any(e["effect_type"] == "train_next_bonus" for e in effects_before_train)
+    assert train_next_active, f"train_next_bonus should be active before training: {effects_before_train}"
+    # Train once
+    train_result = action(token_s, "train")
+    assert train_result["success"] is True
+    # After training, train_next_bonus should be consumed (expired/removed)
+    remaining_effects = train_result["character"]["active_effects"]
+    train_next_still_active = any(e["effect_type"] == "train_next_bonus" for e in remaining_effects)
+    assert not train_next_still_active, f"train_next_bonus should be consumed after training: {remaining_effects}"
+
+    # Test breakthrough_next_bonus: must be consumed after breakthrough attempt
+    # Set up player_s for breakthrough (REALM_NAMES[3] = 炼气四层 -> 炼气五层)
+    force_character(player_s, realm=REALM_NAMES[3], realm_stage="炼气", cultivation_cap=480, cultivation=480, mana=1000, hidden_luck=0, hidden_inner_demon=0)
+    add_item_to_bag(player_s, "low_material", 3)
+    add_item_to_bag(player_s, "healing_herb", 9)
+    add_item_to_bag(player_s, "low_spirit_stone", 36)
+    slot_guyu2 = add_item_to_bag(player_s, "guyu_pill")
+    used_guyu2 = action(token_s, "use_item", {"slot_index": slot_guyu2})
+    assert used_guyu2["success"] is True
+    effects_guyu_before = used_guyu2["character"]["active_effects"]
+    bt_next_active = any(e["effect_type"] == "breakthrough_next_bonus" for e in effects_guyu_before)
+    assert bt_next_active, f"breakthrough_next_bonus should be active before breakthrough: {effects_guyu_before}"
+    # Attempt breakthrough
+    bt_result = action(token_s, "breakthrough")
+    # Either success or failure, effect should be consumed
+    remaining_bt_effects = bt_result["character"]["active_effects"]
+    bt_next_still_active = any(e["effect_type"] == "breakthrough_next_bonus" for e in remaining_bt_effects)
+    assert not bt_next_still_active, f"breakthrough_next_bonus should be consumed after breakthrough attempt: {remaining_bt_effects}"
+
+    # Test qingmu_pendant: stats change after equipping
+    force_character(player_s, realm=REALM_NAMES[3], realm_stage="炼气", mana=500)
+    clear_inventory(player_s)
+    add_item_to_bag(player_s, "low_material", 4)
+    add_item_to_bag(player_s, "low_spirit_stone", 10)
+    crafted_qingmu2 = action(token_s, "crafting", {"recipe_id": "craft_qingmu_pendant"})
+    assert crafted_qingmu2["success"] is True
+    slot_qingmu2 = first_slot_with_code(player_s, "qingmu_pendant")
+    assert slot_qingmu2 is not None
+    me_before_equip = request("/character/me", token=token_s)
+    attack_before_qingmu = me_before_equip["character"]["attack"]
+    defense_before_qingmu = me_before_equip["character"]["defense"]
+    equipped_qingmu = action(token_s, "equip_artifact", {"slot_index": slot_qingmu2})
+    assert equipped_qingmu["success"] is True
+    me_after_equip = request("/character/me", token=token_s)
+    attack_after_qingmu = me_after_equip["character"]["attack"]
+    assert attack_after_qingmu > attack_before_qingmu, f"attack should increase after equipping qingmu_pendant: before={attack_before_qingmu}, after={attack_after_qingmu}"
+
+    # Test juqi_jade: attack/defense changes after equipping
+    clear_inventory(player_s)
+    add_item_to_bag(player_s, "low_material", 4)
+    add_item_to_bag(player_s, "low_spirit_stone", 12)
+    crafted_juqi2 = action(token_s, "crafting", {"recipe_id": "craft_juqi_jade"})
+    assert crafted_juqi2["success"] is True
+    slot_juqi2 = first_slot_with_code(player_s, "juqi_jade")
+    assert slot_juqi2 is not None
+    me_before_juqi = request("/character/me", token=token_s)
+    attack_before_juqi = me_before_juqi["character"]["attack"]
+    defense_before_juqi = me_before_juqi["character"]["defense"]
+    equipped_juqi = action(token_s, "equip_artifact", {"slot_index": slot_juqi2})
+    assert equipped_juqi["success"] is True
+    me_after_juqi = request("/character/me", token=token_s)
+    attack_after_juqi = me_after_juqi["character"]["attack"]
+    defense_after_juqi = me_after_juqi["character"]["defense"]
+    assert attack_after_juqi > attack_before_juqi or defense_after_juqi > defense_before_juqi, \
+        f"juqi_jade stats should increase after equipping: attack {attack_before_juqi}->{attack_after_juqi}, defense {defense_before_juqi}->{defense_after_juqi}"
+
+    # Test hushen_bell: attack/defense changes after equipping
+    clear_inventory(player_s)
+    add_item_to_bag(player_s, "low_material", 5)
+    add_item_to_bag(player_s, "low_spirit_stone", 14)
+    crafted_hushen2 = action(token_s, "crafting", {"recipe_id": "craft_hushen_bell"})
+    assert crafted_hushen2["success"] is True
+    slot_hushen2 = first_slot_with_code(player_s, "hushen_bell")
+    assert slot_hushen2 is not None
+    me_before_hushen = request("/character/me", token=token_s)
+    attack_before_hushen = me_before_hushen["character"]["attack"]
+    defense_before_hushen = me_before_hushen["character"]["defense"]
+    equipped_hushen = action(token_s, "equip_artifact", {"slot_index": slot_hushen2})
+    assert equipped_hushen["success"] is True
+    me_after_hushen = request("/character/me", token=token_s)
+    attack_after_hushen = me_after_hushen["character"]["attack"]
+    defense_after_hushen = me_after_hushen["character"]["defense"]
+    assert attack_after_hushen > attack_before_hushen or defense_after_hushen > defense_before_hushen, \
+        f"hushen_bell stats should increase after equipping: attack {attack_before_hushen}->{attack_after_hushen}, defense {defense_before_hushen}->{defense_after_hushen}"
+
+    print("[PASS] Life skills v2: new recipes and items verified")
 
     force_character(player_a, mana=500, hidden_luck=150)
     for _ in range(5):

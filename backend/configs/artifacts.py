@@ -39,7 +39,7 @@ ARTIFACT_EFFECTS_BY_CODE = {
     "gathering_artifact": {
         "attack_per_level": 3,
         "defense_per_level": 4,
-        "explore_reward_bonus_per_level": 0.012,
+        "cultivation_speed_per_level": 0.02,
         "battle_power_per_level": 1,
     },
     "explore_puppet": {
@@ -47,6 +47,22 @@ ARTIFACT_EFFECTS_BY_CODE = {
         "defense_per_level": 3,
         "explore_reward_bonus_per_level": 0.015,
         "battle_power_per_level": 1,
+    },
+    "qingmu_pendant": {
+        "attack_per_level": 4,
+        "defense_per_level": 3,
+        "explore_reward_bonus_per_level": 0.015,
+        "battle_power_per_level": 2,
+    },
+    "juqi_jade": {
+        "attack_per_level": 2,
+        "defense_per_level": 2,
+        "battle_power_per_level": 1,
+    },
+    "hushen_bell": {
+        "attack_per_level": 3,
+        "defense_per_level": 3,
+        "battle_power_per_level": 2,
     },
 }
 

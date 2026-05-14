@@ -3,8 +3,50 @@ from backend.configs.realms import REALM_NAMES
 
 ALCHEMY_RECIPES = [
     {
+        "id": "alchemy_yangqi_pill",
+        "name": "养气丹",
+        "skill_type": "alchemy",
+        "required_items": [
+            {"code": "healing_herb", "quantity": 2},
+            {"code": "low_spirit_stone", "quantity": 4},
+        ],
+        "mana_cost": 18,
+        "output_item_id": "yangqi_pill",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[0],
+        "success_rate": 1.0,
+    },
+    {
+        "id": "alchemy_guyu_pill",
+        "name": "固元丹",
+        "skill_type": "alchemy",
+        "required_items": [
+            {"code": "healing_herb", "quantity": 3},
+            {"code": "low_spirit_stone", "quantity": 6},
+        ],
+        "mana_cost": 22,
+        "output_item_id": "guyu_pill",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[1],
+        "success_rate": 1.0,
+    },
+    {
+        "id": "alchemy_huichun_pill",
+        "name": "回春丹",
+        "skill_type": "alchemy",
+        "required_items": [
+            {"code": "healing_herb", "quantity": 1},
+            {"code": "low_spirit_stone", "quantity": 3},
+        ],
+        "mana_cost": 14,
+        "output_item_id": "huichun_pill",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[0],
+        "success_rate": 1.0,
+    },
+    {
         "id": "alchemy_mana_pill",
-        "name": "Huiqi Dan",
+        "name": "回灵丹",
         "skill_type": "alchemy",
         "required_items": [
             {"code": "low_material", "quantity": 2},
@@ -18,7 +60,7 @@ ALCHEMY_RECIPES = [
     },
     {
         "id": "alchemy_qi_powder",
-        "name": "Juqi San",
+        "name": "聚气散",
         "skill_type": "alchemy",
         "required_items": [
             {"code": "healing_pill", "quantity": 1},
@@ -33,7 +75,7 @@ ALCHEMY_RECIPES = [
     },
     {
         "id": "alchemy_foundation_pill",
-        "name": "Foundation Pill",
+        "name": "筑基丹",
         "skill_type": "alchemy",
         "required_items": [
             {"code": "healing_pill", "quantity": 4},

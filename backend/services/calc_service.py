@@ -176,6 +176,21 @@ def apply_item_effects(character: Character, effects: dict) -> dict:
     if effects.get("swift_talisman_charge"):
         value = int(effects["swift_talisman_charge"])
         applied["swift_talisman_charge"] = value
+    if effects.get("train_next_bonus"):
+        value = int(effects["train_next_bonus"])
+        applied["train_next_bonus"] = value
+    if effects.get("breakthrough_next_bonus"):
+        value = int(effects["breakthrough_next_bonus"])
+        applied["breakthrough_next_bonus"] = value
+    if effects.get("explore_luck_talisman_charge"):
+        value = int(effects["explore_luck_talisman_charge"])
+        applied["explore_luck_talisman_charge"] = value
+    if effects.get("avoid_harm_talisman_charge"):
+        value = int(effects["avoid_harm_talisman_charge"])
+        applied["avoid_harm_talisman_charge"] = value
+    if effects.get("spirit_gather_talisman_charge"):
+        value = int(effects["spirit_gather_talisman_charge"])
+        applied["spirit_gather_talisman_charge"] = value
     return applied
 
 

@@ -3,8 +3,50 @@ from backend.configs.realms import REALM_NAMES
 
 TALISMAN_RECIPES = [
     {
+        "id": "talisman_explore_luck",
+        "name": "探路符",
+        "skill_type": "talisman",
+        "required_items": [
+            {"code": "low_material", "quantity": 1},
+            {"code": "low_spirit_stone", "quantity": 3},
+        ],
+        "mana_cost": 14,
+        "output_item_id": "explore_luck_talisman",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[0],
+        "success_rate": 1.0,
+    },
+    {
+        "id": "talisman_avoid_harm",
+        "name": "避祸符",
+        "skill_type": "talisman",
+        "required_items": [
+            {"code": "calm_talisman", "quantity": 1},
+            {"code": "low_material", "quantity": 1},
+        ],
+        "mana_cost": 14,
+        "output_item_id": "avoid_harm_talisman",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[0],
+        "success_rate": 1.0,
+    },
+    {
+        "id": "talisman_spirit_gather",
+        "name": "聚灵符",
+        "skill_type": "talisman",
+        "required_items": [
+            {"code": "low_material", "quantity": 2},
+            {"code": "low_spirit_stone", "quantity": 5},
+        ],
+        "mana_cost": 18,
+        "output_item_id": "spirit_gather_talisman",
+        "output_count": 1,
+        "required_realm": REALM_NAMES[2],
+        "success_rate": 1.0,
+    },
+    {
         "id": "talisman_scout",
-        "name": "Scout Talisman",
+        "name": "探路符",
         "skill_type": "talisman",
         "required_items": [
             {"code": "low_material", "quantity": 1},
@@ -18,7 +60,7 @@ TALISMAN_RECIPES = [
     },
     {
         "id": "talisman_guard",
-        "name": "Guard Talisman",
+        "name": "护身符",
         "skill_type": "talisman",
         "required_items": [
             {"code": "calm_talisman", "quantity": 1},
@@ -32,7 +74,7 @@ TALISMAN_RECIPES = [
     },
     {
         "id": "talisman_swift",
-        "name": "Swift Talisman",
+        "name": "疾风符",
         "skill_type": "talisman",
         "required_items": [
             {"code": "low_material", "quantity": 2},

@@ -4,7 +4,7 @@ from backend.configs.realms import REALM_NAMES
 FORMATION_RECIPES = [
     {
         "id": "formation_gather_spirit",
-        "name": "Gather Spirit Formation",
+        "name": "聚灵阵",
         "skill_type": "formation",
         "required_items": [
             {"code": "low_spirit_stone", "quantity": 10},
@@ -17,7 +17,7 @@ FORMATION_RECIPES = [
     },
     {
         "id": "formation_guard",
-        "name": "Guard Formation",
+        "name": "护身阵",
         "skill_type": "formation",
         "required_items": [
             {"code": "low_spirit_stone", "quantity": 14},
@@ -30,7 +30,7 @@ FORMATION_RECIPES = [
     },
     {
         "id": "formation_draw_spirit",
-        "name": "Draw Spirit Formation",
+        "name": "引灵阵",
         "skill_type": "formation",
         "required_items": [
             {"code": "low_spirit_stone", "quantity": 18},

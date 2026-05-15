@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import time
 import urllib.error
@@ -7,7 +8,7 @@ from pathlib import Path
 
 from backend.configs.realms import REALM_NAMES
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "game.db"
 SIMULATION_PATH = ROOT / "simulation_result.json"

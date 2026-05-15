@@ -15,6 +15,7 @@ from backend.services.calc_service import (
 )
 from backend.services.active_effect_service import activate_item_effect, consume_effects, effect_value
 from backend.services.character_service import character_payload
+from backend.services.display_service import effect_type_name
 from backend.services.event_service import resolve_explore_event
 from backend.services.inventory_service import consume_slot_item, inventory_payload
 from backend.services.life_skill_service import run_life_skill
@@ -234,7 +235,7 @@ def _use_item(db: Session, user: User, params: dict) -> dict:
     if not applied:
         message = f"{message}，但暂未产生效果。"
     else:
-        message = f"{message}，效果：{applied}。"
+        message = f"{message}，效果：{_describe_item_effects(applied)}。"
     return _finalize(db, user, True, "use_item", message, {"slot_index": slot_index, "quantity": 1}, [{"type": "item_effect", **applied}], {"item_code": template.code, "effects": applied})
 
 
@@ -373,6 +374,32 @@ def _result(db: Session, user: User, success: bool, message: str, cost: dict, re
         if key in data:
             result[key] = data[key]
     return result
+
+
+def _describe_item_effects(applied: dict) -> str:
+    labels = {
+        "recover_mana": "恢复法力",
+        "recover_hp": "恢复气血",
+        "cultivation": "增加修为",
+        "scout_talisman_charge": "探索机缘提升",
+        "guard_talisman_charge": "探索受伤降低",
+        "swift_talisman_charge": "探索法力消耗降低",
+        "train_next_bonus": "下次修炼收益提升",
+        "breakthrough_next_bonus": "下次突破概率提升",
+        "explore_luck_talisman_charge": "探索机缘提升",
+        "avoid_harm_talisman_charge": "探索受伤降低",
+        "spirit_gather_talisman_charge": "修炼收益提升",
+    }
+    parts: list[str] = []
+    for key, value in applied.items():
+        if key == "active_effect":
+            effect = value or {}
+            name = effect.get("effect_name") or effect_type_name(effect.get("effect_type"))
+            uses = effect.get("remaining_uses", 1)
+            parts.append(f"临时效果：{name}（剩余 {uses} 次）")
+        elif key in labels:
+            parts.append(f"{labels[key]} {value}")
+    return "；".join(parts) if parts else "已生效"
 
 
 def _check_breakthrough_requirements(db: Session, character, target_realm: str) -> tuple[bool, str, dict]:

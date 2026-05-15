@@ -194,11 +194,16 @@ def main():
     for task in my_tasks_new_sect:
         assert task["id"] != task_before_leave_id, f"Old task should not appear in new sect: task_id={task['id']}"
 
-    # Test 5: Test donation task
+    # Test 5: Test donation task payload completeness
     force_character(username1, spirit_stones=200)
     donation_tasks = [t for t in sect_tasks if t.get("is_donation") or t["code"] == "donate_stones"]
     if donation_tasks:
         donation_task = donation_tasks[0]
+        # Assert is_donation flag is present in task config
+        assert donation_task.get("is_donation") is True, f"Task config should have is_donation=true: {donation_task}"
+        assert "需要捐献" in donation_task.get("requirement_display", "") or donation_task.get("is_donation"), f"Task config should show requirement_display: {donation_task}"
+        assert "消耗" in donation_task.get("cost_display", "") or donation_task.get("is_donation"), f"Task config should show cost_display: {donation_task}"
+
         accept_donation = action(token1, "accept_sect_task", {"task_code": donation_task["code"]})
         assert accept_donation["success"], f"Accept donation task failed: {accept_donation.get('message')}"
         assert_chinese(accept_donation["message"], "accept donation task message")
@@ -207,7 +212,18 @@ def main():
         active_donation = [t for t in my_tasks_donation if t["status"] == "active" and t.get("is_donation")]
         if active_donation:
             task = active_donation[0]
-            assert "需要捐献" in task.get("requirement_display", "") or task.get("is_donation"), f"Donation task should show requirement: {task}"
+            # Assert is_donation flag is present in my task payload (frontend needs this)
+            assert task.get("is_donation") is True, f"My task should have is_donation=true: {task}"
+            # Assert requirement_display is present
+            assert task.get("requirement_display"), f"Donation task should have requirement_display: {task}"
+            assert "需要捐献" in task.get("requirement_display", "") or "灵石" in task.get("requirement_display", ""), f"Donation task requirement_display should mention 捐献/灵石: {task}"
+            # Assert cost_display is present
+            assert task.get("cost_display"), f"Donation task should have cost_display: {task}"
+            assert "灵石" in task.get("cost_display", "") or "消耗" in task.get("cost_display", ""), f"Donation task cost_display should mention 灵石/消耗: {task}"
+            # Progress should start at 0 (not target), so frontend must allow clicking
+            assert task["progress"] == 0, f"Donation task progress should start at 0: {task['progress']}"
+            # is_donation means frontend should NOT require progress >= target to enable button
+            assert task.get("is_donation"), f"Frontend needs is_donation to enable submit button: {task}"
 
             # Try to complete without enough stones
             force_character(username1, spirit_stones=10)

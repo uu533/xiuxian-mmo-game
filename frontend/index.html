@@ -771,7 +771,7 @@
             <div class="panel">
               <div class="panel-title">
                 <h2>可拜入宗门</h2>
-                <span>NPC 阵营</span>
+                <span>势力阵营</span>
               </div>
               <div id="sect-list" class="list"></div>
             </div>
@@ -1163,10 +1163,12 @@ function getEffectTypeName(type) {
           // Current tasks section
           const currentTasks = mySectTasks.filter(task => task.status === "active" || task.status === "claimable");
           const currentTasksHtml = currentTasks.length ? currentTasks.map(task => {
-            const canComplete = task.status === "claimable" || (task.is_donation && task.progress >= task.target);
+            // Donation tasks are always clickable (backend checks resources on submit)
+            const canComplete = task.status === "claimable" || task.is_donation;
             const progressBar = `<div style="margin-top:4px"><div class="bar"><span style="width:${Math.min(100, (task.progress / task.target) * 100)}%"></span></div></div>`;
             const abandonBtn = `<button data-abandon-sect-task="${task.id}" class="danger">放弃</button>`;
-            const completeBtn = `<button data-complete-sect-task="${task.id}" ${canComplete ? "" : "disabled"}>${canComplete ? "领取奖励" : "进行中"}</button>`;
+            const completeBtnText = task.is_donation ? "提交捐献" : (canComplete ? "领取奖励" : "进行中");
+            const completeBtn = `<button data-complete-sect-task="${task.id}" ${canComplete ? "" : "disabled"}>${completeBtnText}</button>`;
             return `<div class="row task-card"><div><strong>当前：${task.name}</strong><span>${task.description}</span><span>${task.requirement_display || `进度：${task.progress} / ${task.target}`}</span>${task.cost_display ? `<span style="color:#e5c568">${task.cost_display}</span>` : ""}${progressBar}</div>${completeBtn}${abandonBtn}</div>`;
           }).join("") : `<div class="empty">暂无进行中的宗门任务</div>`;
           // Available tasks section

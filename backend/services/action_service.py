@@ -30,6 +30,7 @@ from backend.services.progression_service import (
 )
 from backend.services.realm_service import is_major_breakthrough, next_realm_config, normalize_realm
 from backend.services.sect_service import (
+    abandon_sect_task,
     accept_sect_task,
     complete_sect_task,
     exchange_reward,
@@ -63,6 +64,7 @@ def execute_action(db: Session, user: User, action_type: str, params: dict | Non
         "leave_sect": _leave_sect,
         "accept_sect_task": _accept_sect_task,
         "complete_sect_task": _complete_sect_task,
+        "sect_task_abandon": _abandon_sect_task,
         "promote_sect_position": _promote_sect_position,
         "exchange_sect_reward": _exchange_sect_reward,
         "alchemy": _alchemy,
@@ -295,6 +297,12 @@ def _complete_sect_task(db: Session, user: User, params: dict) -> dict:
     ok, message, data, cost, extra_logs = complete_sect_task(db, user, int(task_id) if task_id else None)
     rewards = [{"type": "sect_reward", **data.get("reward", {})}] if ok else []
     return _finalize(db, user, ok, "complete_sect_task", message, cost, rewards, data, extra_logs)
+
+
+def _abandon_sect_task(db: Session, user: User, params: dict) -> dict:
+    _ = params
+    ok, message, data = abandon_sect_task(db, user)
+    return _finalize(db, user, ok, "sect_task_abandon", message, {}, [], data)
 
 
 def _promote_sect_position(db: Session, user: User, params: dict) -> dict:

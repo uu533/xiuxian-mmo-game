@@ -126,6 +126,33 @@ def join_sect(db: Session, user: User, sect_code: str) -> tuple[bool, str, dict]
     return True, f"你拜入{sect.name}，成为{position_name(sect.faction, 'outer_disciple')}。{root_bonus}", {"sect": sect_payload(sect), "member": member_payload(member)}
 
 
+def abandon_sect_task(db: Session, user: User) -> tuple[bool, str, dict]:
+    character = user.character
+    member = active_member(db, character)
+    if not member:
+        return False, "你尚未加入宗门。", {"reason": "not_in_sect"}
+    task = (
+        db.query(SectTask)
+        .filter(SectTask.character_id == character.id, SectTask.status.in_(["active", "claimable"]))
+        .first()
+    )
+    if not task:
+        return False, "当前没有可放弃的宗门任务。", {"reason": "no_active_task"}
+    # Verify task belongs to current sect
+    if task.sect_id != member.sect_id:
+        # Clean up mismatched task
+        db.delete(task)
+        db.flush()
+        return False, "当前宗门任务已过期，已自动清除。", {"reason": "task_sect_mismatch"}
+    # Deduct contribution (min 0)
+    old_contribution = member.contribution
+    member.contribution = max(0, member.contribution - 5)
+    penalty = old_contribution - member.contribution
+    db.delete(task)
+    db.flush()
+    return True, f"已放弃宗门任务，扣除宗门贡献 {penalty} 点。", {"penalty": penalty, "member": member_payload(member)}
+
+
 def leave_sect(db: Session, user: User) -> tuple[bool, str, dict]:
     character = user.character
     member = active_member(db, character)
@@ -139,9 +166,15 @@ def leave_sect(db: Session, user: User) -> tuple[bool, str, dict]:
     character.sect_id = None
     character.sect_position = "散修"
     character.updated_at = utc_now()
+    # Clean up current sect task when leaving
+    db.query(SectTask).filter(
+        SectTask.character_id == character.id,
+        SectTask.status.in_(["active", "claimable"]),
+        SectTask.sect_id == member.sect_id,
+    ).delete()
     _add_reputation_logs(db, character, sect, -8, "leave_sect")
     db.flush()
-    return True, f"你离开了{sect.name}，扣除 {penalty} 宗门贡献。", {"sect": sect_payload(sect), "member": member_payload(member)}
+    return True, f"你离开了{sect.name}，扣除 {penalty} 宗门贡献。宗门任务已清除。", {"sect": sect_payload(sect), "member": member_payload(member)}
 
 
 def available_tasks(db: Session, character: Character) -> list[dict]:
@@ -152,7 +185,12 @@ def available_tasks(db: Session, character: Character) -> list[dict]:
 
 
 def my_tasks(db: Session, character: Character) -> list[dict]:
-    tasks = db.query(SectTask).filter(SectTask.character_id == character.id).order_by(SectTask.id.desc()).limit(20).all()
+    member = active_member(db, character)
+    # Only show tasks from current sect
+    query = db.query(SectTask).filter(SectTask.character_id == character.id)
+    if member:
+        query = query.filter(SectTask.sect_id == member.sect_id)
+    tasks = query.order_by(SectTask.id.desc()).limit(20).all()
     return [sect_task_payload(task) for task in tasks]
 
 
@@ -185,12 +223,33 @@ def complete_sect_task(db: Session, user: User, task_id: int | None = None) -> t
     if not member:
         return False, "你尚未加入宗门。", {"reason": "not_in_sect"}, {}, []
     query = db.query(SectTask).filter(SectTask.character_id == character.id, SectTask.status.in_(["active", "claimable"]))
-    task = query.filter(SectTask.id == task_id).first() if task_id else query.order_by(SectTask.id.asc()).first()
+    if task_id:
+        task = query.filter(SectTask.id == task_id).first()
+    else:
+        task = query.order_by(SectTask.id.asc()).first()
     if not task:
         return False, "没有可领取奖励的宗门任务。", {"reason": "no_claimable_sect_task"}, {}, []
+    # Verify task belongs to current sect
+    if task.sect_id != member.sect_id:
+        db.delete(task)
+        db.flush()
+        return False, "宗门任务已失效（旧宗门任务），已清除。", {"reason": "task_sect_mismatch"}, {}, []
     config = _task_config(task.task_code)
     if not config:
         return False, "宗门任务配置不存在。", {"reason": "task_config_missing"}, {}, []
+
+    # Handle donate_spirit_stones task type
+    if task.task_type == "donate_spirit_stones":
+        required_stones = int(config.get("required_spirit_stones", 0))
+        if character.spirit_stones < required_stones:
+            return False, f"缺少材料：灵石 x{required_stones}。", {"reason": "insufficient_spirit_stones", "required": required_stones, "current": character.spirit_stones}, {}, []
+        character.spirit_stones -= required_stones
+        # Mark as claimable after donation
+        if task.status == "active":
+            task.status = "claimable"
+            task.progress = task.target
+
+    # For claimable tasks, check if progress is met
     if task.status != "claimable" or task.progress < task.target:
         return False, f"宗门任务「{config['name']}」尚未达成，当前进度 {task.progress}/{task.target}。", {"reason": "task_not_ready", "task": sect_task_payload(task)}, {}, []
 
@@ -360,6 +419,30 @@ def reputation_summary(db: Session, character: Character) -> dict:
 
 
 def task_config_payload(task: dict, sect: Sect) -> dict:
+    # Build requirement display for task listing
+    requirement_display = ""
+    if task["type"] == "donate_spirit_stones":
+        stones = task.get("required_spirit_stones", 0)
+        requirement_display = f"需要捐献：灵石 x{stones}"
+    else:
+        target_count = task.get("target_count", task.get("target", 1))
+        target_action = task.get("target_action", task["type"])
+        target_item_codes = task.get("target_item_codes", [])
+        if target_item_codes:
+            item_names = [item_name(code) for code in target_item_codes]
+            requirement_display = f"需要收集：{'/'.join(item_names)} x{target_count}"
+        elif task["type"] in {"alchemy", "talisman", "crafting", "formation"}:
+            type_names = {"alchemy": "丹药", "talisman": "符箓", "crafting": "器物", "formation": "阵法"}
+            requirement_display = f"需要制作：{type_names.get(task['type'], task['type'])} x{target_count}"
+        else:
+            requirement_display = f"完成目标：{target_count}"
+
+    # Build cost display
+    cost_display = ""
+    if task["type"] == "donate_spirit_stones":
+        stones = task.get("required_spirit_stones", 0)
+        cost_display = f"消耗：灵石 {stones}"
+
     return {
         "code": task["code"],
         "name": task["name"],
@@ -379,11 +462,38 @@ def task_config_payload(task: dict, sect: Sect) -> dict:
         "reward_items": task.get("reward", {}).get("items", []),
         "reward_stones": int(task.get("reward", {}).get("spirit_stones", 0)),
         "description": task["description"],
+        "requirement_display": requirement_display,
+        "cost_display": cost_display,
+        "is_donation": task["type"] == "donate_spirit_stones",
+        "required_spirit_stones": task.get("required_spirit_stones", 0),
     }
 
 
 def sect_task_payload(task: SectTask) -> dict:
     config = _task_config(task.task_code) or {}
+    # Build requirement display
+    requirement_display = ""
+    if task.task_type == "donate_spirit_stones":
+        stones = config.get("required_spirit_stones", 0)
+        requirement_display = f"需要捐献：灵石 x{stones}"
+    else:
+        target_count = config.get("target_count", config.get("target", 1))
+        target_action = config.get("target_action", task.task_type)
+        target_item_codes = config.get("target_item_codes", [])
+        if target_item_codes:
+            item_names = [item_name(code) for code in target_item_codes]
+            requirement_display = f"需要收集：{'/'.join(item_names)} x{target_count}"
+        elif task.task_type in {"alchemy", "talisman", "crafting", "formation"}:
+            requirement_display = f"需要制作：{_task_type_name(task.task_type)} x{target_count}"
+        else:
+            requirement_display = f"完成目标：{target_count}"
+
+    # Build cost display for donation tasks
+    cost_display = ""
+    if task.task_type == "donate_spirit_stones":
+        stones = config.get("required_spirit_stones", 0)
+        cost_display = f"消耗：灵石 {stones}"
+
     return {
         "id": task.id,
         "sect_id": task.sect_id,
@@ -396,8 +506,23 @@ def sect_task_payload(task: SectTask) -> dict:
         "target": task.target,
         "current_progress": task.progress,
         "reward": task.reward_json,
+        "reward_contribution": config.get("reward", {}).get("contribution", 0),
+        "reward_stones": config.get("reward", {}).get("spirit_stones", 0),
         "description": config.get("description", ""),
+        "requirement_display": requirement_display,
+        "cost_display": cost_display,
+        "is_donation": task.task_type == "donate_spirit_stones",
     }
+
+
+def _task_type_name(task_type: str) -> str:
+    names = {
+        "alchemy": "丹药",
+        "talisman": "符箓",
+        "crafting": "器物",
+        "formation": "阵法",
+    }
+    return names.get(task_type, task_type)
 
 
 def _task_available(task: dict, faction: str, position: str) -> bool:

@@ -1160,7 +1160,18 @@ function getEffectTypeName(type) {
           const sect = currentSect.sect;
           const member = currentSect.member;
           sectSummary.innerHTML = `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${member.position_name} · 贡献 ${member.contribution} · 声望 ${member.reputation}</span><span>正道 ${reputations.righteous || 0} / 魔道 ${reputations.demonic || 0} / 鬼道 ${reputations.ghost || 0} / 佛道 ${reputations.buddhist || 0}</span></div><button data-sect-action="promote">晋升</button><button data-sect-action="leave" class="danger">退出</button></div>`;
-          sectTasks.innerHTML = `${mySectTasks.filter(task => task.status === "active" || task.status === "claimable").map(task => `<div class="row"><div><strong>已接：${task.name}</strong><span>${task.description}</span><span>进度：${task.progress} / ${task.target} · ${task.status === "claimable" ? "可领取" : "进行中"}</span></div><button data-complete-sect-task="${task.id}" ${task.status === "claimable" ? "" : "disabled"}>${task.status === "claimable" ? "领取奖励" : "未达成"}</button></div>`).join("")}${availableSectTasks.map(task => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward.contribution || 0} · 灵石 ${task.reward.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`).join("") || `<div class="empty">暂无可接任务</div>`}`;
+          // Current tasks section
+          const currentTasks = mySectTasks.filter(task => task.status === "active" || task.status === "claimable");
+          const currentTasksHtml = currentTasks.length ? currentTasks.map(task => {
+            const canComplete = task.status === "claimable" || (task.is_donation && task.progress >= task.target);
+            const progressBar = `<div style="margin-top:4px"><div class="bar"><span style="width:${Math.min(100, (task.progress / task.target) * 100)}%"></span></div></div>`;
+            const abandonBtn = `<button data-abandon-sect-task="${task.id}" class="danger">放弃</button>`;
+            const completeBtn = `<button data-complete-sect-task="${task.id}" ${canComplete ? "" : "disabled"}>${canComplete ? "领取奖励" : "进行中"}</button>`;
+            return `<div class="row task-card"><div><strong>当前：${task.name}</strong><span>${task.description}</span><span>${task.requirement_display || `进度：${task.progress} / ${task.target}`}</span>${task.cost_display ? `<span style="color:#e5c568">${task.cost_display}</span>` : ""}${progressBar}</div>${completeBtn}${abandonBtn}</div>`;
+          }).join("") : `<div class="empty">暂无进行中的宗门任务</div>`;
+          // Available tasks section
+          const availableTasksHtml = availableSectTasks.length ? availableSectTasks.map(task => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward_contribution || task.reward?.contribution || 0} · 灵石 ${task.reward_stones || task.reward?.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`).join("") : "";
+          sectTasks.innerHTML = `${currentTasksHtml}${availableTasksHtml ? `<div style="margin-top:10px"><strong style="color:#c8d2c1;font-size:13px">可接任务：</strong>${availableTasksHtml}</div>` : ""}`;
           sectShop.innerHTML = currentSectShop.length ? currentSectShop.map(item => `<div class="row"><div><strong>${item.name || item.item_name || getItemName(item.item_code)}</strong><span>${item.exchange_summary || `消耗 ${item.cost} 贡献：获得 ${item.item_name || getItemName(item.item_code)} x${item.quantity}`}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("") : `<div class="empty">暂无可兑换奖励</div>`;
         }
         sectList.innerHTML = sectCatalog.map(sect => `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${sect.description}</span><span>要求：${sect.required_realm} · 灵石 ${sect.required_spirit_stones || 0} · 偏好灵根 ${sect.preferred_root.join("、") || "不限"}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""}>拜入</button></div>`).join("");
@@ -1277,8 +1288,10 @@ function getEffectTypeName(type) {
       sectTasks.addEventListener("click", event => {
         const accept = event.target.closest("button[data-accept-sect-task]");
         const complete = event.target.closest("button[data-complete-sect-task]");
+        const abandon = event.target.closest("button[data-abandon-sect-task]");
         if (accept) doAction("accept_sect_task", { task_code: accept.dataset.acceptSectTask }).catch(e => showToast(e.message));
         if (complete) doAction("complete_sect_task", { task_id: Number(complete.dataset.completeSectTask) }).catch(e => showToast(e.message));
+        if (abandon) doAction("sect_task_abandon").catch(e => showToast(e.message));
       });
       sectShop.addEventListener("click", event => {
         const exchange = event.target.closest("button[data-exchange-sect-reward]");

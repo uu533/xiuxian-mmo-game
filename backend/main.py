@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,9 +7,16 @@ from backend.routes import action, auth, character, dev, goals, inventory, log, 
 
 app = FastAPI(title="多人在线修仙文字游戏 MVP", version="1.0.0")
 
+# CORS: allow configurable origins, default * for local dev
+_cors_env = os.getenv("CORS_ORIGINS", "")
+if _cors_env:
+    _allow_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+else:
+    _allow_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allow_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,6 +40,8 @@ app.include_router(inventory.router)
 app.include_router(log.router)
 app.include_router(progression.router)
 app.include_router(sect.router)
-app.include_router(dev.router)
+# Dev routes gated by ENABLE_DEV_ROUTES env var (default: disabled for public deployment)
+if os.getenv("ENABLE_DEV_ROUTES", "").lower() in ("1", "true", "yes"):
+    app.include_router(dev.router)
 app.include_router(goals.router)
 app.include_router(life_skills.router)

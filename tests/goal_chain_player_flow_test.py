@@ -12,6 +12,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
+# Dev routes are gated by ENABLE_DEV_ROUTES (default off for security).
+# Set to enable /dev/* endpoints in smoke test.
+os.environ.setdefault("ENABLE_DEV_ROUTES", "1")
 DB_PATH = Path(os.environ.get("DB_PATH", ROOT / "game.db"))
 RAW_CODE_RE = re.compile(r"\b[a-z]+(?:_[a-z0-9]+)+\b")
 

@@ -11,6 +11,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+# Dev routes are gated by ENABLE_DEV_ROUTES (default off for security).
+# Set to enable /dev/* endpoints in smoke test.
+os.environ.setdefault("ENABLE_DEV_ROUTES", "1")
+
 from backend.configs.realms import REALM_NAMES  # noqa: E402
 
 

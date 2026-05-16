@@ -933,11 +933,17 @@
     </main>
 
     <script>
-      const API_HOST = window.location.hostname || "127.0.0.1";
       const apiParams = new URLSearchParams(window.location.search);
-      const configuredApiPort = apiParams.get("apiPort") || localStorage.getItem("xiuxian_api_port") || "8000";
-      if (apiParams.get("apiPort")) localStorage.setItem("xiuxian_api_port", apiParams.get("apiPort"));
-      const API_BASE = `${window.location.protocol}//${API_HOST}:${configuredApiPort}`;
+      // Priority: 1) URL param apiBase, 2) localStorage xiuxian_api_base, 3) default /api (same-origin for Nginx proxy)
+      const configuredApiBase = apiParams.get("apiBase")
+        || localStorage.getItem("xiuxian_api_base")
+        || "/api";
+      if (apiParams.get("apiBase")) localStorage.setItem("xiuxian_api_base", apiParams.get("apiBase"));
+      // Legacy backward compat: if xiuxian_api_port is set, build full URL; otherwise use same-origin /api
+      const legacyPort = localStorage.getItem("xiuxian_api_port");
+      const API_BASE = legacyPort
+        ? `${window.location.protocol}//${window.location.hostname}:${legacyPort}`
+        : configuredApiBase;
       const tokenKey = "xiuxian_mmo_token";
 
       const authSection = document.getElementById("auth-section");

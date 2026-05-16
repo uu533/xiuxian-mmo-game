@@ -1,0 +1,45 @@
+# Xiuxian MMO Game - Nginx Config Example
+# Serve static frontend files and proxy /api/ to backend uvicorn on 127.0.0.1:8000
+#
+# 1. Copy this file to /etc/nginx/sites-available/xiuxian-game
+# 2. Symlink: ln -s /etc/nginx/sites-available/xiuxian-game /etc/nginx/sites-enabled/
+# 3. Replace /opt/xiuxian-game/app/frontend with your actual absolute path to frontend directory
+# 4. Replace your-domain.com with your actual domain
+# 5. Run: sudo nginx -t && sudo systemctl reload nginx
+
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    # Serve static frontend (single-page app, no /api/)
+    root /opt/xiuxian-game/app/frontend;
+    index index.html;
+
+    # Serve index.html for all routes (SPA support not strictly needed for current static HTML,
+    # but good to have if you add client-side routing later)
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API requests to backend uvicorn (strip /api prefix)
+    location /api/ {
+        # Backend expects paths like /register, /login, /action/execute, etc.
+        # Nginx receives /api/register → proxies to http://127.0.0.1:8000/register
+        proxy_pass http://127.0.0.1:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # uvicorn handles CORS headers
+    }
+
+    # Do NOT expose port 8000 directly to the public internet
+    # Only port 80/443 should be accessible from outside
+
+    # Optional: enable SSL later with certbot
+    # listen 443 ssl http2;
+    # server_name your-domain.com;
+    # ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+}

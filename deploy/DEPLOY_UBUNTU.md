@@ -171,10 +171,17 @@ sudo journalctl -u xiuxian-game -n 100 --no-pager
 ### 5.2 日志清理
 
 ```bash
-# 清理超过 7 天的日志（保留最近 1000 条）
-sudo journalctl -u xiuxian-game --no-pager -n 1000 | sudo tee /tmp/xiuxian-game-latest.log
-sudo truncate -s 0 /var/log/syslog  # 注意：这会影响系统日志
+# 清理超过 14 天的 xiuxian-game 单元日志
+sudo journalctl --vacuum-time=14d -u xiuxian-game
+
+# 或者限制日志总大小不超过 500MB
+sudo journalctl --vacuum-size=500M -u xiuxian-game
 ```
+
+**注意事项：**
+- 不建议手动清空 `/var/log/syslog`，这会影响系统日志和其他服务
+- 如需长期日志管理，应配置 `journald` 或使用 `logrotate`
+- `journalctl --vacuum-*` 只清理对应服务的日志，不影响系统日志
 
 ---
 

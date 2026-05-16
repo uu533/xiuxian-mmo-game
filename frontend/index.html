@@ -583,6 +583,108 @@
         color: #e5c568;
       }
 
+      /* Goals Panel */
+      #goals-panel {
+        margin: 10px 12px;
+        border: 1px solid rgba(229, 197, 104, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(11, 24, 21, 0.94);
+      }
+      #goals-panel.hidden {
+        display: none;
+      }
+      .goals-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .goals-title {
+        display: grid;
+        gap: 2px;
+      }
+      .goals-title h2 {
+        margin: 0;
+        font-size: 16px;
+        color: #e5c568;
+      }
+      .goals-hint {
+        font-size: 11px;
+        color: #8faa8f;
+      }
+      #toggle-goals-btn {
+        min-height: 30px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+      .goals-section {
+        margin-bottom: 10px;
+      }
+      .goals-section:last-child {
+        margin-bottom: 0;
+      }
+      .goals-section-title {
+        font-size: 12px;
+        color: #c8d2c1;
+        margin-bottom: 6px;
+        font-weight: 700;
+      }
+      .goal-card {
+        border: 1px solid rgba(204, 223, 202, 0.12);
+        border-radius: 6px;
+        padding: 10px;
+        background: rgba(16, 35, 31, 0.5);
+        margin-bottom: 8px;
+      }
+      .goal-card:last-child {
+        margin-bottom: 0;
+      }
+      .goal-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #dbe5d5;
+        margin-bottom: 4px;
+      }
+      .goal-reason {
+        font-size: 12px;
+        color: #8faa8f;
+        margin-bottom: 4px;
+        line-height: 1.4;
+      }
+      .goal-progress {
+        font-size: 12px;
+        color: #e5c568;
+        margin-bottom: 4px;
+      }
+      .goal-requirements {
+        font-size: 11px;
+        color: #c8d2c1;
+        margin-bottom: 4px;
+      }
+      .goal-action {
+        font-size: 11px;
+        color: #64c7a6;
+        margin-bottom: 4px;
+      }
+      .goal-benefits {
+        font-size: 11px;
+        color: #d7f6e7;
+      }
+      #goals-hidden-entry {
+        margin: 10px 12px;
+        text-align: center;
+      }
+      #goals-hidden-entry.hidden {
+        display: none;
+      }
+      #show-goals-btn {
+        min-height: 30px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
       @media (min-width: 720px) {
         .shell {
           border-left: 1px solid rgba(204, 223, 202, 0.1);
@@ -631,6 +733,23 @@
           <div class="stat"><span>法力</span><strong id="res-mana">0 / 0</strong></div>
           <div class="stat"><span>气血</span><strong id="res-hp">0</strong></div>
         </section>
+
+        <div id="goals-panel" class="hidden">
+          <div class="goals-header">
+            <div class="goals-title">
+              <h2>修行建议</h2>
+              <span class="goals-hint">仅作参考，可随时按自己的节奏修行</span>
+            </div>
+            <button id="toggle-goals-btn" class="secondary">隐藏</button>
+          </div>
+          <div id="goals-content">
+            <div id="goals-short-term" class="goals-section"></div>
+            <div id="goals-long-term" class="goals-section"></div>
+          </div>
+        </div>
+        <div id="goals-hidden-entry" class="hidden">
+          <button id="show-goals-btn" class="secondary">修行建议已隐藏｜显示</button>
+        </div>
 
         <div id="message" class="toast hidden"></div>
 
@@ -935,6 +1054,76 @@ function getEffectTypeName(type) {
         tabs.classList.toggle("hidden", !loggedIn);
       }
 
+      // ========== Goals Panel ==========
+      const goalsPanel = document.getElementById("goals-panel");
+      const goalsHiddenEntry = document.getElementById("goals-hidden-entry");
+      const toggleGoalsBtn = document.getElementById("toggle-goals-btn");
+      const showGoalsBtn = document.getElementById("show-goals-btn");
+      const goalsShortTerm = document.getElementById("goals-short-term");
+      const goalsLongTerm = document.getElementById("goals-long-term");
+      const goalsStorageKey = "xiuxian_goals_hidden";
+
+      function isGoalsHidden() {
+        return localStorage.getItem(goalsStorageKey) === "true";
+      }
+
+      function setGoalsHidden(hidden) {
+        localStorage.setItem(goalsStorageKey, hidden ? "true" : "false");
+      }
+
+      function renderGoals(goals) {
+        const shortGoals = goals.filter(g => g.category === "short_term");
+        const longGoals = goals.filter(g => g.category === "long_term");
+
+        goalsShortTerm.innerHTML = shortGoals.length
+          ? `<div class="goals-section-title">短期建议</div>` + shortGoals.map(g => goalCardHtml(g)).join("")
+          : "";
+        goalsLongTerm.innerHTML = longGoals.length
+          ? `<div class="goals-section-title">长期建议</div>` + longGoals.map(g => goalCardHtml(g)).join("")
+          : "";
+      }
+
+      function goalCardHtml(goal) {
+        return `<div class="goal-card">
+          <div class="goal-title">${goal.title}</div>
+          <div class="goal-reason">${goal.reason}</div>
+          ${goal.progress_text ? `<div class="goal-progress">${goal.progress_text}</div>` : ""}
+          ${goal.requirements && goal.requirements.length ? `<div class="goal-requirements">${goal.requirements.join("；")}</div>` : ""}
+          <div class="goal-action">${goal.recommended_action}</div>
+          <div class="goal-benefits">${goal.benefits}</div>
+        </div>`;
+      }
+
+      async function loadGoals() {
+        if (isGoalsHidden()) {
+          goalsPanel.classList.add("hidden");
+          goalsHiddenEntry.classList.remove("hidden");
+          return;
+        }
+        goalsPanel.classList.remove("hidden");
+        goalsHiddenEntry.classList.add("hidden");
+        try {
+          const data = await request("/goals/current");
+          renderGoals(data.goals || []);
+        } catch (e) {
+          goalsShortTerm.innerHTML = "";
+          goalsLongTerm.innerHTML = "";
+        }
+      }
+
+      toggleGoalsBtn.addEventListener("click", () => {
+        setGoalsHidden(true);
+        goalsPanel.classList.add("hidden");
+        goalsHiddenEntry.classList.remove("hidden");
+      });
+
+      showGoalsBtn.addEventListener("click", () => {
+        setGoalsHidden(false);
+        goalsPanel.classList.remove("hidden");
+        goalsHiddenEntry.classList.add("hidden");
+        loadGoals();
+      });
+
       function setTab(tab) {
         document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
         document.getElementById(`tab-${tab}`).classList.remove("hidden");
@@ -1124,6 +1313,7 @@ function getEffectTypeName(type) {
         await loadSect();
         await loadLogs();
         await loadRecipes();
+        await loadGoals();
         showGame(true);
         if (currentSkillTab) renderRecipes(currentSkillTab);
       }

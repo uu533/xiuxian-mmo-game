@@ -1,0 +1,20 @@
+[Unit]
+Description=Xiuxian MMO Game Backend API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/xiuxian-game/app
+Environment="ENABLE_DEV_ROUTES=false"
+Environment="CORS_ORIGINS=http://your-domain.com"
+ExecStart=/opt/xiuxian-game/venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=xiuxian-game
+
+[Install]
+WantedBy=multi-user.target

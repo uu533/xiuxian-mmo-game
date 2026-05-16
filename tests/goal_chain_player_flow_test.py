@@ -74,13 +74,6 @@ def force_character(username, **fields):
         conn.commit()
 
 
-def add_stones(username, amount):
-    _user_id, character_id = get_ids(username)
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("UPDATE characters SET spirit_stones = spirit_stones + ? WHERE id = ?", (amount, character_id))
-        conn.commit()
-
-
 def get_stones(username):
     _user_id, character_id = get_ids(username)
     with sqlite3.connect(DB_PATH) as conn:
@@ -102,10 +95,32 @@ def get_active_task_count(username):
         return row[0] if row else 0
 
 
+def add_item_to_bag(username, code, quantity=1):
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        template = conn.execute("SELECT id, stackable FROM item_templates WHERE code = ?", (code,)).fetchone()
+        if not template:
+            return None
+        template_id, stackable = template
+        slot = conn.execute(
+            "SELECT id FROM inventory_slots WHERE character_id = ? AND container_type = 'main_bag' AND container_id = 0 AND item_template_id IS NULL ORDER BY slot_index LIMIT 1",
+            (character_id,),
+        ).fetchone()
+        if not slot:
+            return None
+        slot_id = slot[0]
+        conn.execute(
+            "UPDATE inventory_slots SET item_template_id = ?, quantity = ? WHERE id = ?",
+            (template_id, quantity, slot_id),
+        )
+        conn.commit()
+    return slot_id
+
+
 def main():
     request("/dev/health")
 
-    # Test 1: Basic goals API response
+    # Test 1: New account must have long-term goal
     username1, token1 = register_user()
     force_character(username1, realm="炼气三层", realm_stage="炼气", mana=500, max_mana=500, cultivation_cap=330, spirit_stones=100)
 
@@ -113,6 +128,14 @@ def main():
     assert "goals" in goals_response, "Response should have 'goals' key"
     assert isinstance(goals_response["goals"], list), "goals should be a list"
     assert len(goals_response["goals"]) <= 3, f"Goals should be at most 3, got {len(goals_response['goals'])}"
+
+    # New account must have BOTH short_term and long_term
+    short_count = sum(1 for g in goals_response["goals"] if g["category"] == "short_term")
+    long_count = sum(1 for g in goals_response["goals"] if g["category"] == "long_term")
+    assert short_count >= 1, f"New account should have at least 1 short_term goal, got {short_count}"
+    assert long_count >= 1, f"New account should have at least 1 long_term goal, got {long_count}"
+    assert short_count <= 2, f"short_term goals should be at most 2, got {short_count}"
+    assert long_count <= 1, f"long_term goals should be at most 1, got {long_count}"
 
     # Test 2: Each goal has required fields
     for goal in goals_response["goals"]:
@@ -127,13 +150,7 @@ def main():
         assert "priority" in goal, "Goal should have 'priority'"
         assert goal["category"] in ["short_term", "long_term"], f"Invalid category: {goal['category']}"
 
-    # Test 3: Count limits
-    short_count = sum(1 for g in goals_response["goals"] if g["category"] == "short_term")
-    long_count = sum(1 for g in goals_response["goals"] if g["category"] == "long_term")
-    assert short_count <= 2, f"short_term goals should be at most 2, got {short_count}"
-    assert long_count <= 1, f"long_term goals should be at most 1, got {long_count}"
-
-    # Test 4: All player-visible text is Chinese
+    # Test 3: All player-visible text is Chinese
     for goal in goals_response["goals"]:
         assert_chinese(goal["title"], "goal title")
         assert_chinese(goal["reason"], "goal reason")
@@ -144,7 +161,7 @@ def main():
         assert_chinese(goal["recommended_action"], "goal recommended_action")
         assert_chinese(goal["benefits"], "goal benefits")
 
-    # Test 5: No raw codes in any field
+    # Test 4: No raw codes in any field
     for goal in goals_response["goals"]:
         assert_no_raw_code(goal["title"], "goal title")
         assert_no_raw_code(goal["reason"], "goal reason")
@@ -153,12 +170,11 @@ def main():
         assert_no_raw_code(goal["recommended_action"], "goal recommended_action")
         assert_no_raw_code(goal["benefits"], "goal benefits")
 
-    # Test 6: Goals API is read-only - player state unchanged
+    # Test 5: Goals API is read-only - player state unchanged
     stones_before = get_stones(username1)
     contribution_before = get_contribution(username1)
     task_count_before = get_active_task_count(username1)
 
-    # Call goals API multiple times
     goals_response2 = request("/goals/current", token=token1)
     goals_response3 = request("/goals/current", token=token1)
 
@@ -170,7 +186,7 @@ def main():
     assert contribution_after == contribution_before, f"Contribution changed: {contribution_before} -> {contribution_after}"
     assert task_count_after == task_count_before, f"Task count changed: {task_count_before} -> {task_count_after}"
 
-    # Test 7: Sect task goal when in sect with task
+    # Test 6: Sect task goal when in sect with active task
     username2, token2 = register_user()
     force_character(username2, realm="炼气三层", realm_stage="炼气", mana=500, max_mana=500, spirit_stones=200)
 
@@ -181,76 +197,47 @@ def main():
     assert accept_result["success"], f"Accept task failed: {accept_result.get('message')}"
 
     goals_with_task = request("/goals/current", token=token2)
+    # MUST have sect task goal when player has active sect task
     has_sect_task_goal = any(g["id"] == "sect_task_current" for g in goals_with_task["goals"])
-    # Should have sect task goal when player has active sect task
-    if has_sect_task_goal:
-        sect_task_goal = next(g for g in goals_with_task["goals"] if g["id"] == "sect_task_current")
-        assert "宗门任务" in sect_task_goal["title"], f"Sect task goal title should mention 宗门任务: {sect_task_goal['title']}"
-        assert_chinese(sect_task_goal["title"], "sect task goal title")
+    assert has_sect_task_goal, f"Player with active sect task should have sect_task_current goal, got {[g['id'] for g in goals_with_task['goals']]}"
 
-    # Test 8: Breakthrough goal when close to threshold
+    sect_task_goal = next(g for g in goals_with_task["goals"] if g["id"] == "sect_task_current")
+    assert "宗门任务" in sect_task_goal["title"], f"Sect task goal title should mention 宗门任务: {sect_task_goal['title']}"
+    assert_chinese(sect_task_goal["title"], "sect task goal title")
+
+    # Test 7: Breakthrough goal when close to threshold
     username3, token3 = register_user()
-    # Set cultivation to 70%+ of cap to trigger breakthrough goal
+    # Set cultivation to 75%+ of cap to trigger breakthrough goal
     force_character(username3, realm="炼气三层", realm_stage="炼气", mana=500, max_mana=500, cultivation_cap=330, cultivation=250, spirit_stones=200)
 
     goals_breakthrough = request("/goals/current", token=token3)
-    # Should have at least one goal (mana action or material explore)
     assert len(goals_breakthrough["goals"]) >= 1, "Should have at least one goal"
+    # MUST have breakthrough-related goal (either specific or fallback)
+    has_breakthrough_goal = any("突破" in g["title"] for g in goals_breakthrough["goals"])
+    assert has_breakthrough_goal, f"Player with high cultivation should have breakthrough-related goal, got {[g['title'] for g in goals_breakthrough['goals']]}"
 
-    # Test 9: Sect promotion goal when contribution is high
+    # Test 8: Material explore goal when missing materials
     username4, token4 = register_user()
-    force_character(username4, realm="炼气三层", realm_stage="炼气", mana=500, max_mana=500, spirit_stones=200)
+    force_character(username4, realm="炼气三层", realm_stage="炼气", mana=500, max_mana=500, spirit_stones=10)
 
-    join_result4 = action(token4, "join_sect", {"sect_code": "qingxuan_sword_sect"})
-    assert join_result4["success"], f"Join sect failed: {join_result4.get('message')}"
+    goals_materials = request("/goals/current", token=token4)
+    # MUST have material explore goal when low on stones
+    has_material_goal = any("探索" in g["title"] or "材料" in g["title"] for g in goals_materials["goals"])
+    assert has_material_goal, f"Player with low spirit stones should have material explore goal, got {[g['title'] for g in goals_materials['goals']]}"
 
-    # Force high contribution
-    _user_id4, character_id4 = get_ids(username4)
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("UPDATE sect_members SET contribution = 70 WHERE character_id = ? AND status = 'active'", (character_id4,))
-        conn.commit()
-
-    goals_with_promotion = request("/goals/current", token=token4)
-    has_promotion_goal = any("晋升" in g["title"] for g in goals_with_promotion["goals"])
-    # May or may not have promotion goal depending on promotion rules
-
-    # Test 10: Life skill goal when materials are available
+    # Test 9: Life skill goal when materials are available
     username5, token5 = register_user()
     force_character(username5, realm="炼气三层", realm_stage="炼气", mana=500, max_mana=500, spirit_stones=200)
-
-    # Give materials for crafting
-    _user_id5, character_id5 = get_ids(username5)
-
-    def add_item_to_bag(username, code, quantity=1):
-        _user_id, character_id = get_ids(username)
-        with sqlite3.connect(DB_PATH) as conn:
-            template = conn.execute("SELECT id, stackable FROM item_templates WHERE code = ?", (code,)).fetchone()
-            if not template:
-                return None
-            template_id, stackable = template
-            slot = conn.execute(
-                "SELECT id FROM inventory_slots WHERE character_id = ? AND container_type = 'main_bag' AND container_id = 0 AND item_template_id IS NULL ORDER BY slot_index LIMIT 1",
-                (character_id,),
-            ).fetchone()
-            if not slot:
-                return None
-            slot_id = slot[0]
-            conn.execute(
-                "UPDATE inventory_slots SET item_template_id = ?, quantity = ? WHERE id = ?",
-                (template_id, quantity, slot_id),
-            )
-            conn.commit()
-        return slot_id
 
     add_item_to_bag(username5, "healing_herb", 3)
     add_item_to_bag(username5, "low_spirit_stone", 10)
 
     goals_with_life = request("/goals/current", token=token5)
-    # Should have life skill goal when materials are available
+    # MUST have life skill goal when materials are available
     has_life_skill_goal = any("炼制" in g["title"] for g in goals_with_life["goals"])
-    # May or may not have based on mana
+    assert has_life_skill_goal, f"Player with crafting materials should have life skill goal, got {[g['title'] for g in goals_with_life['goals']]}"
 
-    # Test 11: No hidden properties leak
+    # Test 10: No hidden properties leak
     for goal in goals_with_life["goals"]:
         goal_text = " ".join([
             goal.get("title", ""),
@@ -258,15 +245,13 @@ def main():
             goal.get("recommended_action", ""),
             goal.get("benefits", ""),
         ])
-        # No luck, qi_luck, inner_demon references
         assert "luck" not in goal_text.lower() or "机缘" in goal_text, f"Hidden property leak in goal: {goal['title']}"
         assert "inner_demon" not in goal_text.lower(), f"Hidden property leak in goal: {goal['title']}"
         assert "心魔" not in goal_text, f"Hidden property leak in goal: {goal['title']}"
 
-    # Test 12: Repeated calls return consistent results
+    # Test 11: Repeated calls return consistent results
     goals_first = request("/goals/current", token=token1)
     goals_second = request("/goals/current", token=token1)
-    # Same structure, may differ slightly in content but same number of goals
     assert len(goals_first["goals"]) == len(goals_second["goals"]), "Goal count should be consistent"
 
     print("Goal chain player flow test passed.")

@@ -70,6 +70,10 @@ def get_current_goals(db: Session, character: Character) -> List[dict]:
     short_term_goals = short_term_goals[:MAX_SHORT_TERM]
     long_term_goals = long_term_goals[:MAX_LONG_TERM]
 
+    # Fallback: ensure at least one long-term goal for new accounts
+    if not long_term_goals:
+        long_term_goals.append(_build_breakthrough_fallback_goal(character))
+
     # Combine and limit total
     result = (short_term_goals + long_term_goals)[:MAX_TOTAL_GOALS]
 
@@ -429,3 +433,23 @@ def _get_next_position(faction: str, current: str) -> str | None:
     except ValueError:
         pass
     return None
+
+
+def _build_breakthrough_fallback_goal(character: Character) -> dict:
+    """Fallback long-term goal for accounts without specific long-term targets"""
+    from backend.configs.realms import REALM_BY_NAME
+
+    realm_config = REALM_BY_NAME.get(character.realm)
+    realm_name = realm_config.name if realm_config else character.realm
+
+    return {
+        "id": "breakthrough_fallback",
+        "category": "long_term",
+        "title": "准备下一次境界突破",
+        "reason": "境界突破是长期修行的重要方向，提前积累修为和突破资源会让后续成长更顺畅。",
+        "progress_text": f"当前阶段：{realm_name}",
+        "requirements": ["通过修炼提升修为", "通过探索积累资源"],
+        "recommended_action": "可以通过修炼提升修为，并通过探索积累后续突破所需资源。",
+        "benefits": "为下一次境界突破打基础，解锁更高成长空间。",
+        "priority": PRIORITY_BREAKTHROUGH - 50,
+    }

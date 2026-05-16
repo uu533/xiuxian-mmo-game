@@ -27,8 +27,8 @@ def get_goals(
 
     try:
         goals = get_current_goals(db, current_user.character)
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        raise HTTPException(status_code=500, detail=f"目标生成失败：{str(e)}\n{tb}") from e
+    except Exception:
+        import logging
+        logging.exception("目标链生成失败")
+        raise HTTPException(status_code=500, detail="获取修行建议失败，请稍后再试。") from None
     return {"goals": goals}

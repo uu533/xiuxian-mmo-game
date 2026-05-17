@@ -1012,8 +1012,8 @@
           <h2>登录 / 注册</h2>
           <span>一人一档</span>
         </div>
-        <label for="username">用户名</label>
-        <input id="username" autocomplete="username" placeholder="至少 3 个字符" />
+        <label for="username">修士名（用户名）</label>
+        <input id="username" autocomplete="username" placeholder="至少 3 个字符，此名将作为你的修士名" />
         <label for="password">密码</label>
         <input id="password" type="password" autocomplete="current-password" placeholder="至少 6 个字符" />
         <div class="auth-actions">
@@ -1588,7 +1588,7 @@ function getEffectTypeName(type) {
         const hpRatio = c.max_hp > 0 ? c.hp / c.max_hp : 1;
         if (hpRatio < 0.5 && c.hp > 0) {
           hpWarning.classList.remove("hidden");
-          hpWarning.textContent = "⚠ 气血过低（" + c.hp + "/" + c.max_hp + "），请前往【角色】页服用丹药恢复";
+          hpWarning.textContent = "⚠ 气血过低（" + c.hp + "/" + c.max_hp + "），气血为0会导致陨落。当前可通过服用丹药补充气血";
         } else {
           hpWarning.classList.add("hidden");
         }
@@ -1712,12 +1712,23 @@ function getEffectTypeName(type) {
         } else {
           const sect = currentSect.sect;
           const member = currentSect.member;
-          const promoteNeeds = member.promotion_requirements ? `晋升需贡献≥${member.promotion_requirements.required_contribution || '?'} · 声望≥${member.promotion_requirements.required_reputation || '?'}` : "";
+          const req = member.promotion_requirements;
+          let promoteHint = "";
+          if (req) {
+            const contDiff = req.required_contribution - req.current_contribution;
+            if (contDiff > 0) {
+              promoteHint = `晋升还需贡献 +${contDiff}`;
+            } else {
+              promoteHint = "已达晋升条件，可申请晋升";
+            }
+          } else {
+            promoteHint = "已达最高职位";
+          }
           sectSummary.innerHTML = `<div class="row" style="min-height:48px;padding:10px">
             <div style="display:grid;gap:4px">
               <strong>${sect.name} · ${member.position_name}</strong>
               <span>贡献 ${member.contribution} · 声望 ${member.reputation}</span>
-              ${promoteNeeds ? `<span style="color:#e5c568;font-size:12px">${promoteNeeds}</span>` : ""}
+              <span style="color:#e5c568;font-size:12px">${promoteHint}</span>
             </div>
             <button data-sect-action="promote" class="secondary" style="min-height:32px;font-size:12px;padding:0 10px">晋升</button>
             <button data-sect-action="leave" class="small-danger">退出</button>
@@ -1949,12 +1960,6 @@ function getEffectTypeName(type) {
       sectShop.addEventListener("click", event => {
         const exchange = event.target.closest("button[data-exchange-sect-reward]");
         if (exchange) doAction("exchange_sect_reward", { reward_code: exchange.dataset.exchangeSectReward }).catch(e => showToast(e.message));
-      });
-      sectSummary.addEventListener("click", event => {
-        const action = event.target.closest("button[data-sect-action]");
-        if (!action) return;
-        if (action.dataset.sectAction === "promote") doAction("promote_sect_position").catch(e => showToast(e.message));
-        if (action.dataset.sectAction === "leave") doAction("leave_sect").catch(e => showToast(e.message));
       });
 
       document.querySelectorAll(".tabs button").forEach(button => {

@@ -79,6 +79,20 @@ def active_member(db: Session, character: Character) -> SectMember | None:
 
 
 def member_payload(member: SectMember) -> dict:
+    current_index = POSITION_ORDER.index(member.position) if member.position in POSITION_ORDER else 0
+    promotion_req = None
+    if current_index < len(POSITION_ORDER) - 1:
+        next_position = POSITION_ORDER[current_index + 1]
+        rule = PROMOTION_RULES.get(next_position)
+        if rule:
+            promotion_req = {
+                "next_position": next_position,
+                "next_position_name": position_name(member.sect.faction, next_position),
+                "required_contribution": rule["contribution"],
+                "required_realm": rule["realm"],
+                "current_contribution": member.contribution,
+                "current_realm": member.character.realm,
+            }
     return {
         "id": member.id,
         "sect_id": member.sect_id,
@@ -88,6 +102,7 @@ def member_payload(member: SectMember) -> dict:
         "reputation": member.reputation,
         "status": member.status,
         "joined_at": member.joined_at.isoformat() if member.joined_at else None,
+        "promotion_requirements": promotion_req,
     }
 
 

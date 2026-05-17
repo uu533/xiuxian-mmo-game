@@ -65,6 +65,13 @@
         color: #f6eed9;
         background: #10231f;
         outline: none;
+        position: relative;
+        z-index: 2;
+      }
+
+      input:focus {
+        border-color: #e5c568;
+        box-shadow: 0 0 0 2px rgba(229, 197, 104, 0.2);
       }
 
       label {
@@ -179,6 +186,16 @@
         min-width: 0;
         overflow-wrap: anywhere;
         font-size: 18px;
+      }
+
+      .hp-warning {
+        font-size: 12px;
+        color: #d95f45;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: rgba(73, 28, 25, 0.6);
+        text-align: center;
       }
 
       .toast {
@@ -668,6 +685,21 @@
         color: #64c7a6;
         margin-bottom: 4px;
       }
+      .goal-detail-toggle {
+        font-size: 11px;
+        color: #e5c568;
+        cursor: pointer;
+        margin-top: 4px;
+        user-select: none;
+      }
+      .goal-detail {
+        margin-top: 6px;
+        border-top: 1px solid rgba(204, 223, 202, 0.1);
+        padding-top: 6px;
+      }
+      .goal-detail.hidden {
+        display: none;
+      }
       .goal-benefits {
         font-size: 11px;
         color: #d7f6e7;
@@ -689,7 +721,258 @@
         .shell {
           border-left: 1px solid rgba(204, 223, 202, 0.1);
           border-right: 1px solid rgba(204, 223, 202, 0.1);
+          max-width: 720px;
         }
+      }
+
+      @media (min-width: 960px) {
+        .shell {
+          max-width: 960px;
+          padding-left: 24px;
+          padding-right: 24px;
+        }
+        .resource-strip {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .action-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .action-grid button {
+          min-height: 48px;
+          font-size: 15px;
+        }
+        .stats-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .panel {
+          padding: 16px;
+        }
+        .panel-title h2 {
+          font-size: 20px;
+        }
+        .hero {
+          min-height: 240px;
+          padding: 28px 0 16px;
+        }
+        .identity h1 {
+          font-size: 44px;
+        }
+.tabs {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        background: #08110f;
+        border-top: 1px solid rgba(204, 223, 202, 0.12);
+        display: flex;
+        justify-content: center;
+        padding: 0 4px 8px;
+      }
+
+      .tabs button {
+        flex: 1;
+        min-width: 0;
+        min-height: 44px;
+        font-size: 11px;
+        padding: 0 4px;
+        border-radius: 6px;
+      }
+
+      .tabs button.active {
+        background: #e5c568;
+        color: #17130c;
+      }
+
+      /* Global floating toast */
+      .global-toast {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+        width: min(480px, calc(100vw - 32px));
+      }
+
+      .toast-item {
+        padding: 10px 14px;
+        border-radius: 8px;
+        border-left: 3px solid #d95f45;
+        background: rgba(30, 15, 13, 0.95);
+        color: #ffe7dd;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.4;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        animation: toastIn 0.3s ease;
+        pointer-events: auto;
+      }
+
+      .toast-item.success {
+        border-left-color: #64c7a6;
+        background: rgba(20, 45, 38, 0.95);
+        color: #d7f6e7;
+      }
+
+      .toast-item.warning {
+        border-left-color: #e5c568;
+        background: rgba(40, 30, 15, 0.95);
+        color: #f6eed9;
+      }
+
+      .toast-item .toast-title {
+        font-size: 14px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+
+      .toast-item .toast-body {
+        font-size: 12px;
+        opacity: 0.9;
+      }
+
+      .toast-item .toast-actions {
+        margin-top: 6px;
+      }
+
+      .toast-item .toast-actions button {
+        min-height: 28px;
+        padding: 0 10px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+
+      .toast-fade-out {
+        animation: toastOut 0.3s ease forwards;
+      }
+
+      @keyframes toastIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes toastOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 560px;
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: env(safe-area-inset-top) 14px calc(80px + env(safe-area-inset-bottom));
+        background:
+          linear-gradient(180deg, rgba(8, 17, 15, 0.08) 0%, rgba(8, 17, 15, 0.72) 42%, #08110f 100%),
+          radial-gradient(circle at 78% 10%, rgba(238, 214, 143, 0.9) 0 34px, rgba(238, 214, 143, 0.1) 35px, transparent 70px),
+          linear-gradient(135deg, #183b32 0%, #10231f 46%, #08110f 100%);
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      @media (min-width: 960px) {
+        .tabs {
+          max-width: 960px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-radius: 8px 8px 0 0;
+          bottom: 0;
+        }
+      }
+      }
+
+      /* Small danger button style */
+      button.small-danger {
+        min-height: 28px;
+        padding: 0 8px;
+        font-size: 11px;
+        border-radius: 4px;
+        color: #ffece5;
+        background: #9b3d31;
+        font-weight: 600;
+      }
+
+      .sect-quick-nav {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+      }
+
+      .sect-quick-nav button {
+        min-height: 28px;
+        padding: 0 8px;
+        font-size: 11px;
+        border-radius: 4px;
+      }
+
+      /* Task panel compact */
+      #task-panel {
+        min-height: 48px;
+        padding: 8px;
+      }
+
+      #task-panel .row {
+        min-height: 44px;
+      }
+
+      /* Sect summary compact reputation */
+      .sect-reputations {
+        font-size: 11px;
+        color: #8faa8f;
+        margin-top: 4px;
+      }
+
+      /* Confirm modal */
+      .confirm-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        background: rgba(3, 8, 7, 0.8);
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+
+      .confirm-modal.hidden {
+        display: none;
+      }
+
+      .confirm-card {
+        width: min(400px, 100%);
+        border: 1px solid rgba(217, 63, 53, 0.5);
+        border-radius: 8px;
+        padding: 16px;
+        background: #0b1815;
+      }
+
+      .confirm-card h3 {
+        margin: 0 0 10px;
+        color: #d95f45;
+        font-size: 16px;
+      }
+
+      .confirm-card p {
+        color: #c8d2c1;
+        margin: 0 0 12px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .confirm-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .confirm-actions button {
+        min-height: 36px;
+        padding: 0 14px;
+        font-size: 13px;
       }
 
       @media (max-width: 380px) {
@@ -701,6 +984,19 @@
     </style>
   </head>
   <body>
+    <div id="global-toast" class="global-toast" aria-live="polite"></div>
+
+    <div id="confirm-modal" class="confirm-modal hidden" role="dialog" aria-modal="true">
+      <div class="confirm-card">
+        <h3 id="confirm-title">确认操作</h3>
+        <p id="confirm-body">确定要执行此操作吗？</p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" class="secondary">取消</button>
+          <button id="confirm-ok" class="danger">确认</button>
+        </div>
+      </div>
+    </div>
+
     <main class="shell">
       <section class="hero">
         <div class="identity">
@@ -732,6 +1028,7 @@
           <div class="stat"><span>灵石</span><strong id="res-stones">0</strong></div>
           <div class="stat"><span>法力</span><strong id="res-mana">0 / 0</strong></div>
           <div class="stat"><span>气血</span><strong id="res-hp">0</strong></div>
+          <div id="hp-warning" class="hp-warning hidden">⚠ 气血过低，请服药恢复</div>
         </section>
 
         <div id="goals-panel" class="hidden">
@@ -950,6 +1247,7 @@
       const gameUi = document.getElementById("game-ui");
       const tabs = document.getElementById("tabs");
       const message = document.getElementById("message");
+      const globalToast = document.getElementById("global-toast");
       const grid = document.getElementById("character-grid");
       const logs = document.getElementById("logs");
       const recentLogs = document.getElementById("recent-logs");
@@ -1044,6 +1342,44 @@ function getEffectTypeName(type) {
         message.classList.toggle("success", isSuccess);
       }
 
+      // Global floating toast system
+      let toastIdCounter = 0;
+      const toastDurations = new Map();
+
+      function showGlobalToast({ title = "", body = "", type = "info", duration = 4000, actionLabel = "", actionTab = "" }) {
+        const id = ++toastIdCounter;
+        const typeClass = type === "success" ? "success" : type === "warning" ? "warning" : "";
+        let actionsHtml = "";
+        if (actionLabel && actionTab) {
+          actionsHtml = `<div class="toast-actions"><button onclick="globalToastAction('${actionTab}')">${actionLabel}</button></div>`;
+        }
+        const html = `<div class="toast-item ${typeClass}" data-toast-id="${id}">
+          ${title ? `<div class="toast-title">${title}</div>` : ""}
+          ${body ? `<div class="toast-body">${body}</div>` : ""}
+          ${actionsHtml}
+        </div>`;
+        globalToast.insertAdjacentHTML("beforeend", html);
+        const el = globalToast.querySelector(`[data-toast-id="${id}"]`);
+        if (duration > 0) {
+          const timer = setTimeout(() => {
+            el.classList.add("toast-fade-out");
+            setTimeout(() => {
+              el.remove();
+              toastDurations.delete(id);
+            }, 300);
+          }, duration);
+          toastDurations.set(id, timer);
+        }
+        return id;
+      }
+
+      window.globalToastAction = function(tab) {
+        setTab(tab);
+      };
+
+      // Track sect task completion after actions
+      let trackedSectTaskStates = new Map(); // taskId -> isCompletable
+
       async function request(path, options = {}) {
         const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
         const token = getToken();
@@ -1090,15 +1426,28 @@ function getEffectTypeName(type) {
       }
 
       function goalCardHtml(goal) {
-        return `<div class="goal-card">
+        const hasBenefits = goal.benefits && goal.benefits.length > 0;
+        const shortBody = goal.recommended_action + (hasBenefits ? " · " + goal.benefits.substring(0, 30) + (goal.benefits.length > 30 ? "..." : "") : "");
+        return `<div class="goal-card" data-goal-id="${goal.id || goal.title}">
           <div class="goal-title">${goal.title}</div>
           <div class="goal-reason">${goal.reason}</div>
           ${goal.progress_text ? `<div class="goal-progress">${goal.progress_text}</div>` : ""}
-          ${goal.requirements && goal.requirements.length ? `<div class="goal-requirements">${goal.requirements.join("；")}</div>` : ""}
           <div class="goal-action">${goal.recommended_action}</div>
-          <div class="goal-benefits">${goal.benefits}</div>
+          <div class="goal-detail-toggle" onclick="toggleGoalDetail(this)">展开详情 ▼</div>
+          <div class="goal-detail hidden">
+            ${goal.requirements && goal.requirements.length ? `<div class="goal-requirements">${goal.requirements.join("；")}</div>` : ""}
+            ${goal.benefits ? `<div class="goal-benefits">${goal.benefits}</div>` : ""}
+          </div>
         </div>`;
       }
+
+      window.toggleGoalDetail = function(el) {
+        const card = el.closest(".goal-card");
+        const detail = card.querySelector(".goal-detail");
+        const isHidden = detail.classList.contains("hidden");
+        detail.classList.toggle("hidden");
+        el.textContent = isHidden ? "收起详情 ▲" : "展开详情 ▼";
+      };
 
       async function loadGoals() {
         if (isGoalsHidden()) {
@@ -1235,6 +1584,14 @@ function getEffectTypeName(type) {
         document.getElementById("res-stones").textContent = c.spirit_stones;
         document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
         document.getElementById("res-hp").textContent = `${c.hp} / ${c.max_hp} · ${c.life_status}`;
+        const hpWarning = document.getElementById("hp-warning");
+        const hpRatio = c.max_hp > 0 ? c.hp / c.max_hp : 1;
+        if (hpRatio < 0.5 && c.hp > 0) {
+          hpWarning.classList.remove("hidden");
+          hpWarning.textContent = "⚠ 气血过低（" + c.hp + "/" + c.max_hp + "），请前往【角色】页服用丹药恢复";
+        } else {
+          hpWarning.classList.add("hidden");
+        }
         const isDead = c.hp <= 0;
         document.getElementById("train-rate").textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
         document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
@@ -1351,28 +1708,59 @@ function getEffectTypeName(type) {
         if (!currentSect?.sect) {
           sectSummary.innerHTML = `<div class="empty">你目前是散修，可以选择一个宗门拜入。</div>`;
           sectTasks.innerHTML = `<div class="empty">加入宗门后可接取任务。</div>`;
-          sectShop.innerHTML = `<div class="empty">加入宗门后可使用贡献兑换奖励。</div>`;
+          sectShop.innerHTML = `<div class="empty">加入宗门后可使用贡献兑换。</div>`;
         } else {
           const sect = currentSect.sect;
           const member = currentSect.member;
-          sectSummary.innerHTML = `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${member.position_name} · 贡献 ${member.contribution} · 声望 ${member.reputation}</span><span>正道 ${reputations.righteous || 0} / 魔道 ${reputations.demonic || 0} / 鬼道 ${reputations.ghost || 0} / 佛道 ${reputations.buddhist || 0}</span></div><button data-sect-action="promote">晋升</button><button data-sect-action="leave" class="danger">退出</button></div>`;
+          const promoteNeeds = member.promotion_requirements ? `晋升需贡献≥${member.promotion_requirements.required_contribution || '?'} · 声望≥${member.promotion_requirements.required_reputation || '?'}` : "";
+          sectSummary.innerHTML = `<div class="row" style="min-height:48px;padding:10px">
+            <div style="display:grid;gap:4px">
+              <strong>${sect.name} · ${member.position_name}</strong>
+              <span>贡献 ${member.contribution} · 声望 ${member.reputation}</span>
+              ${promoteNeeds ? `<span style="color:#e5c568;font-size:12px">${promoteNeeds}</span>` : ""}
+            </div>
+            <button data-sect-action="promote" class="secondary" style="min-height:32px;font-size:12px;padding:0 10px">晋升</button>
+            <button data-sect-action="leave" class="small-danger">退出</button>
+          </div>`;
           // Current tasks section
           const currentTasks = mySectTasks.filter(task => task.status === "active" || task.status === "claimable");
           const currentTasksHtml = currentTasks.length ? currentTasks.map(task => {
-            // Donation tasks are always clickable (backend checks resources on submit)
             const canComplete = task.status === "claimable" || task.is_donation;
-            const progressBar = `<div style="margin-top:4px"><div class="bar"><span style="width:${Math.min(100, (task.progress / task.target) * 100)}%"></span></div></div>`;
-            const abandonBtn = `<button data-abandon-sect-task="${task.id}" class="danger">放弃</button>`;
+            const progressBar = `<div style="margin-top:4px"><div class="bar"><span style="width:${Math.min(100, (task.progress / Math.max(1, task.target)) * 100)}%"></span></div></div>`;
+            // Task recommendation hint
+            let taskHint = "";
+            if (!canComplete) {
+              const taskCode = task.code || "";
+              if (taskCode.includes("explore") || taskCode.includes("patrol") || taskCode.includes("scout")) {
+                taskHint = `<span style="font-size:11px;color:#64c7a6">建议前往【修炼】页进行外出探索</span>`;
+              } else if (taskCode.includes("donate")) {
+                taskHint = `<span style="font-size:11px;color:#e5c568">准备灵石后返回此处提交</span>`;
+              }
+            }
+            const abandonBtn = `<button data-abandon-sect-task="${task.id}" class="small-danger">放弃</button>`;
             const completeBtnText = task.is_donation ? "提交捐献" : (canComplete ? "领取奖励" : "进行中");
             const completeBtn = `<button data-complete-sect-task="${task.id}" ${canComplete ? "" : "disabled"}>${completeBtnText}</button>`;
-            return `<div class="row task-card"><div><strong>当前：${task.name}</strong><span>${task.description}</span><span>${task.requirement_display || `进度：${task.progress} / ${task.target}`}</span>${task.cost_display ? `<span style="color:#e5c568">${task.cost_display}</span>` : ""}${progressBar}</div>${completeBtn}${abandonBtn}</div>`;
+            return `<div class="row task-card" style="padding:10px">
+              <div style="display:grid;gap:3px;min-width:0">
+                <strong>${task.name}</strong>
+                <span style="font-size:12px">${task.description || task.requirement_display || `进度：${task.progress} / ${task.target}`}</span>
+                ${task.cost_display ? `<span style="color:#e5c568;font-size:12px">${task.cost_display}</span>` : ""}
+                ${taskHint}
+              </div>
+              ${completeBtn}${abandonBtn}
+              <div class="sect-quick-nav">
+                <button class="secondary" onclick="setTab('cultivation')" style="min-height:26px;font-size:10px;padding:0 6px">修炼</button>
+                ${!canComplete ? `<button class="secondary" onclick="setTab('cultivation')" style="min-height:26px;font-size:10px;padding:0 6px">探索</button>` : ""}
+                <button class="secondary" onclick="setTab('sect')" style="min-height:26px;font-size:10px;padding:0 6px">宗门</button>
+              </div>
+            </div>`;
           }).join("") : `<div class="empty">暂无进行中的宗门任务</div>`;
           // Available tasks section
-          const availableTasksHtml = availableSectTasks.length ? availableSectTasks.map(task => `<div class="row"><div><strong>${task.name}</strong><span>${task.description}</span><span>奖励：贡献 ${task.reward_contribution || task.reward?.contribution || 0} · 灵石 ${task.reward_stones || task.reward?.spirit_stones || 0}</span></div><button data-accept-sect-task="${task.code}">接取</button></div>`).join("") : "";
+          const availableTasksHtml = availableSectTasks.length ? availableSectTasks.map(task => `<div class="row" style="padding:10px"><div style="display:grid;gap:3px;min-width:0"><strong>${task.name}</strong><span style="font-size:12px">${task.description || ""}</span><span style="font-size:11px;color:#e5c568">奖励：贡献+${task.reward_contribution || 0} · 灵石+${task.reward_stones || 0}</span></div><button data-accept-sect-task="${task.code}" style="min-height:32px;font-size:12px;padding:0 10px">接取</button></div>`).join("") : "";
           sectTasks.innerHTML = `${currentTasksHtml}${availableTasksHtml ? `<div style="margin-top:10px"><strong style="color:#c8d2c1;font-size:13px">可接任务：</strong>${availableTasksHtml}</div>` : ""}`;
-          sectShop.innerHTML = currentSectShop.length ? currentSectShop.map(item => `<div class="row"><div><strong>${item.name || item.item_name || getItemName(item.item_code)}</strong><span>${item.exchange_summary || `消耗 ${item.cost} 贡献：获得 ${item.item_name || getItemName(item.item_code)} x${item.quantity}`}</span></div><button data-exchange-sect-reward="${item.code}">兑换</button></div>`).join("") : `<div class="empty">暂无可兑换奖励</div>`;
+          sectShop.innerHTML = currentSectShop.length ? currentSectShop.map(item => `<div class="row" style="padding:10px"><div style="display:grid;gap:3px;min-width:0"><strong>${item.name || item.item_name || getItemName(item.item_code)}</strong><span style="font-size:12px">${item.exchange_summary || `消耗 ${item.cost} 贡献`}</span></div><button data-exchange-sect-reward="${item.code}" style="min-height:32px;font-size:12px;padding:0 10px">兑换</button></div>`).join("") : `<div class="empty">暂无可兑换奖励</div>`;
         }
-        sectList.innerHTML = sectCatalog.map(sect => `<div class="row"><div><strong>${sect.name} · ${sect.faction_name}</strong><span>${sect.description}</span><span>要求：${sect.required_realm} · 灵石 ${sect.required_spirit_stones || 0} · 偏好灵根 ${sect.preferred_root.join("、") || "不限"}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""}>拜入</button></div>`).join("");
+        sectList.innerHTML = sectCatalog.map(sect => `<div class="row" style="padding:10px"><div style="display:grid;gap:3px;min-width:0"><strong>${sect.name} · ${sect.faction_name}</strong><span style="font-size:12px">${sect.description}</span><span style="font-size:11px">要求：${sect.required_realm} · 灵石${sect.required_spirit_stones || 0}</span></div><button data-join-sect="${sect.code}" ${currentSect?.sect ? "disabled" : ""} style="min-height:32px;font-size:12px;padding:0 10px">拜入</button></div>`).join("");
       }
 
       async function auth(path) {
@@ -1384,14 +1772,66 @@ function getEffectTypeName(type) {
         await loadMe();
       }
 
+      // Confirm modal state
+      let pendingConfirmAction = null;
+
+      function showConfirmModal(title, body, onConfirm) {
+        document.getElementById("confirm-title").textContent = title;
+        document.getElementById("confirm-body").textContent = body;
+        pendingConfirmAction = onConfirm;
+        document.getElementById("confirm-modal").classList.remove("hidden");
+      }
+
+      document.getElementById("confirm-cancel").addEventListener("click", () => {
+        document.getElementById("confirm-modal").classList.add("hidden");
+        pendingConfirmAction = null;
+      });
+
+      document.getElementById("confirm-ok").addEventListener("click", () => {
+        document.getElementById("confirm-modal").classList.add("hidden");
+        if (pendingConfirmAction) {
+          pendingConfirmAction();
+          pendingConfirmAction = null;
+        }
+      });
+
       async function doAction(actionType, params = {}) {
         showToast("");
+        // Snapshot sect task completability before action
+        const prevTaskStates = new Map();
+        mySectTasks.forEach(t => prevTaskStates.set(t.id, t.status === "claimable" || t.is_donation));
         try {
           const data = await request("/action/execute", { method: "POST", body: JSON.stringify({ action_type: actionType, params }) });
           showToast(data.message, data.success);
+          // Global toast for action result
+          const bodyParts = [data.message];
+          if (data.rewards) {
+            const rewardParts = [];
+            if (data.rewards.cultivation > 0) rewardParts.push("修为+" + data.rewards.cultivation);
+            if (data.rewards.spirit_stones > 0) rewardParts.push("灵石+" + data.rewards.spirit_stones);
+            if (data.rewards.items && data.rewards.items.length) {
+              data.rewards.items.forEach(i => rewardParts.push(i.name + " x" + i.quantity));
+            }
+            if (rewardParts.length) bodyParts.push(rewardParts.join(" · "));
+          }
+          showGlobalToast({ title: actionType === "train" ? "修炼完成" : actionType === "explore" ? "探索完成" : "操作完成", body: bodyParts.join("\n"), type: data.success ? "success" : "info", duration: 3500 });
+
           await loadMe();
+
+          // Check if any sect task became completable
+          if (currentSect?.sect && mySectTasks.length > 0) {
+            for (const task of mySectTasks) {
+              const wasIncomplete = !prevTaskStates.get(task.id);
+              const isNowComplete = task.status === "claimable" || task.is_donation;
+              if (wasIncomplete && isNowComplete) {
+                showGlobalToast({ title: "宗门任务可交付", body: task.name + " 已完成，可前往宗门交付领取奖励", type: "warning", duration: 5000, actionLabel: "前往宗门", actionTab: "sect" });
+                break;
+              }
+            }
+          }
         } catch (error) {
           showToast(error.message);
+          showGlobalToast({ title: "操作失败", body: error.message, type: "error", duration: 3000 });
         }
       }
 
@@ -1483,13 +1923,28 @@ function getEffectTypeName(type) {
         const join = event.target.closest("button[data-join-sect]");
         if (join) doAction("join_sect", { sect_code: join.dataset.joinSect }).catch(e => showToast(e.message));
       });
+      sectSummary.addEventListener("click", event => {
+        const action = event.target.closest("button[data-sect-action]");
+        if (!action) return;
+        if (action.dataset.sectAction === "promote") doAction("promote_sect_position").catch(e => showToast(e.message));
+        if (action.dataset.sectAction === "leave") {
+          showConfirmModal("退出宗门", "确定要退出当前宗门吗？退出后将清除当前宗门任务和贡献进度。", () => {
+            doAction("leave_sect").catch(e => showToast(e.message));
+          });
+        }
+      });
+
       sectTasks.addEventListener("click", event => {
         const accept = event.target.closest("button[data-accept-sect-task]");
         const complete = event.target.closest("button[data-complete-sect-task]");
         const abandon = event.target.closest("button[data-abandon-sect-task]");
         if (accept) doAction("accept_sect_task", { task_code: accept.dataset.acceptSectTask }).catch(e => showToast(e.message));
         if (complete) doAction("complete_sect_task", { task_id: Number(complete.dataset.completeSectTask) }).catch(e => showToast(e.message));
-        if (abandon) doAction("sect_task_abandon").catch(e => showToast(e.message));
+        if (abandon) {
+          showConfirmModal("放弃任务", "确定要放弃当前宗门任务吗？放弃将扣除5点宗门贡献。", () => {
+            doAction("sect_task_abandon").catch(e => showToast(e.message));
+          });
+        }
       });
       sectShop.addEventListener("click", event => {
         const exchange = event.target.closest("button[data-exchange-sect-reward]");

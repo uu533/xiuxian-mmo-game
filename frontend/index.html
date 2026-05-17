@@ -1714,7 +1714,7 @@ function getEffectTypeName(type) {
           const member = currentSect.member;
           const req = member.promotion_requirements;
 
-          // Realm order list for comparison (shared with backend/backend/configs/realms.py)
+          // Realm order list (matches backend/backend/configs/realms.py REALMS)
           const REALM_ORDER = [
             "炼气一层","炼气二层","炼气三层","炼气四层","炼气五层","炼气六层","炼气七层","炼气八层","炼气九层","炼气十层","炼气十一层","炼气十二层",
             "筑基初期","筑基中期","筑基后期","结丹初期","结丹中期","结丹后期","元婴初期","元婴中期","元婴后期","化神初期","化神中期","化神后期"
@@ -1726,28 +1726,39 @@ function getEffectTypeName(type) {
             return curIdx >= 0 && reqIdx >= 0 && curIdx >= reqIdx;
           }
 
-          let promoteHintParts = [];
+          let promoteDetail = "";
           if (req) {
             const contDiff = req.required_contribution - req.current_contribution;
             const realmSufficient = realmLeq(req.current_realm, req.required_realm);
-            if (contDiff > 0) {
-              promoteHintParts.push("晋升还需贡献 +" + contDiff);
-            }
-            if (!realmSufficient) {
-              promoteHintParts.push("晋升还需境界：" + req.required_realm);
-            }
-            if (promoteHintParts.length === 0) {
-              promoteHintParts.push("已达晋升条件，可申请晋升");
-            }
+            const contOk = contDiff <= 0;
+            const realmOk = realmSufficient;
+
+            // Contribution line
+            const contLabel = contOk
+              ? "贡献：" + member.contribution + "/" + req.required_contribution + "（已满足）"
+              : "贡献：" + member.contribution + "/" + req.required_contribution + "（还需 " + contDiff + "）";
+
+            // Realm line
+            const realmLabel = realmOk
+              ? "境界：" + req.current_realm + "/" + req.required_realm + "（已满足）"
+              : "境界：" + req.current_realm + "/" + req.required_realm + "（需达到）";
+
+            // Summary
+            const ready = contOk && realmOk;
+            const summaryLabel = ready
+              ? "<span style=\"color:#64c7a6;font-size:12px\">已达晋升条件，可申请晋升</span>"
+              : "<span style=\"color:#d95f45;font-size:12px\">晋升条件未满足</span>";
+
+            promoteDetail = contLabel + " · " + realmLabel + " · " + summaryLabel;
           } else {
-            promoteHintParts.push("已达当前宗门最高职位");
+            promoteDetail = "<span style=\"color:#c8d2c1;font-size:12px\">已达当前宗门最高职位</span>";
           }
 
           sectSummary.innerHTML = `<div class="row" style="min-height:48px;padding:10px">
             <div style="display:grid;gap:4px">
               <strong>${sect.name} · ${member.position_name}</strong>
               <span>贡献 ${member.contribution} · 声望 ${member.reputation}</span>
-              ${promoteHintParts.map(h => `<span style="color:#e5c568;font-size:12px">${h}</span>`).join("")}
+              <span style="font-size:11px;color:#8faa8f">${promoteDetail}</span>
             </div>
             <button data-sect-action="promote" class="secondary" style="min-height:32px;font-size:12px;padding:0 10px">晋升</button>
             <button data-sect-action="leave" class="small-danger">退出</button>

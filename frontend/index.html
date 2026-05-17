@@ -1713,22 +1713,41 @@ function getEffectTypeName(type) {
           const sect = currentSect.sect;
           const member = currentSect.member;
           const req = member.promotion_requirements;
-          let promoteHint = "";
+
+          // Realm order list for comparison (shared with backend/backend/configs/realms.py)
+          const REALM_ORDER = [
+            "炼气一层","炼气二层","炼气三层","炼气四层","炼气五层","炼气六层","炼气七层","炼气八层","炼气九层","炼气十层","炼气十一层","炼气十二层",
+            "筑基初期","筑基中期","筑基后期","结丹初期","结丹中期","结丹后期","元婴初期","元婴中期","元婴后期","化神初期","化神中期","化神后期"
+          ];
+
+          function realmLeq(currentRealm, requiredRealm) {
+            const curIdx = REALM_ORDER.indexOf(currentRealm);
+            const reqIdx = REALM_ORDER.indexOf(requiredRealm);
+            return curIdx >= 0 && reqIdx >= 0 && curIdx >= reqIdx;
+          }
+
+          let promoteHintParts = [];
           if (req) {
             const contDiff = req.required_contribution - req.current_contribution;
+            const realmSufficient = realmLeq(req.current_realm, req.required_realm);
             if (contDiff > 0) {
-              promoteHint = `晋升还需贡献 +${contDiff}`;
-            } else {
-              promoteHint = "已达晋升条件，可申请晋升";
+              promoteHintParts.push("晋升还需贡献 +" + contDiff);
+            }
+            if (!realmSufficient) {
+              promoteHintParts.push("晋升还需境界：" + req.required_realm);
+            }
+            if (promoteHintParts.length === 0) {
+              promoteHintParts.push("已达晋升条件，可申请晋升");
             }
           } else {
-            promoteHint = "已达最高职位";
+            promoteHintParts.push("已达当前宗门最高职位");
           }
+
           sectSummary.innerHTML = `<div class="row" style="min-height:48px;padding:10px">
             <div style="display:grid;gap:4px">
               <strong>${sect.name} · ${member.position_name}</strong>
               <span>贡献 ${member.contribution} · 声望 ${member.reputation}</span>
-              <span style="color:#e5c568;font-size:12px">${promoteHint}</span>
+              ${promoteHintParts.map(h => `<span style="color:#e5c568;font-size:12px">${h}</span>`).join("")}
             </div>
             <button data-sect-action="promote" class="secondary" style="min-height:32px;font-size:12px;padding:0 10px">晋升</button>
             <button data-sect-action="leave" class="small-danger">退出</button>

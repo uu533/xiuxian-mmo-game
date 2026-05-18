@@ -5,6 +5,7 @@ from backend.services.calc_service import derived_stats, get_breakthrough_rate, 
 from backend.services.active_effect_service import active_effects_payload
 from backend.services.realm_service import normalize_realm, normalize_title, unlocked_titles
 from backend.services.sect_service import derive_sect_position, identity_status
+from backend.services.auto_cultivation_service import auto_cultivation_summary
 
 
 def character_payload(character: Character) -> dict:
@@ -47,6 +48,7 @@ def character_payload(character: Character) -> dict:
         "sect_name": character.sect.name if character.sect else None,
         "sect_position": position,
         "identity_status": identity_status(character),
+        "auto_cultivation": auto_cultivation_summary(character),
     }
 
 

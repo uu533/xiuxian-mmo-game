@@ -32,6 +32,7 @@ def create_tables() -> None:
 
     Base.metadata.create_all(bind=engine)
     migrate_early_mvp_schema()
+    migrate_auto_cultivation_schema()
     seed_item_templates()
     seed_default_sects()
     ensure_existing_character_runtime_data()
@@ -131,6 +132,22 @@ def migrate_early_mvp_schema() -> None:
                 "magic_treasure_defense_bonus",
                 "magic_treasure_mana_bonus",
             ],
+        )
+
+
+def migrate_auto_cultivation_schema() -> None:
+    with engine.begin() as conn:
+        _add_missing_columns(
+            conn,
+            "characters",
+            {
+                "auto_enabled": "INTEGER NOT NULL DEFAULT 0",
+                "auto_strategy": "VARCHAR(24) NOT NULL DEFAULT 'balanced'",
+                "auto_state": "VARCHAR(24) NOT NULL DEFAULT 'meditating'",
+                "last_auto_settle_at": "DATETIME",
+                "last_auto_report_json": "TEXT",
+                "auto_paused_reason": "VARCHAR(128)",
+            },
         )
 
 

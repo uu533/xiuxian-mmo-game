@@ -11,6 +11,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from tests.test_server_utils import ensure_test_server
+ensure_test_server()
+
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 # Dev routes are gated by ENABLE_DEV_ROUTES (default off for security).
 # Set to enable /dev/* endpoints in smoke test.

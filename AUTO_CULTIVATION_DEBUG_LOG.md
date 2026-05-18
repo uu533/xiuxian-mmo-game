@@ -49,9 +49,9 @@
 | **触发方式** | 运行 `python tests/auto_cultivation_player_flow_test.py` |
 | **报错信息** | `ModuleNotFoundError: No module named 'encodings'` 或 `HTTPError` 无详情 |
 | **根因判断** | `python` 命令在 PowerShell 中指向的 Python 解释器路径不稳定，可能指向非完整安装的 Python。直接用 `C:\Users\WTT\AppData\Local\Programs\Python\Python311\python.exe` 可以正常 import urllib.request |
-| **已修复方式** | 统一使用完整路径 `C:\Users\WTT\AppData\Local\Programs\Python\Python311\python.exe` |
-| **如何防止** | 测试脚本中统一使用完整 Python 解释器路径 |
-| **当前状态** | ✅ 已修复（urllib.request 在 Python311 下正常工作）|
+| **已修复方式** | `test_server_utils.py` 改用 `sys.executable`，不再硬编码用户机器路径 |
+| **如何防止** | 测试脚本中统一使用 `sys.executable` 获取 Python 路径 |
+| **当前状态** | ✅ 已修复 |
 
 ---
 
@@ -104,46 +104,33 @@ C:\Users\WTT\AppData\Local\Programs\Python\Python311\python.exe -c "import urlli
 
 ---
 
-## 经验记录（2026-05-18）
+## 经验记录（2026-05-19 更新）
 
-### Windows Agent 长任务经验
+### Windows Agent / 测试环境经验
 
-1. **Start-Process + -NoNewWindow + RedirectStandardOutput/RedirectStandardError 可能卡死**
-   - 症状：命令在 PowerShell 工具内一直显示"运行中"，无输出，直到超时
-   - 原因：PowerShell 对重定向到文件的子进程处理有问题，stdout/stderr 管道可能阻塞
-   - 教训：不要在单条 bash 命令里串 Start-Process + 测试 + 日志读取
+1. **subprocess.Popen 启动 uvicorn 优于 PowerShell Job**
+   - Start-Process + -NoNewWindow + RedirectStandardOutput 可能卡死
+   - 解决：Python subprocess.Popen + stdout/stderr 落盘到文件 + 健康检查轮询
 
-2. **禁止无保护启动 uvicorn**
-   - 必须使用 supervisor 脚本
-   - 服务启动最多等待 15 秒
-   - HTTP 请求必须 timeout
-   - 测试整体必须 timeout（PowerShell Job + Wait-Job -Timeout）
-   - stdout/stderr 必须落盘到文件
-   - 结束后必须自动清理进程
+2. **Python 解释器路径用 `sys.executable`，不要写死**
+   - 硬编码 `C:\Users\WTT\...` 只在该机器有效
+   - `sys.executable` 自动获取当前 Python 解释器
 
-3. **PowerShell Job 陷阱**
-   - `-Command` 参数中的多行脚本容易出现 `$variable` 被 PowerShell 解析为环境变量的 bug
-   - 解决：写 PS1 文件，用 `-File` 参数执行
+3. **8000 端口验证**
+   - 不能只检查端口是否在监听，必须确认是本项目服务
+   - 用 `/docs` 或 `/openapi.json` 的 FastAPI 特征验证
+   - 如果被非本项目服务占用，应报错提示用户清理
 
-4. **PowerShell Job + 嵌套 Start-Process**
-   - 在 Start-Job 内部再 Start-Process uvicorn，stdout/stderr 重定向可能不工作
-   - 解决：让 Python 测试脚本内部启动 uvicorn（使用 threading）+ 直接发 HTTP 请求（不依赖外部进程）
-
-5. **卡住超过 30 分钟的处理流程**
-   - 自动停止当前命令（Stop-Job / Stop-Process）
-   - 收集日志、端口、进程状态
-   - 写 Debug Log 并汇报
-   - 不继续等待
-
-6. **datetime naive/aware 问题**
+4. **datetime naive/aware 问题**
    - `datetime.now(timezone.utc)` 返回 aware，`datetime.utcnow()` 返回 naive
    - SQLite 通过 Python 不存储时区信息，总是 naive
    - 不要轻易修改全局 `utc_now()`，在业务服务内做局部兼容处理
 
-7. **测试依赖外部 uvicorn 进程的问题**
-   - smoke_test 等期望服务器已运行
-   - 解决：使用 Python 内置 threading 在测试进程内启动 uvicorn（不依赖外部进程）
+5. **PowerShell 编码问题**
+   - `print()` 输出中文到 stdout 可能触发 `UnicodeEncodeError: 'gbk' codec can't encode`
+   - 解决：输出写入文件而非 stdout
 
-8. **PowerShell 编码问题**
-   - `print()` 输出非 ASCII 字符（如中文日志）到 stdout 时可能触发 `UnicodeEncodeError: 'gbk' codec can't encode`
-   - 解决：捕获后写入文件，不依赖 stdout 直接 print
+6. **测试基础设施**
+   - 共享测试服务器用 `subprocess.Popen` + 健康检查 + `atexit` 清理
+   - 禁止用 `taskkill /F /IM python.exe`（会杀父进程）
+   - 测试进程内启动 uvicorn，比依赖外部进程更可靠

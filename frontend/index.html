@@ -1435,8 +1435,8 @@ function getEffectTypeName(type) {
         document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
         document.getElementById("res-hp").textContent = `${c.hp} / ${c.max_hp} · ${c.life_status}`;
         const isDead = c.hp <= 0;
-        document.getElementById("train-rate").textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
-        document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+        document.getElementById("train-rate")?.textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
+        document.getElementById("cultivation-bar")?.style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
         document.getElementById("train-btn").disabled = isDead || c.mana < 12;
         document.getElementById("explore-btn").disabled = isDead || c.mana < 18;
         document.getElementById("breakthrough-btn").disabled = isDead || c.mana < 35;

@@ -11,7 +11,7 @@ import time
 import urllib.request
 import urllib.error
 
-PYTHON = r"C:\Users\WTT\AppData\Local\Programs\Python\Python311\python.exe"
+PYTHON = sys.executable
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -56,9 +56,32 @@ def _kill_port_8000():
         )
         pid = result.stdout.strip()
         if pid and pid.isdigit():
+            _log(f"Killing port 8000 process PID={pid}")
             subprocess.run(["taskkill", "/F", "/PID", pid], timeout=5, capture_output=True)
     except Exception:
         pass
+
+
+def _is_correct_project_server():
+    """验证 8000 端口上跑的是本项目后端，而非其他服务。"""
+    try:
+        # 优先用 /docs（FastAPI Swagger）验证
+        for path in ["/docs", "/openapi.json"]:
+            try:
+                req = urllib.request.Request(BASE_URL + path, timeout=3)
+                resp = urllib.request.urlopen(req, timeout=3)
+                body = resp.read().decode("utf-8", errors="ignore")
+                if "openapi" in body or "swagger" in body:
+                    return True
+            except Exception:
+                pass
+        # 兜底：检查根路径是否为本项目响应
+        req = urllib.request.Request(BASE_URL + "/", timeout=3)
+        resp = urllib.request.urlopen(req, timeout=3)
+        body = resp.read().decode("utf-8", errors="ignore")
+        return "xiuxian" in body.lower() or "openapi" in body.lower() or '"character"' in body
+    except Exception:
+        return False
 
 
 def start_test_server():
@@ -69,14 +92,29 @@ def start_test_server():
     """
     global _server_proc, _server_started
 
-    # 1. 检查是否已有服务运行
+    # 1. 检查是否已有本项目服务运行
     for attempt in range(3):
         try:
-            urllib.request.urlopen(BASE_URL + "/", timeout=3)
-            _log(f"Server already running at {BASE_URL}")
-            return None, False
+            if _is_correct_project_server():
+                _log(f"Correct project server already running at {BASE_URL}")
+                return None, False
         except Exception:
-            time.sleep(0.5)
+            pass
+        time.sleep(0.5)
+
+    # 2. 检查 8000 被非本项目服务占用 → 报错提示
+    try:
+        urllib.request.urlopen(BASE_URL + "/", timeout=3)
+        if not _is_correct_project_server():
+            raise RuntimeError(
+                f"Port 8000 is occupied by a non-project server.\n"
+                f"Please stop the other service first: taskkill /F /PID <pid>\n"
+                f"Then re-run the test."
+            )
+    except urllib.error.URLError:
+        pass  # 端口空闲，继续启动
+    except RuntimeError:
+        raise
 
     # 2. 清理残留进程
     _log("Cleaning up old processes on port 8000...")

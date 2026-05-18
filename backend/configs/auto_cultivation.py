@@ -11,8 +11,8 @@ SETTLE_INTERVAL_MINUTES = 10
 # 自动历练基础掉落表（按品质分级）
 # 第一版：复用现有材料/丹药/灵石，通过品质权重控制分布
 AUTO_DROP_TABLE = [
-    # 凡品 common — 高概率
-    {"code": "low_spirit_stone", "rarity": "凡品", "weight": 35, "quantity_range": [6, 14]},
+    # 凡品 common — 高概率（使用不可堆叠的 low_artifact 填满背包）
+    {"code": "low_artifact", "rarity": "凡品", "weight": 35, "quantity_range": [1, 1]},
     {"code": "healing_herb", "rarity": "凡品", "weight": 20, "quantity_range": [1, 3]},
     {"code": "low_material", "rarity": "凡品", "weight": 15, "quantity_range": [1, 3]},
     # 下品 low — 中高概率
@@ -21,7 +21,6 @@ AUTO_DROP_TABLE = [
     {"code": "qi_powder", "rarity": "下品", "weight": 10, "quantity_range": [1, 2]},
     # 中品 middle — 中低概率
     {"code": "low_method", "rarity": "中品", "weight": 8, "quantity_range": [1, 1]},
-    {"code": "low_artifact", "rarity": "中品", "weight": 8, "quantity_range": [1, 1]},
     {"code": "low_spirit_stone", "rarity": "中品", "weight": 6, "quantity_range": [10, 20]},
     # 上品 high — 低概率
     {"code": "foundation_pill", "rarity": "上品", "weight": 5, "quantity_range": [1, 1]},
@@ -29,9 +28,9 @@ AUTO_DROP_TABLE = [
     # 极品 rare — 极低概率
     {"code": "core_pill", "rarity": "极品", "weight": 3, "quantity_range": [1, 1]},
     {"code": "mid_artifact", "rarity": "极品", "weight": 2, "quantity_range": [1, 1]},
-    # 妖丹（特殊物品）
+    # 妖丹（特殊物品，不可堆叠）
     {"code": "beast_core", "rarity": "凡品", "weight": 4, "quantity_range": [1, 1]},
-    # 残破玉简（特殊物品）
+    # 残破玉简（特殊物品，不可堆叠）
     {"code": "broken_jade_slip", "rarity": "下品", "weight": 3, "quantity_range": [1, 1]},
 ]
 

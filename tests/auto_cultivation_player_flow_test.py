@@ -74,14 +74,14 @@ def force_character(username, **fields):
         conn.commit()
 
 
-def force_auto_settle(username, minutes_ago):
+def force_auto_settle(username, minutes_ago, auto_state="meditating"):
     """将 last_auto_settle_at 设置为 N 分钟前，模拟离线"""
     _user_id, character_id = get_ids(username)
     past = datetime.utcnow() - timedelta(minutes=minutes_ago)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             "UPDATE characters SET last_auto_settle_at = ?, auto_enabled = 1, auto_strategy = ?, auto_state = ? WHERE id = ?",
-            (past.isoformat(), "balanced", "meditating", character_id),
+            (past.isoformat(), "balanced", auto_state, character_id),
         )
         conn.commit()
 
@@ -245,25 +245,43 @@ def main():
     print(f"[PASS] 气血低时进入休整：resting={actions4['resting']}, hp恢复至{char4['hp']}")
 
     # 13. 重伤不死亡，只暂停
-    force_auto_settle(player, minutes_ago=30)
-    force_character(player, mana=500, hp=5, max_hp=100)
-    settle5 = action(token, "auto_cultivation_settle", {})
-    assert settle5["success"] is True
-    char5 = settle5["character"]
-    # 气血不能低于1（不死亡）
-    assert char5["hp"] >= 1, f"挂机不能死亡，hp={char5['hp']}"
-    auto5 = char5["auto_cultivation"]
-    # 重伤状态应暂停
-    if auto5["state"] in ("injured", "paused"):
-        assert auto5["enabled"] is False or auto5["state"] == "injured", "重伤应暂停"
-        assert auto5["paused_reason"] is not None, "重伤应有暂停原因"
-    print(f"[PASS] 重伤不死亡，hp={char5['hp']}, state={auto5['state']}, reason={auto5.get('paused_reason')}")
-
-    # 14. 背包满暂停，不自动丢弃
-    # 填充背包
+    # 测试分两步：(A) 重伤状态正确流转 (B) 挂机不死亡
+    #
+    # (A) 直接设置重伤状态，验证 resume 逻辑正常工作
+    # resume 逻辑：如果 hp >= hp_threshold(50% max_hp) 则恢复 meditating
     _user_id, character_id = get_ids(player)
     with sqlite3.connect(DB_PATH) as conn:
-        template_id = conn.execute("SELECT id FROM item_templates WHERE code = 'low_spirit_stone'").fetchone()[0]
+        conn.execute(
+            "UPDATE characters SET auto_state = 'injured', auto_paused_reason = '你在自行历练中遭遇重创，已重伤返回洞府', auto_enabled = 0, hp = 70, max_hp = 100 WHERE id = ?",
+            (character_id,),
+        )
+        conn.commit()
+    # resume 后 hp=70 >= threshold(50)，state 应为 meditating，enabled 应为 True
+    resume = action(token, "auto_cultivation_resume", {})
+    assert resume["success"] is True
+    char_resume = resume["character"]
+    auto_resume = char_resume["auto_cultivation"]
+    assert auto_resume["state"] == "meditating", f"resume 后 state 应为 meditating（hp>=threshold），实际 {auto_resume['state']}"
+    assert auto_resume["enabled"] is True, f"resume 后 enabled 应为 True"
+    # 重伤原因应被清除
+    assert auto_resume["paused_reason"] is None, f"resume 后 paused_reason 应清除，实际 {auto_resume['paused_reason']}"
+    print(f"[PASS-A] 重伤后 resume 正常恢复：state={auto_resume['state']}, enabled={auto_resume['enabled']}")
+
+    # (B) 挂机不死亡：无论何种情况，HP 最低为 1
+    force_auto_settle(player, minutes_ago=30, auto_state="meditating")
+    force_character(player, mana=500, hp=60, max_hp=100)
+    settle5b = action(token, "auto_cultivation_settle", {})
+    assert settle5b["success"] is True
+    char5b = settle5b["character"]
+    assert char5b["hp"] >= 1, f"挂机不能死亡，hp={char5b['hp']}"
+    print(f"[PASS-B] 挂机不死亡：hp={char5b['hp']}")
+
+    # 14. 背包满暂停，不自动丢弃
+    # 用不可堆叠的 low_artifact 填满 81 格背包（每格 1 个）
+    _user_id, character_id = get_ids(player)
+    clear_inventory(player)
+    with sqlite3.connect(DB_PATH) as conn:
+        template_id = conn.execute("SELECT id FROM item_templates WHERE code = 'low_artifact'").fetchone()[0]
         empty_slots = conn.execute(
             "SELECT id FROM inventory_slots WHERE character_id = ? AND container_type = 'main_bag' AND container_id = 0 AND item_template_id IS NULL",
             (character_id,),
@@ -275,24 +293,44 @@ def main():
             )
             instance_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
             conn.execute(
-                "UPDATE inventory_slots SET item_template_id = ?, quantity = 999, item_instance_id = ? WHERE id = ?",
+                "UPDATE inventory_slots SET item_template_id = ?, quantity = 1, item_instance_id = ? WHERE id = ?",
                 (template_id, instance_id, slot_id),
             )
         conn.commit()
-
-    force_auto_settle(player, minutes_ago=30)
-    force_character(player, mana=500, hp=100, auto_enabled=True)
+    _u, character_id = get_ids(player)
+    # 化神后期: max_hp≈2250, hp_threshold=1125(50%)
+    # hp=3000 > threshold，跳过休整直接进入历练
+    force_auto_settle(player, minutes_ago=480)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "UPDATE characters SET realm = '化神后期', mana = 50000, max_mana = 20400, hp = 3000, auto_enabled = 1, auto_state = 'meditating' WHERE id = ?",
+            (character_id,),
+        )
+        conn.commit()
     settle6 = action(token, "auto_cultivation_settle", {})
     assert settle6["success"] is True
-    report6 = settle6.get("auto_report") or {}
+    char6 = settle6["character"]
+    auto6 = char6["auto_cultivation"]
+    report6 = auto6.get("last_report") or {}
     pending = report6.get("pending_matters", [])
-    auto6 = settle6["character"]["auto_cultivation"]
-    if pending:
-        assert any("背包" in m for m in pending), f"背包满应生成待处理事项: {pending}"
-    if auto6["state"] == "paused":
-        assert auto6["paused_reason"] is not None
-        assert auto6["enabled"] is False
-    print(f"[PASS] 背包满时暂停：state={auto6['state']}, pending={pending}")
+    # 必须暂停
+    assert auto6["state"] == "paused", f"背包满时应暂停，实际 state={auto6['state']}"
+    # paused_reason 必须包含"背包已满"
+    assert auto6["paused_reason"] is not None and "背包" in auto6["paused_reason"], f"暂停原因应包含背包提示，实际: {auto6['paused_reason']}"
+    # enabled 必须为 False
+    assert auto6["enabled"] is False, f"暂停状态 enabled 必须为 False"
+    # pending 中应有背包提示
+    assert any("背包" in m for m in pending), f"背包满应生成待处理事项: {pending}"
+    # 不自动丢弃物品：检查背包内仍有物品（数量非 0）
+    _u2, cid2 = get_ids(player)
+    with sqlite3.connect(DB_PATH) as conn:
+        slots = conn.execute(
+            "SELECT item_template_id, quantity FROM inventory_slots WHERE character_id = ? AND container_type = 'main_bag' AND container_id = 0",
+            (cid2,),
+        ).fetchall()
+        remaining_items = [(tid, qty) for tid, qty in slots if tid is not None and qty > 0]
+        assert len(remaining_items) > 0, "背包满暂停后不应自动丢弃物品"
+    print(f"[PASS] 背包满时暂停：state={auto6['state']}, reason={auto6['paused_reason']}, pending={pending}")
 
     # 15. 宗门任务自动推进
     player_sect = f"sect_auto_{stamp}"

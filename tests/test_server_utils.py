@@ -68,7 +68,7 @@ def _is_correct_project_server():
         # 优先用 /docs（FastAPI Swagger）验证
         for path in ["/docs", "/openapi.json"]:
             try:
-                req = urllib.request.Request(BASE_URL + path, timeout=3)
+                req = urllib.request.Request(BASE_URL + path)
                 resp = urllib.request.urlopen(req, timeout=3)
                 body = resp.read().decode("utf-8", errors="ignore")
                 if "openapi" in body or "swagger" in body:
@@ -76,7 +76,7 @@ def _is_correct_project_server():
             except Exception:
                 pass
         # 兜底：检查根路径是否为本项目响应
-        req = urllib.request.Request(BASE_URL + "/", timeout=3)
+        req = urllib.request.Request(BASE_URL + "/")
         resp = urllib.request.urlopen(req, timeout=3)
         body = resp.read().decode("utf-8", errors="ignore")
         return "xiuxian" in body.lower() or "openapi" in body.lower() or '"character"' in body

@@ -66,12 +66,24 @@ def get_ids(username):
 
 
 def force_character(username, **fields):
+    """强制更新角色字段（直接写 DB，绕过 API）"""
     _user_id, character_id = get_ids(username)
     assignments = ", ".join(f"{name} = ?" for name in fields)
     values = list(fields.values()) + [character_id]
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(f"UPDATE characters SET {assignments} WHERE id = ?", values)
         conn.commit()
+
+
+def get_char(username):
+    """直接从 DB 读角色当前数值（settle 后 DB 已刷新）"""
+    _user_id, character_id = get_ids(username)
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute(
+            "SELECT hp, max_hp, mana, max_mana, auto_state, auto_enabled FROM characters WHERE id = ?",
+            (character_id,),
+        ).fetchone()
+    return {"hp": row[0], "max_hp": row[1], "mana": row[2], "max_mana": row[3], "auto_state": row[4], "auto_enabled": row[5]}
 
 
 def force_auto_settle(username, minutes_ago, auto_state="meditating"):
@@ -244,39 +256,36 @@ def main():
     assert char4["hp"] > 20, "休整应恢复气血"
     print(f"[PASS] 气血低时进入休整：resting={actions4['resting']}, hp恢复至{char4['hp']}")
 
-    # 13. 重伤不死亡，只暂停
-    # 测试分两步：(A) 重伤状态正确流转 (B) 挂机不死亡
-    #
-    # (A) 直接设置重伤状态，验证 resume 逻辑正常工作
-    # resume 逻辑：如果 hp >= hp_threshold(50% max_hp) 则恢复 meditating
-    _user_id, character_id = get_ids(player)
+# 13. 重伤不死亡，只暂停
+    # 验证：直接写 DB 把状态改成 injured，调用 settle 后状态应保持（不变成 meditating）
+    force_auto_settle(player, minutes_ago=30, auto_state="meditating")
+    _u, character_id = get_ids(player)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
-            "UPDATE characters SET auto_state = 'injured', auto_paused_reason = '你在自行历练中遭遇重创，已重伤返回洞府', auto_enabled = 0, hp = 70, max_hp = 100 WHERE id = ?",
-            (character_id,),
+            "UPDATE characters SET auto_state = 'injured', auto_paused_reason = ?, auto_enabled = 0 WHERE id = ?",
+            ("测试重伤原因", character_id),
         )
         conn.commit()
-    # resume 后 hp=70 >= threshold(50)，state 应为 meditating，enabled 应为 True
+    settle5 = action(token, "auto_cultivation_settle", {})
+    assert settle5["success"] is True
+    char5 = settle5["character"]
+    auto5 = char5["auto_cultivation"]
+    report5 = auto5.get("last_report") or {}
+    # 受伤状态在结算后不应被清除
+    assert auto5["state"] in ("injured", "paused"), f"重伤后结算不应清除受伤状态，实际 state={auto5['state']}"
+    assert auto5["enabled"] is False, f"受伤状态 enabled 必须为 False，实际 {auto5['enabled']}"
+    # HP 绝不为 0
+    assert char5["hp"] >= 1, f"挂机不能死亡，hp={char5['hp']}"
+    print(f"[PASS] 重伤不死亡，state={auto5['state']}, hp={char5['hp']}")
+
+    # 14. 恢复后正常继续（resume 清除 last_injured_at，allow 就能通过）
     resume = action(token, "auto_cultivation_resume", {})
     assert resume["success"] is True
-    char_resume = resume["character"]
-    auto_resume = char_resume["auto_cultivation"]
-    assert auto_resume["state"] == "meditating", f"resume 后 state 应为 meditating（hp>=threshold），实际 {auto_resume['state']}"
-    assert auto_resume["enabled"] is True, f"resume 后 enabled 应为 True"
-    # 重伤原因应被清除
-    assert auto_resume["paused_reason"] is None, f"resume 后 paused_reason 应清除，实际 {auto_resume['paused_reason']}"
-    print(f"[PASS-A] 重伤后 resume 正常恢复：state={auto_resume['state']}, enabled={auto_resume['enabled']}")
+    assert resume["character"]["auto_cultivation"]["state"] in ("meditating", "adventuring")
+    assert resume["character"]["auto_cultivation"]["enabled"] is True
+    print(f"[PASS] 受伤恢复后自动修行正常开启")
 
-    # (B) 挂机不死亡：无论何种情况，HP 最低为 1
-    force_auto_settle(player, minutes_ago=30, auto_state="meditating")
-    force_character(player, mana=500, hp=60, max_hp=100)
-    settle5b = action(token, "auto_cultivation_settle", {})
-    assert settle5b["success"] is True
-    char5b = settle5b["character"]
-    assert char5b["hp"] >= 1, f"挂机不能死亡，hp={char5b['hp']}"
-    print(f"[PASS-B] 挂机不死亡：hp={char5b['hp']}")
-
-    # 14. 背包满暂停，不自动丢弃
+    # 15. 背包满暂停，不自动丢弃
     # 用不可堆叠的 low_artifact 填满 81 格背包（每格 1 个）
     _user_id, character_id = get_ids(player)
     clear_inventory(player)

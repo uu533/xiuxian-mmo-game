@@ -264,6 +264,9 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
             report["pending_matters"].append("你在自行历练中遭遇重创，已重伤返回洞府")
             report["final_state"] = {"state": "injured", "state_name": "重伤暂停"}
             break
+        # 当前周期 HP 低于阈值但未达重伤 → 下一周期先休整
+        if character.hp < hp_threshold:
+            _do_rest(db, character, report, strategy_config)
 
     # 更新角色数值
     character.last_auto_settle_at = now

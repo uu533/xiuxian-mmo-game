@@ -976,7 +976,6 @@
       const logs = document.getElementById("logs");
       const recentLogs = document.getElementById("recent-logs");
       const inventory = document.getElementById("inventory");
-      const taskPanel = document.getElementById("task-panel");
       const methodsList = document.getElementById("methods-list");
       const artifactsList = document.getElementById("artifacts-list");
       const sectSummary = document.getElementById("sect-summary");
@@ -1435,8 +1434,14 @@ function getEffectTypeName(type) {
         document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
         document.getElementById("res-hp").textContent = `${c.hp} / ${c.max_hp} · ${c.life_status}`;
         const isDead = c.hp <= 0;
-        document.getElementById("train-rate")?.textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
-        document.getElementById("cultivation-bar")?.style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+        const trainRateEl = document.getElementById("train-rate");
+        if (trainRateEl) {
+            trainRateEl.textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
+        }
+        const cultivationBarEl = document.getElementById("cultivation-bar");
+        if (cultivationBarEl) {
+            cultivationBarEl.style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+        }
         document.getElementById("train-btn").disabled = isDead || c.mana < 12;
         document.getElementById("explore-btn").disabled = isDead || c.mana < 18;
         document.getElementById("breakthrough-btn").disabled = isDead || c.mana < 35;
@@ -1495,11 +1500,13 @@ function getEffectTypeName(type) {
       }
 
       function renderTask(task) {
+        const el = document.getElementById("task-panel");
+        if (!el) return;
         if (!task) {
-          taskPanel.innerHTML = `<div><strong>暂无任务</strong><span>继续探索修行即可</span></div>`;
+          el.innerHTML = `<div><strong>暂无任务</strong><span>继续探索修行即可</span></div>`;
           return;
         }
-        taskPanel.innerHTML = `<div><strong>${task.name}</strong><span>${task.description}</span><em>${task.progress} / ${task.target}</em></div><button disabled>${task.status === "completed" ? "已完成" : "进行中"}</button>`;
+        el.innerHTML = `<div><strong>${task.name}</strong><span>${task.description}</span><em>${task.progress} / ${task.target}</em></div><button disabled>${task.status === "completed" ? "已完成" : "进行中"}</button>`;
       }
 
       function renderProgression() {

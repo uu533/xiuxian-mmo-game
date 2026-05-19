@@ -71,6 +71,11 @@ def execute_action(db: Session, user: User, action_type: str, params: dict | Non
         "talisman": _talisman,
         "crafting": _crafting,
         "formation": _formation,
+        # 自动修行
+        "auto_cultivation_config": _auto_cultivation_config,
+        "auto_cultivation_settle": _auto_cultivation_settle,
+        "auto_cultivation_pause": _auto_cultivation_pause,
+        "auto_cultivation_resume": _auto_cultivation_resume,
     }
     handler = handlers.get(action_type)
     if not handler:
@@ -377,10 +382,10 @@ def _result(db: Session, user: User, success: bool, message: str, cost: dict, re
         "logs": logs,
         "inventory": inventory_payload(db, user.character),
     }
-    data = data or {}
-    for key in ("sect", "member", "task"):
-        if key in data:
-            result[key] = data[key]
+    extra = data or {}
+    for key in ("sect", "member", "task", "auto_cultivation", "auto_report", "gains", "losses"):
+        if key in extra:
+            result[key] = extra[key]
     return result
 
 
@@ -454,3 +459,80 @@ def _item_name(db: Session, item_code: str) -> str:
 
     template = get_template_by_code(db, item_code)
     return template.name if template else item_code
+
+
+# ===== 自动修行 Action Handlers =====
+
+
+def _auto_cultivation_config(db: Session, user: User, params: dict) -> dict:
+    from backend.services.auto_cultivation_service import configure_auto_cultivation
+    from backend.services.log_service import write_log
+
+    strategy = str(params.get("strategy", "balanced"))
+    enabled = bool(params.get("enabled", False))
+    result = configure_auto_cultivation(db, user, strategy, enabled)
+    if result.get("success"):
+        write_log(db, user, "auto_cultivation", result["message"], {"strategy": strategy, "enabled": enabled})
+    return _result(
+        db, user, result.get("success", False),
+        result.get("message", ""),
+        {"strategy": strategy},
+        [],
+        [result.get("message", "")],
+        "auto_cultivation_config",
+        data={"auto_cultivation": result.get("auto_cultivation")},
+    )
+
+
+def _auto_cultivation_settle(db: Session, user: User, params: dict) -> dict:
+    from backend.services.auto_cultivation_service import settle_auto_cultivation
+
+    _ = params
+    result = settle_auto_cultivation(db, user)
+    return _result(
+        db, user, result.get("success", False),
+        result.get("message", ""),
+        {},
+        [],
+        [result.get("message", "")],
+        "auto_cultivation_settle",
+        data={
+            "auto_cultivation": result.get("auto_cultivation"),
+            "auto_report": result.get("auto_report"),
+            "gains": result.get("gains"),
+            "losses": result.get("losses"),
+        },
+    )
+
+
+def _auto_cultivation_pause(db: Session, user: User, params: dict) -> dict:
+    from backend.services.auto_cultivation_service import pause_auto_cultivation
+
+    _ = params
+    reason = str(params.get("reason", "玩家主动暂停"))
+    result = pause_auto_cultivation(db, user, reason)
+    return _result(
+        db, user, result.get("success", False),
+        result.get("message", ""),
+        {},
+        [],
+        [result.get("message", "")],
+        "auto_cultivation_pause",
+        data={"auto_cultivation": result.get("auto_cultivation")},
+    )
+
+
+def _auto_cultivation_resume(db: Session, user: User, params: dict) -> dict:
+    from backend.services.auto_cultivation_service import resume_auto_cultivation
+
+    _ = params
+    result = resume_auto_cultivation(db, user)
+    return _result(
+        db, user, result.get("success", False),
+        result.get("message", ""),
+        {},
+        [],
+        [result.get("message", "")],
+        "auto_cultivation_resume",
+        data={"auto_cultivation": result.get("auto_cultivation")},
+    )

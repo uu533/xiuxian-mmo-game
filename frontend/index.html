@@ -755,36 +755,58 @@
 
         <section class="content">
           <div id="tab-cultivation" class="tab-panel">
-            <div class="panel task-card">
+            <!-- 洞府总览面板 -->
+            <div class="panel" id="auto-cultivation-panel">
               <div class="panel-title">
-                <h2>当前任务</h2>
-                <span>新手引导</span>
+                <h2>洞府总览</h2>
+                <span id="auto-state-label">自动修行</span>
               </div>
-              <div id="task-panel" class="row"></div>
+              <div id="auto-status-row" class="row" style="margin-bottom:8px">
+                <div>
+                  <strong id="auto-state-name">未开启自动修行</strong>
+                  <span id="auto-strategy-name">选择策略开始挂机修行</span>
+                </div>
+              </div>
+              <div id="auto-pending-matters" class="list" style="margin-bottom:8px"></div>
+              <div id="auto-report-section" class="list" style="margin-bottom:10px"></div>
+              <div id="strategy-selector" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px">
+                <button class="strategy-btn" data-strategy="steady">稳健</button>
+                <button class="strategy-btn" data-strategy="balanced">均衡</button>
+                <button class="strategy-btn" data-strategy="aggressive">激进</button>
+              </div>
+              <div id="auto-control-btns" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+                <button id="auto-start-btn">开启自动修行</button>
+                <button id="auto-settle-btn" class="secondary">领取离线收益</button>
+                <button id="auto-pause-btn" class="secondary">暂停修行</button>
+                <button id="auto-resume-btn" class="secondary">继续修行</button>
+              </div>
             </div>
-            <div class="panel">
-              <div class="panel-title">
-                <h2>太虚吐纳</h2>
-                <span id="train-rate">后端结算</span>
-              </div>
-              <div class="bar"><span id="cultivation-bar" style="width: 0%"></span></div>
-              <div class="action-grid">
-                <button id="train-btn">修炼-12</button>
-                <button id="explore-btn">探索-18</button>
-                <button id="breakthrough-btn">突破-35</button>
-              </div>
-              <div class="action-grid recovery-grid">
-                <button id="meditate-btn" class="secondary">调息</button>
-                <button id="spirit-stone-btn" class="secondary">吸灵石</button>
-                <button id="pill-btn" class="secondary">服丹药</button>
-              </div>
-            </div>
+
+            <!-- 最近游历 -->
             <div class="panel">
               <div class="panel-title">
                 <h2>最近游历</h2>
                 <span>实时日志</span>
               </div>
               <div id="recent-logs" class="timeline"></div>
+            </div>
+
+            <!-- 临时操作（不再作为主循环入口） -->
+            <div class="panel" style="opacity:0.75">
+              <div class="panel-title">
+                <h2>临时操作</h2>
+                <span style="font-size:11px;color:#8faa8f">备用，不建议作为主要修行方式</span>
+              </div>
+              <div class="action-grid" style="margin-top:8px">
+                <button id="train-btn">修炼-12</button>
+                <button id="explore-btn">探索-18</button>
+                <button id="breakthrough-btn">突破-35</button>
+              </div>
+              <div class="action-grid recovery-grid" style="margin-top:8px">
+                <button id="meditate-btn" class="secondary">调息</button>
+                <button id="spirit-stone-btn" class="secondary">吸灵石</button>
+                <button id="pill-btn" class="secondary">服丹药</button>
+              </div>
             </div>
           </div>
 
@@ -909,7 +931,7 @@
       </section>
 
       <nav id="tabs" class="tabs hidden" aria-label="玩法导航">
-        <button class="active" data-tab="cultivation"><span class="tab-icon">✦</span><span>修炼</span></button>
+        <button class="active" data-tab="cultivation"><span class="tab-icon">✦</span><span>洞府</span></button>
         <button data-tab="character"><span class="tab-icon">◇</span><span>角色</span></button>
         <button data-tab="bag"><span class="tab-icon">▣</span><span>背包</span></button>
         <button data-tab="life-skills"><span class="tab-icon">☯</span><span>生活</span></button>
@@ -954,7 +976,6 @@
       const logs = document.getElementById("logs");
       const recentLogs = document.getElementById("recent-logs");
       const inventory = document.getElementById("inventory");
-      const taskPanel = document.getElementById("task-panel");
       const methodsList = document.getElementById("methods-list");
       const artifactsList = document.getElementById("artifacts-list");
       const sectSummary = document.getElementById("sect-summary");
@@ -1059,6 +1080,183 @@ function getEffectTypeName(type) {
         gameUi.classList.toggle("hidden", !loggedIn);
         tabs.classList.toggle("hidden", !loggedIn);
       }
+
+      // ========== Auto Cultivation ==========
+      let currentAutoStatus = null;
+
+      function renderAutoCultivation(c) {
+        const auto = c.auto_cultivation || {};
+        currentAutoStatus = auto;
+
+        const stateName = auto.state_name || "未开启";
+        const strategyName = auto.strategy_name || "未选择";
+        const enabled = auto.enabled;
+        const pausedReason = auto.paused_reason;
+        const canSettle = auto.can_settle;
+        const settleMinutes = auto.settle_minutes_available || 0;
+        const lastReport = auto.last_report;
+
+        document.getElementById("auto-state-name").textContent = `${stateName}${enabled ? "（进行中）" : "（已暂停）"}`;
+        document.getElementById("auto-strategy-name").textContent = `策略：${strategyName}`;
+
+        // Pending matters
+        const mattersEl = document.getElementById("auto-pending-matters");
+        const pendingMatters = lastReport?.pending_matters || [];
+        if (pausedReason) {
+          mattersEl.innerHTML = `<div class="toast" style="margin:0">
+            <strong>待处理：</strong>${pausedReason}
+            <button id="auto-resume-btn-from-matter" class="secondary" style="margin-left:8px;min-height:28px;padding:0 8px;font-size:11px">处理后继续</button>
+          </div>`;
+          document.getElementById("auto-resume-btn-from-matter")?.addEventListener("click", () => doAutoResume());
+        } else if (pendingMatters.length > 0) {
+          mattersEl.innerHTML = `<div class="toast">
+            <strong>待处理：</strong>${pendingMatters.join("；")}
+          </div>`;
+        } else {
+          mattersEl.innerHTML = "";
+        }
+
+        // Offline report
+        const reportEl = document.getElementById("auto-report-section");
+        if (lastReport) {
+          const duration = lastReport.duration_minutes || 0;
+          const hours = Math.floor(duration / 60);
+          const mins = duration % 60;
+          const timeStr = hours > 0 ? `${hours}小时${mins}分` : `${mins}分钟`;
+          const actions = lastReport.actions || {};
+          const gains = lastReport.gains || {};
+          const losses = lastReport.losses || {};
+
+          let reportHtml = `<div class="panel" style="margin:0;padding:10px;background:#10231f">
+            <div style="font-size:13px;font-weight:700;color:#e5c568;margin-bottom:6px">离线修行报告</div>
+            <div style="font-size:12px;color:#8faa8f;margin-bottom:4px">离线时长：${timeStr} · ${lastReport.cycles || 0} 次行动</div>
+            <div style="font-size:12px;color:#8faa8f;margin-bottom:4px">
+              洞府打坐 ${actions.meditating || 0} 次 · 自行历练 ${actions.adventuring || 0} 次 · 洞府休整 ${actions.resting || 0} 次
+            </div>
+            <div style="font-size:12px;color:#64c7a6;margin-bottom:4px">
+              修为 +${gains.cultivation || 0} · 灵石 +${gains.spirit_stones || 0}
+            </div>`;
+          if (gains.items && gains.items.length > 0) {
+            const itemNames = gains.items.map(i => `${i.name || i.code}${i.quantity > 1 ? ` x${i.quantity}` : ""}`).join("、");
+            reportHtml += `<div style="font-size:12px;color:#64c7a6;margin-bottom:4px">获得：${itemNames}</div>`;
+          }
+          if ((losses.mana || 0) > 0 || (losses.hp || 0) > 0) {
+            reportHtml += `<div style="font-size:12px;color:#d95f45;margin-bottom:4px">消耗法力 ${losses.mana || 0} · 损失气血 ${losses.hp || 0}</div>`;
+          }
+          if (lastReport.sect_task_messages && lastReport.sect_task_messages.length > 0) {
+            reportHtml += `<div style="font-size:11px;color:#e5c568;margin-bottom:4px">宗门：${lastReport.sect_task_messages.join("；")}</div>`;
+          }
+          reportHtml += `</div>`;
+          reportEl.innerHTML = reportHtml;
+        } else {
+          reportEl.innerHTML = "";
+        }
+
+        // Strategy buttons highlight
+        document.querySelectorAll(".strategy-btn").forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.strategy === auto.strategy);
+          btn.style.fontWeight = btn.dataset.strategy === auto.strategy ? "900" : "800";
+        });
+
+        // Control buttons
+        const startBtn = document.getElementById("auto-start-btn");
+        const settleBtn = document.getElementById("auto-settle-btn");
+        const pauseBtn = document.getElementById("auto-pause-btn");
+        const resumeBtn = document.getElementById("auto-resume-btn");
+
+        startBtn.disabled = enabled;
+        startBtn.textContent = enabled ? "自动修行进行中" : "开启自动修行";
+        settleBtn.disabled = !canSettle;
+        settleBtn.textContent = canSettle ? `领取离线收益（可结算${settleMinutes}分钟）` : "无需结算";
+        pauseBtn.disabled = !enabled;
+        resumeBtn.disabled = enabled && !pausedReason && auto.state !== "injured";
+      }
+
+      async function doAutoConfig(strategy, enabled) {
+        try {
+          showToast("正在设置自动修行...");
+          const result = await request("/action/execute", {
+            method: "POST",
+            body: JSON.stringify({ action_type: "auto_cultivation_config", params: { strategy, enabled } }),
+          });
+          if (result.success) {
+            showToast(result.message, true);
+            renderAutoCultivation(result.character);
+          } else {
+            showToast(result.message);
+          }
+        } catch (e) {
+          showToast("设置失败：" + e.message);
+        }
+      }
+
+      async function doAutoSettle() {
+        try {
+          showToast("正在结算离线收益...");
+          const result = await request("/action/execute", {
+            method: "POST",
+            body: JSON.stringify({ action_type: "auto_cultivation_settle", params: {} }),
+          });
+          if (result.success) {
+            showToast(result.message, true);
+            renderAutoCultivation(result.character);
+          } else {
+            showToast(result.message);
+          }
+        } catch (e) {
+          showToast("结算失败：" + e.message);
+        }
+      }
+
+      async function doAutoPause() {
+        try {
+          showToast("正在暂停自动修行...");
+          const result = await request("/action/execute", {
+            method: "POST",
+            body: JSON.stringify({ action_type: "auto_cultivation_pause", params: {} }),
+          });
+          if (result.success) {
+            showToast(result.message, true);
+            renderAutoCultivation(result.character);
+          } else {
+            showToast(result.message);
+          }
+        } catch (e) {
+          showToast("暂停失败：" + e.message);
+        }
+      }
+
+      async function doAutoResume() {
+        try {
+          showToast("正在恢复自动修行...");
+          const result = await request("/action/execute", {
+            method: "POST",
+            body: JSON.stringify({ action_type: "auto_cultivation_resume", params: {} }),
+          });
+          if (result.success) {
+            showToast(result.message, true);
+            renderAutoCultivation(result.character);
+          } else {
+            showToast(result.message);
+          }
+        } catch (e) {
+          showToast("恢复失败：" + e.message);
+        }
+      }
+
+      // Event listeners for auto cultivation
+      document.getElementById("auto-start-btn")?.addEventListener("click", () => {
+        const strategy = currentAutoStatus?.strategy || "balanced";
+        doAutoConfig(strategy, true);
+      });
+      document.getElementById("auto-settle-btn")?.addEventListener("click", doAutoSettle);
+      document.getElementById("auto-pause-btn")?.addEventListener("click", doAutoPause);
+      document.getElementById("auto-resume-btn")?.addEventListener("click", doAutoResume);
+      document.querySelectorAll(".strategy-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          doAutoConfig(btn.dataset.strategy, currentAutoStatus?.enabled || false);
+        });
+      });
 
       // ========== Goals Panel ==========
       const goalsPanel = document.getElementById("goals-panel");
@@ -1236,8 +1434,14 @@ function getEffectTypeName(type) {
         document.getElementById("res-mana").textContent = `${c.mana} / ${c.max_mana}`;
         document.getElementById("res-hp").textContent = `${c.hp} / ${c.max_hp} · ${c.life_status}`;
         const isDead = c.hp <= 0;
-        document.getElementById("train-rate").textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
-        document.getElementById("cultivation-bar").style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+        const trainRateEl = document.getElementById("train-rate");
+        if (trainRateEl) {
+            trainRateEl.textContent = isDead ? `角色已陨落，无法继续行动` : `所有行动消耗法力，可调息、吸灵石或服丹药恢复`;
+        }
+        const cultivationBarEl = document.getElementById("cultivation-bar");
+        if (cultivationBarEl) {
+            cultivationBarEl.style.width = `${Math.min(100, (c.cultivation / Math.max(1, c.cultivation_cap)) * 100)}%`;
+        }
         document.getElementById("train-btn").disabled = isDead || c.mana < 12;
         document.getElementById("explore-btn").disabled = isDead || c.mana < 18;
         document.getElementById("breakthrough-btn").disabled = isDead || c.mana < 35;
@@ -1296,11 +1500,13 @@ function getEffectTypeName(type) {
       }
 
       function renderTask(task) {
+        const el = document.getElementById("task-panel");
+        if (!el) return;
         if (!task) {
-          taskPanel.innerHTML = `<div><strong>暂无任务</strong><span>继续探索修行即可</span></div>`;
+          el.innerHTML = `<div><strong>暂无任务</strong><span>继续探索修行即可</span></div>`;
           return;
         }
-        taskPanel.innerHTML = `<div><strong>${task.name}</strong><span>${task.description}</span><em>${task.progress} / ${task.target}</em></div><button disabled>${task.status === "completed" ? "已完成" : "进行中"}</button>`;
+        el.innerHTML = `<div><strong>${task.name}</strong><span>${task.description}</span><em>${task.progress} / ${task.target}</em></div><button disabled>${task.status === "completed" ? "已完成" : "进行中"}</button>`;
       }
 
       function renderProgression() {
@@ -1315,6 +1521,7 @@ function getEffectTypeName(type) {
       async function loadMe() {
         const data = await request("/character/me");
         renderCharacter(data);
+        renderAutoCultivation(data.character);
         await loadProgression();
         await loadSect();
         await loadLogs();

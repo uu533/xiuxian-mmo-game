@@ -10,13 +10,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from tests.test_server_utils import ensure_test_server
+ensure_test_server()
+
 from backend.configs.realms import REALM_NAMES
 
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 # Dev routes are gated by ENABLE_DEV_ROUTES (default off for security).
 # Set to enable /dev/* endpoints in smoke test.
 os.environ.setdefault("ENABLE_DEV_ROUTES", "1")
-ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "game.db"
 SIMULATION_PATH = ROOT / "simulation_result.json"
 HIDDEN_FIELDS = {"hidden_luck", "hidden_inner_demon", "luck", "inner_demon", "action_points"}

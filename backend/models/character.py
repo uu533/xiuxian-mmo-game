@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database import Base
@@ -37,6 +37,13 @@ class Character(Base):
     sect_position: Mapped[str] = mapped_column(String(32), default="散修", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    # 自动修行字段
+    auto_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    auto_strategy: Mapped[str] = mapped_column(String(24), default="balanced", nullable=False)
+    auto_state: Mapped[str] = mapped_column(String(24), default="meditating", nullable=False)
+    last_auto_settle_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_auto_report_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    auto_paused_reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="character")
     sect: Mapped["Sect | None"] = relationship(back_populates="characters", foreign_keys=[sect_id])

@@ -37,6 +37,7 @@ class CharacterResponse(BaseModel):
     sect_name: str | None
     sect_position: str
     identity_status: str
+    auto_cultivation: dict | None = None
 
 
 class MeResponse(BaseModel):

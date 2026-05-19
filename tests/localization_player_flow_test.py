@@ -11,6 +11,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from tests.test_server_utils import ensure_test_server
+ensure_test_server()
+
 # Dev routes are gated by ENABLE_DEV_ROUTES (default off for security).
 # Set to enable /dev/* endpoints in smoke test.
 os.environ.setdefault("ENABLE_DEV_ROUTES", "1")

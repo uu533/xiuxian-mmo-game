@@ -43,6 +43,7 @@ class Character(Base):
     auto_state: Mapped[str] = mapped_column(String(24), default="meditating", nullable=False)
     last_auto_settle_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_auto_report_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_auto_log_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # 实时修仙日志（最近50条）
     auto_paused_reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="character")

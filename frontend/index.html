@@ -396,7 +396,7 @@
         gap: 8px;
       }
 
-      .timeline p {
+      .timeline p, .timeline .log-entry {
         margin: 0;
         padding: 9px 10px;
         border-radius: 8px;
@@ -404,6 +404,38 @@
         color: #dbe5d5;
         line-height: 1.45;
       }
+
+      .log-entry { font-size: 13px; }
+
+      .pending-alert {
+        background: linear-gradient(135deg, #2d1a0e 0%, #3a2212 100%);
+        border: 1px solid rgba(229, 197, 104, 0.3);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #e5c568;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .report-card {
+        background: #10231f;
+        border: 1px solid rgba(100, 199, 166, 0.15);
+        border-radius: 10px;
+        padding: 12px;
+      }
+
+      .report-title { font-size: 13px; font-weight: 800; color: #e5c568; margin-bottom: 4px; }
+      .report-meta { font-size: 11px; color: #8faa8f; margin-bottom: 4px; }
+      .report-actions { font-size: 12px; color: #8faa8f; margin-bottom: 4px; }
+      .report-event { font-size: 12px; color: #dbe5d5; font-style: italic; margin-bottom: 4px; }
+      .report-narrative { font-size: 12px; margin-bottom: 4px; }
+      .report-gains { font-size: 12px; color: #64c7a6; margin-bottom: 2px; }
+      .report-losses { font-size: 12px; color: #d95f45; margin-bottom: 2px; }
+      .report-sect { font-size: 11px; color: #e5c568; margin-bottom: 2px; }
 
       .task-card {
         border-left: 3px solid #e5c568;
@@ -1099,24 +1131,37 @@ function getEffectTypeName(type) {
         document.getElementById("auto-state-name").textContent = `${stateName}${enabled ? "（进行中）" : "（已暂停）"}`;
         document.getElementById("auto-strategy-name").textContent = `策略：${strategyName}`;
 
-        // Pending matters
+        // Pending matters（醒目显示）
         const mattersEl = document.getElementById("auto-pending-matters");
         const pendingMatters = lastReport?.pending_matters || [];
+        const realtimeLogs = auto.realtime_logs || [];
         if (pausedReason) {
-          mattersEl.innerHTML = `<div class="toast" style="margin:0">
-            <strong>待处理：</strong>${pausedReason}
+          mattersEl.innerHTML = `<div class="pending-alert">
+            <strong>⚠ 待处理：</strong>${pausedReason}
             <button id="auto-resume-btn-from-matter" class="secondary" style="margin-left:8px;min-height:28px;padding:0 8px;font-size:11px">处理后继续</button>
           </div>`;
           document.getElementById("auto-resume-btn-from-matter")?.addEventListener("click", () => doAutoResume());
         } else if (pendingMatters.length > 0) {
-          mattersEl.innerHTML = `<div class="toast">
-            <strong>待处理：</strong>${pendingMatters.join("；")}
+          mattersEl.innerHTML = `<div class="pending-alert">
+            <strong>📋 待处理：</strong>${pendingMatters.join("；")}
           </div>`;
         } else {
           mattersEl.innerHTML = "";
         }
 
-        // Offline report
+        // 实时修仙日志
+        const logsEl = document.getElementById("recent-logs");
+        if (realtimeLogs.length > 0) {
+          logsEl.innerHTML = realtimeLogs.slice(-8).reverse().map(log =>
+            `<p class="log-entry">${log}</p>`
+          ).join("");
+        } else if (enabled) {
+          logsEl.innerHTML = `<p class="log-entry" style="color:#8faa8f">自动修行中，静候佳音...</p>`;
+        } else {
+          logsEl.innerHTML = `<p class="log-entry" style="color:#8faa8f">开启自动修行后，这里将显示修仙动态</p>`;
+        }
+
+        // Offline report（增强版）
         const reportEl = document.getElementById("auto-report-section");
         if (lastReport) {
           const duration = lastReport.duration_minutes || 0;
@@ -1126,25 +1171,35 @@ function getEffectTypeName(type) {
           const actions = lastReport.actions || {};
           const gains = lastReport.gains || {};
           const losses = lastReport.losses || {};
+          const eventSummary = lastReport.event_summary || "";
+          const growthFeel = lastReport.growth_feel || "";
+          const dangerFeel = lastReport.danger_feel || "";
 
-          let reportHtml = `<div class="panel" style="margin:0;padding:10px;background:#10231f">
-            <div style="font-size:13px;font-weight:700;color:#e5c568;margin-bottom:6px">离线修行报告</div>
-            <div style="font-size:12px;color:#8faa8f;margin-bottom:4px">离线时长：${timeStr} · ${lastReport.cycles || 0} 次行动</div>
-            <div style="font-size:12px;color:#8faa8f;margin-bottom:4px">
-              洞府打坐 ${actions.meditating || 0} 次 · 自行历练 ${actions.adventuring || 0} 次 · 洞府休整 ${actions.resting || 0} 次
-            </div>
-            <div style="font-size:12px;color:#64c7a6;margin-bottom:4px">
-              修为 +${gains.cultivation || 0} · 灵石 +${gains.spirit_stones || 0}
-            </div>`;
+          let reportHtml = `<div class="report-card">
+            <div class="report-title">📜 离线修行报告</div>
+            <div class="report-meta">${timeStr} · ${lastReport.cycles || 0} 次行动</div>
+            <div class="report-actions">打坐 ${actions.meditating || 0} · 历练 ${actions.adventuring || 0} · 休整 ${actions.resting || 0}</div>`;
+          if (eventSummary) {
+            reportHtml += `<div class="report-event">${eventSummary}</div>`;
+          }
+          if (growthFeel) {
+            reportHtml += `<div class="report-narrative" style="color:#64c7a6">${growthFeel}</div>`;
+          }
+          if (dangerFeel) {
+            reportHtml += `<div class="report-narrative" style="color:#d95f45">${dangerFeel}</div>`;
+          }
+          if (gains.cultivation > 0 || gains.spirit_stones > 0) {
+            reportHtml += `<div class="report-gains">修为 +${gains.cultivation || 0} · 灵石 +${gains.spirit_stones || 0}</div>`;
+          }
           if (gains.items && gains.items.length > 0) {
             const itemNames = gains.items.map(i => `${i.name || i.code}${i.quantity > 1 ? ` x${i.quantity}` : ""}`).join("、");
-            reportHtml += `<div style="font-size:12px;color:#64c7a6;margin-bottom:4px">获得：${itemNames}</div>`;
+            reportHtml += `<div class="report-gains">获得：${itemNames}</div>`;
           }
           if ((losses.mana || 0) > 0 || (losses.hp || 0) > 0) {
-            reportHtml += `<div style="font-size:12px;color:#d95f45;margin-bottom:4px">消耗法力 ${losses.mana || 0} · 损失气血 ${losses.hp || 0}</div>`;
+            reportHtml += `<div class="report-losses">消耗法力 ${losses.mana || 0} · 损失气血 ${losses.hp || 0}</div>`;
           }
           if (lastReport.sect_task_messages && lastReport.sect_task_messages.length > 0) {
-            reportHtml += `<div style="font-size:11px;color:#e5c568;margin-bottom:4px">宗门：${lastReport.sect_task_messages.join("；")}</div>`;
+            reportHtml += `<div class="report-sect">宗门：${lastReport.sect_task_messages.join("；")}</div>`;
           }
           reportHtml += `</div>`;
           reportEl.innerHTML = reportHtml;
@@ -1529,6 +1584,54 @@ function getEffectTypeName(type) {
         await loadGoals();
         showGame(true);
         if (currentSkillTab) renderRecipes(currentSkillTab);
+        // 开启实时修仙日志轮询（10秒一次）
+        startRealtimeLogPolling();
+      }
+
+      let _logPollTimer = null;
+
+      function startRealtimeLogPolling() {
+        if (_logPollTimer) clearInterval(_logPollTimer);
+        _logPollTimer = setInterval(async () => {
+          if (!getToken()) return;  // 未登录则停止
+          try {
+            const data = await request("/auto-cultivation/status");
+            const auto = data.auto_cultivation || {};
+            const logsEl = document.getElementById("recent-logs");
+            if (!logsEl) return;
+            const realtimeLogs = auto.realtime_logs || [];
+            if (realtimeLogs.length > 0) {
+              logsEl.innerHTML = realtimeLogs.slice(-8).reverse().map(log =>
+                `<p class="log-entry">${log}</p>`
+              ).join("");
+            }
+            // 更新待处理事项
+            const mattersEl = document.getElementById("auto-pending-matters");
+            if (mattersEl) {
+              const pendingMatters = auto.last_report?.pending_matters || [];
+              const pausedReason = auto.paused_reason;
+              if (pausedReason && !mattersEl.querySelector(".pending-alert")) {
+                mattersEl.innerHTML = `<div class="pending-alert">
+                  <strong>⚠ 待处理：</strong>${pausedReason}
+                  <button id="auto-resume-btn-from-matter" class="secondary" style="margin-left:8px;min-height:28px;padding:0 8px;font-size:11px">处理后继续</button>
+                </div>`;
+                document.getElementById("auto-resume-btn-from-matter")?.addEventListener("click", () => doAutoResume());
+              } else if (pendingMatters.length > 0 && !mattersEl.querySelector(".pending-alert")) {
+                mattersEl.innerHTML = `<div class="pending-alert">
+                  <strong>📋 待处理：</strong>${pendingMatters.join("；")}
+                </div>`;
+              }
+            }
+            // 更新状态标签
+            const stateEl = document.getElementById("auto-state-name");
+            if (stateEl) {
+              const stateName = auto.state_name || "未开启";
+              stateEl.textContent = `${stateName}${auto.enabled ? "（进行中）" : "（已暂停）"}`;
+            }
+          } catch (e) {
+            // 忽略轮询错误
+          }
+        }, 10000);
       }
 
       async function loadProgression() {

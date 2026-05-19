@@ -42,6 +42,60 @@ def _ensure_naive(dt):
     return dt
 
 
+def _generate_pending_matters(db: Session, character: Character, report: dict) -> None:
+    """生成更丰富的待处理事项"""
+    matters = list(report.get("pending_matters", []))
+    auto_state = character.auto_state
+    auto_reason = character.auto_paused_reason
+
+    # 已有暂停原因 → 加入待处理
+    if auto_reason:
+        if auto_reason not in matters:
+            matters.append(auto_reason)
+
+    # 背包满
+    if any("背包" in m for m in matters):
+        pass  # 已有
+    elif _check_bag_full(db, character):
+        matters.append("背包已满，请整理后继续修行")
+
+    # 可尝试突破（修为 >= 80%）
+    cult_progress = character.cultivation / character.cultivation_cap if character.cultivation_cap > 0 else 0
+    if cult_progress >= 0.8:
+        matters.append("修为接近突破，可尝试突破当前境界")
+
+    # 气血过低（刚结算完且 hp 较低）
+    hp_ratio = character.hp / character.max_hp if character.max_hp > 0 else 0
+    if hp_ratio < 0.5 and auto_state not in ("injured",):
+        matters.append("气血不足，建议先休整再继续历练")
+
+    # 法力较低
+    mana_ratio = character.mana / character.max_mana if character.max_mana > 0 else 0
+    if mana_ratio < 0.3:
+        matters.append("法力偏低，建议打坐恢复")
+
+    # 如果上述都没有，且 auto_state 为 meditating → 加入一句鼓励
+    if not matters and auto_state == "meditating":
+        matters.append("自动修行中，一切平稳 ✦")
+
+    report["pending_matters"] = matters
+
+
+def _check_bag_full(db: Session, character: Character) -> bool:
+    """检查背包是否已满"""
+    from backend.models import InventorySlot
+    total_slots = db.query(InventorySlot).filter(
+        InventorySlot.character_id == character.id,
+        InventorySlot.container_type == "main_bag",
+    ).count()
+    filled_slots = db.query(InventorySlot).filter(
+        InventorySlot.character_id == character.id,
+        InventorySlot.container_type == "main_bag",
+        InventorySlot.item_template_id.isnot(None),
+    ).count()
+    return filled_slots >= total_slots and total_slots > 0
+
+
 def get_auto_cultivation_status(db: Session, character: Character) -> dict:
     """
     只读：返回当前自动修行状态
@@ -92,8 +146,19 @@ def get_auto_cultivation_status(db: Session, character: Character) -> dict:
         "max_offline_hours": MAX_OFFLINE_HOURS,
         "paused_reason": character.auto_paused_reason,
         "last_report": last_report,
+        "realtime_logs": _get_realtime_logs(character),
         "available_strategies": available_strategies,
     }
+
+
+def _get_realtime_logs(character: Character) -> list:
+    """读取最近实时修仙日志"""
+    if not character.last_auto_log_json:
+        return []
+    try:
+        return json.loads(character.last_auto_log_json)
+    except Exception:
+        return []
 
 
 def configure_auto_cultivation(db: Session, user: User, strategy: str, enabled: bool) -> dict:
@@ -203,6 +268,8 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
     mana_threshold = int(character.max_mana * strategy_config["mana_threshold_percent"] / 100)
     hp_threshold = int(character.max_hp * strategy_config["hp_threshold_percent"] / 100)
 
+    MAX_LOG_ENTRIES = 50
+
     report = {
         "duration_minutes": elapsed_minutes,
         "settled_minutes": cycles * SETTLE_INTERVAL_MINUTES,
@@ -213,6 +280,7 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
         "losses": {"mana": 0, "hp": 0, "items": []},
         "sect_task_messages": [],
         "pending_matters": [],
+        "auto_logs": [],
         "final_state": {"state": character.auto_state, "state_name": AUTO_STATE_NAMES.get(character.auto_state, character.auto_state)},
     }
 
@@ -221,22 +289,29 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
     total_mana_cost = 0
     total_hp_damage = 0
 
+    def add_log(report, text):
+        report["auto_logs"].append(text)
+
     for i in range(cycles):
         cycle_state = character.auto_state
 
         # 如果已经 paused/injured，停止结算
         if cycle_state in ("paused", "injured"):
             report["pending_matters"].append(character.auto_paused_reason or "自动修行已暂停")
+            add_log(report, f"【修行暂停】{character.auto_paused_reason or '自动修行已暂停'}")
             break
 
         # 气血低于阈值 → 休整
         if character.hp < hp_threshold:
             _do_rest(db, character, report, strategy_config)
+            add_log(report, "【洞府休整】你在洞府静养，气血渐渐恢复。")
             continue
 
         # 法力低于阈值 → 打坐
         if character.mana < mana_threshold:
             _do_meditate(db, character, report)
+            mana_recover = MEDITATE_MANA_RECOVER
+            add_log(report, f"【洞府打坐】你在洞府盘膝调息，法力恢复 {mana_recover} 点。")
             continue
 
         # 法力充足 → 历练
@@ -246,6 +321,29 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
         sect_task_messages_accum.extend(result.get("sect_messages", []))
         all_drops.extend(result.get("drops", []))
 
+        # 根据冒险结果生成氛围型日志
+        event_type = result.get("event_type", "normal")
+        hp_dmg = result.get("hp_damage", 0)
+        stones = result.get("stones", 0)
+        items = result.get("drops", [])
+        battle_count = result.get("battle_count", 0)
+        sect_msg = result.get("sect_messages", [])
+
+        if hp_dmg > 0:
+            add_log(report, f"【外出历练】你在野外遭遇敌人，损失气血 {hp_dmg} 点。")
+        elif stones > 0:
+            add_log(report, f"【外出历练】你探寻灵脉，获得灵石 +{stones}。")
+        else:
+            add_log(report, f"【外出历练】你在天地间感悟，修为有所精进。")
+
+        if items:
+            for item in items[:3]:
+                add_log(report, f"【偶得】你发现 {item.get('name', item.get('code', '未知物品'))}，收入囊中。")
+
+        # 宗门任务推进消息
+        for msg in sect_msg[:2]:
+            add_log(report, f"【宗门】{msg}")
+
         # 检查是否背包满
         if result.get("bag_full"):
             character.auto_state = "paused"
@@ -253,6 +351,7 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
             character.auto_enabled = False
             report["pending_matters"].append("背包已满，请整理后继续修行")
             report["final_state"] = {"state": "paused", "state_name": "等待处理"}
+            add_log(report, "【修行暂停】背包已满，无法收纳更多物品，请整理后继续。")
             break
 
         # 检查是否重伤（HP 低于 hp_threshold 且当前 HP 足够低）
@@ -263,10 +362,12 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
             character.auto_enabled = False
             report["pending_matters"].append("你在自行历练中遭遇重创，已重伤返回洞府")
             report["final_state"] = {"state": "injured", "state_name": "重伤暂停"}
+            add_log(report, "【重伤】你在历练中遭遇强敌，身受重创，被迫返回洞府疗养。")
             break
         # 当前周期 HP 低于阈值但未达重伤 → 下一周期先休整
         if character.hp < hp_threshold:
             _do_rest(db, character, report, strategy_config)
+            add_log(report, "【气血不足】你感到体力不支，返回洞府休整。")
 
     # 更新角色数值
     character.last_auto_settle_at = now
@@ -285,8 +386,66 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
     report["losses"]["mana"] = total_mana_cost
     report["losses"]["hp"] = total_hp_damage
 
+    # 生成离线报告的增强内容：事件感/成长感/危险感
+    actions = report["actions"]
+    adv_count = actions.get("adventuring", 0)
+    rest_count = actions.get("resting", 0)
+    losses_hp = report["losses"]["hp"]
+    losses_mana = report["losses"]["mana"]
+
+    # 事件摘要
+    event_summary_parts = []
+    if adv_count > 0:
+        event_summary_parts.append(f"历练 {adv_count} 次")
+    if rest_count > 0:
+        event_summary_parts.append(f"休整 {rest_count} 次")
+    if losses_hp > 30:
+        event_summary_parts.append("多次负伤")
+    if losses_mana > total_mana_cost * 0.7:
+        event_summary_parts.append("法力消耗较大")
+
+    report["event_summary"] = "、".join(event_summary_parts) if event_summary_parts else "平静无事"
+
+    # 成长感描述
+    cult_gain_total = report["gains"].get("cultivation", 0)
+    stones_gain = report["gains"].get("spirit_stones", 0)
+    if cult_gain_total > 200:
+        report["growth_feel"] = "你感悟天地，修为精进神速。"
+    elif cult_gain_total > 100:
+        report["growth_feel"] = "你潜心修行，修为有所长进。"
+    elif cult_gain_total > 50:
+        report["growth_feel"] = "你静心修炼，小有所得。"
+    else:
+        report["growth_feel"] = "你稳扎稳打，循序渐进。"
+
+    # 危险感描述
+    if losses_hp > 80:
+        report["danger_feel"] = "你在历练中多次遭遇强敌，险象环生。"
+    elif losses_hp > 40:
+        report["danger_feel"] = "历练途中偶有凶险，你受伤不轻。"
+    elif losses_hp > 0:
+        report["danger_feel"] = "外出历练小有波折，受了些许轻伤。"
+    else:
+        report["danger_feel"] = "此番历练平安无事，安然无恙。"
+
+    # 生成待处理事项（更丰富）
+    _generate_pending_matters(db, character, report)
+
     # 保存报告
     character.last_auto_report_json = json.dumps(report, ensure_ascii=False)
+
+    # 合并并保存实时日志（保留最近 MAX_LOG_ENTRIES 条）
+    new_logs = report.get("auto_logs", [])
+    existing_logs = []
+    if character.last_auto_log_json:
+        try:
+            existing_logs = json.loads(character.last_auto_log_json)
+        except Exception:
+            existing_logs = []
+    merged_logs = new_logs + existing_logs
+    # 保留最新 MAX_LOG_ENTRIES 条
+    trimmed_logs = merged_logs[-MAX_LOG_ENTRIES:]
+    character.last_auto_log_json = json.dumps(trimmed_logs, ensure_ascii=False)
 
     # 重置自动状态（以便下次自动修行）
     if character.auto_state not in ("paused", "injured"):
@@ -461,6 +620,9 @@ def _do_adventure(db: Session, character: Character, user: User, report: dict, s
         "drops": drops,
         "sect_messages": sect_messages,
         "bag_full": bag_full,
+        "event_type": event_type,
+        "stones": stones,
+        "battle_count": 1 if event_type == "battle" else 0,
     }
 
 

@@ -146,6 +146,7 @@ def migrate_auto_cultivation_schema() -> None:
                 "auto_state": "VARCHAR(24) NOT NULL DEFAULT 'meditating'",
                 "last_auto_settle_at": "DATETIME",
                 "last_auto_report_json": "TEXT",
+                "last_auto_log_json": "TEXT",
                 "auto_paused_reason": "VARCHAR(128)",
             },
         )

@@ -435,6 +435,8 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
     character.last_auto_report_json = json.dumps(report, ensure_ascii=False)
 
     # 合并并保存实时日志（保留最近 MAX_LOG_ENTRIES 条）
+    # 日志存储顺序：旧 → 新（最新追加到末尾）
+    # 合并时：旧日志在前，新日志在后，取最后 50 条即为最新
     new_logs = report.get("auto_logs", [])
     existing_logs = []
     if character.last_auto_log_json:
@@ -442,7 +444,7 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
             existing_logs = json.loads(character.last_auto_log_json)
         except Exception:
             existing_logs = []
-    merged_logs = new_logs + existing_logs
+    merged_logs = existing_logs + new_logs
     # 保留最新 MAX_LOG_ENTRIES 条
     trimmed_logs = merged_logs[-MAX_LOG_ENTRIES:]
     character.last_auto_log_json = json.dumps(trimmed_logs, ensure_ascii=False)
@@ -674,6 +676,106 @@ def _grant_auto_drop(db: Session, character: Character, reward_mult: float) -> d
             })
 
     return {"drops": drops, "bag_full": bag_full}
+
+
+def auto_cultivation_tick(db: Session, character: Character) -> dict:
+    """
+    在线挂机轻量 tick：
+    - 生成 1 条修仙氛围日志
+    - 不发奖励（不能成为刷资源入口）
+    - 不完整结算
+    - 仅追加日志 + 更新 last_auto_settle_at（避免重复触发 settle）
+    """
+    if not character.auto_enabled or character.auto_state in ("paused", "injured"):
+        return {
+            "success": False,
+            "message": "自动修行未开启或已暂停，无法产生新的修仙动态。",
+            "auto_cultivation": get_auto_cultivation_status(db, character),
+        }
+
+    # 存储顺序：旧 → 新，最新追加到末尾
+    MAX_LOG_ENTRIES = 50
+
+    # 随机生成一条氛围日志
+    log = _generate_atmosphere_log(character)
+
+    # 追加到日志列表
+    existing_logs = []
+    if character.last_auto_log_json:
+        try:
+            existing_logs = json.loads(character.last_auto_log_json)
+        except Exception:
+            existing_logs = []
+
+    updated_logs = existing_logs + [log]
+    updated_logs = updated_logs[-MAX_LOG_ENTRIES:]
+    character.last_auto_log_json = json.dumps(updated_logs, ensure_ascii=False)
+
+    # 更新 last_auto_settle_at（防重复触发 settle，但不改变数值）
+    character.last_auto_settle_at = utc_now()
+
+    db.flush()
+
+    return {
+        "success": True,
+        "message": log,
+        "auto_cultivation": get_auto_cultivation_status(db, character),
+        "new_log": log,
+    }
+
+
+# 在线氛围日志素材库
+_TICK_ATMOSPHERE_LOGS = [
+    "你在洞府吐纳灵气，周身缓缓环绕着淡淡的灵光。",
+    "你听见远处山巅传来阵阵钟声，心神微动。",
+    "你感应到天地灵气潮汐，默默运转小周天。",
+    "你沿着洞府外的山道缓行，感受万物生机。",
+    "你闭目凝神，体内真元缓缓流转。",
+    "你察觉山外似乎有妖兽嘶吼，但并未靠近洞府。",
+    "你检查储物袋，确认收获无误后继续修行。",
+    "你收敛气息，继续稳固境界。",
+    "你感到修为渐长，天地灵气入体更加顺畅。",
+    "你观察洞府外风云变幻，悟得一丝天地至理。",
+    "你在洞府附近发现一株低阶灵草，采收入袋。",
+    "你听闻远处有修士斗法，余波隐隐传来。",
+    "你盘膝而坐，天地灵气如涓涓细流汇入丹田。",
+    "你感受到体内真元蠢蠢欲动，隐约有突破之兆。",
+    "你望着洞府外的云海，思绪飘远又收回。",
+    "你轻抚腰间法器，法器微微发出微弱光芒。",
+    "你闭目调息，法力在经脉中缓缓运行。",
+    "你检视自身，发现气息比昨日更加沉稳。",
+    "你感应到洞府结界微微颤动，片刻后恢复平静。",
+    "你望见天边流星划过，默默许下修行之愿。",
+]
+
+
+def _generate_atmosphere_log(character: Character) -> str:
+    """根据角色状态生成一条随机氛围日志"""
+    state = character.auto_state
+    hp_ratio = character.hp / character.max_hp if character.max_hp > 0 else 0
+    mana_ratio = character.mana / character.max_mana if character.max_mana > 0 else 0
+
+    # 根据状态选择合适的日志
+    if state == "meditating":
+        pool = _TICK_ATMOSPHERE_LOGS
+    elif state == "resting":
+        pool = [
+            "你在洞府静养，气血渐渐恢复。",
+            "你服下一粒丹药，药力缓缓化解，伤势好转。",
+            "你在洞府中小憩，醒来后精神恢复了许多。",
+            "你闭目养神，感受体内的生机正在回归。",
+        ]
+    elif state == "adventuring":
+        pool = [
+            "你离开洞府，在外探索片刻后返回。",
+            "你沿着山道行进，发现山间云雾缭绕。",
+            "你隐约感应到远处灵脉的波动。",
+            "你在山野间行走，随手采集了几株灵草。",
+        ]
+    else:
+        pool = _TICK_ATMOSPHERE_LOGS
+
+    return random.choice(pool)
 
 
 def auto_cultivation_summary(character: Character) -> dict:

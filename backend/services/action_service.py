@@ -76,6 +76,7 @@ def execute_action(db: Session, user: User, action_type: str, params: dict | Non
         "auto_cultivation_settle": _auto_cultivation_settle,
         "auto_cultivation_pause": _auto_cultivation_pause,
         "auto_cultivation_resume": _auto_cultivation_resume,
+        "auto_cultivation_tick": _auto_cultivation_tick,
     }
     handler = handlers.get(action_type)
     if not handler:
@@ -383,7 +384,7 @@ def _result(db: Session, user: User, success: bool, message: str, cost: dict, re
         "inventory": inventory_payload(db, user.character),
     }
     extra = data or {}
-    for key in ("sect", "member", "task", "auto_cultivation", "auto_report", "gains", "losses"):
+    for key in ("sect", "member", "task", "auto_cultivation", "auto_report", "gains", "losses", "new_log"):
         if key in extra:
             result[key] = extra[key]
     return result
@@ -535,4 +536,26 @@ def _auto_cultivation_resume(db: Session, user: User, params: dict) -> dict:
         [result.get("message", "")],
         "auto_cultivation_resume",
         data={"auto_cultivation": result.get("auto_cultivation")},
+    )
+
+
+def _auto_cultivation_tick(db: Session, user: User, params: dict) -> dict:
+    """
+    在线挂机轻量 tick：生成 1 条修仙氛围日志，不发奖励。
+    """
+    from backend.services.auto_cultivation_service import auto_cultivation_tick
+
+    _ = params
+    result = auto_cultivation_tick(db, user.character)
+    return _result(
+        db, user, result.get("success", False),
+        result.get("message", ""),
+        {},
+        [],
+        [result.get("message", "")],
+        "auto_cultivation_tick",
+        data={
+            "auto_cultivation": result.get("auto_cultivation"),
+            "new_log": result.get("new_log", ""),
+        },
     )

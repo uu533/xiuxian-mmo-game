@@ -19,6 +19,18 @@ def execute(
     return execute_action(db, current_user, payload.action_type, payload.params)
 
 
+@router.post("/action/execute-tick", response_model=dict)
+def execute_tick(
+    payload: ActionExecuteRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """
+    专用端点用于 auto_cultivation_tick，避免 ActionResponse schema 过滤掉 new_log 字段。
+    """
+    return execute_action(db, current_user, payload.action_type, payload.params)
+
+
 @router.post("/action/train", response_model=ActionResponse)
 def train_compat(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     return execute_action(db, current_user, "train", {})

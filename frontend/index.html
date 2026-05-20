@@ -1373,14 +1373,6 @@ async function loadGoals() {
           }
         }
       }
-        try {
-          const data = await request("/goals/current");
-          renderGoals(data.goals || []);
-        } catch (e) {
-          goalsShortTerm.innerHTML = "";
-          goalsLongTerm.innerHTML = "";
-        }
-      }
 
       toggleGoalsBtn.addEventListener("click", () => {
         setGoalsHidden(true);

@@ -1471,6 +1471,8 @@ function getEffectTypeName(type) {
           ["防御", `${c.defense}（基础${c.base_defense}+加成${c.defense_bonus}）`],
           ["突破率", `${Math.round(c.breakthrough_rate * 100)}%`],
           ["灵石", c.spirit_stones],
+          ["心魔值", `${c.hidden_inner_demon}（降低突破率）`],
+          ["业力值", `${c.hidden_karma}（降低突破率和探索收益）`],
         ];
         grid.innerHTML = stats.map(([label, value, hasHelp]) => {
           const valueHtml = hasHelp ? `<div class="root-line"><strong>${value}</strong><button class="help-btn" id="root-help-btn" title="查看灵根说明">?</button></div>` : `<strong>${value}</strong>`;

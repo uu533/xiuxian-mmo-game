@@ -145,9 +145,21 @@ def _explore(db: Session, user: User, params: dict) -> dict:
         ["explore_luck_bonus", "explore_damage_reduction", "explore_mana_discount", "explore_reward_bonus"],
     )
     character.cultivation = min(character.cultivation_cap, character.cultivation + random.randint(4, 16))
+    
+    # BUG-004：心魔值影响 - 探索时心魔值高可能造成气血损伤
+    inner_demon_damage = 0
+    if character.hidden_inner_demon >= 30:
+        # 心魔值>=30时，探索有概率造成气血损伤
+        if random.random() < (character.hidden_inner_demon / 100.0):
+            inner_demon_damage = random.randint(5, 15)
+            character.hp = max(20, character.hp - inner_demon_damage)
+    
     character.updated_at = utc_now()
     message = f"外出探索消耗 {cost['mana']} 点法力。{event_result['message']}"
+    if inner_demon_damage > 0:
+        message += f" 心魔反噬，气血损失 {inner_demon_damage} 点。"
     event_result["data"]["active_effects"] = effect_result
+    event_result["data"]["inner_demon_damage"] = inner_demon_damage
     return _finalize(db, user, True, "explore", message, cost, event_result["rewards"], event_result["data"], event_result.get("extra_logs", []))
 
 

@@ -14,6 +14,13 @@ from backend.services.spiritual_root_service import root_rate
 
 
 def get_base_attack_by_realm(character: Character) -> int:
+    """
+    根据角色境界计算基础攻击力。
+    添加参数验证和异常处理。
+    """
+    if character is None:
+        return 0
+    
     normalize_realm(character)
     realm_name = character.realm
     if realm_name.startswith("炼气"):
@@ -33,51 +40,109 @@ def get_base_attack_by_realm(character: Character) -> int:
 
     from backend.configs.realms import REALM_NAMES
 
-    index = REALM_NAMES.index(realm_name)
-    nascent_index = REALM_NAMES.index("元婴初期")
-    return 500 + (index - nascent_index) * 240
+    try:
+        index = REALM_NAMES.index(realm_name)
+        nascent_index = REALM_NAMES.index("元婴初期")
+        return 500 + (index - nascent_index) * 240
+    except ValueError:
+        # 如果realm_name不在REALM_NAMES中（例如旧数据格式），返回默认值
+        return 500
 
 
 def get_base_defense_by_realm(character: Character) -> int:
+    """
+    根据角色境界计算基础防御力。
+    添加参数验证。
+    """
+    if character is None:
+        return 0
     return get_base_attack_by_realm(character)
 
 
 def get_max_mana(character: Character) -> int:
+    """
+    计算角色最大法力值。
+    添加参数验证。
+    """
+    if character is None:
+        return 100
     return max(100, get_base_attack_by_realm(character) * 12 + _method_mana_bonus(character) + _artifact_mana_bonus(character))
 
 
 def get_max_hp(character: Character) -> int:
+    """
+    计算角色最大气血值。
+    添加参数验证。
+    """
+    if character is None:
+        return 100
     normalize_realm(character)
     base = BASE_HP_BY_STAGE.get(character.realm_stage, 100)
     return base + get_base_defense_by_realm(character) * 2
 
 
 def get_cultivation_speed(character: Character) -> float:
+    """
+    计算修炼速度。
+    添加参数验证。
+    """
+    if character is None:
+        return 1.0
     return root_rate(character.spiritual_root) + _method_cultivation_speed_bonus(character)
 
 
 def get_cultivation_efficiency(character: Character) -> float:
+    """
+    计算连续修炼效率衰减。
+    修复：添加参数验证和action_records的None检查。
+    调整：使用渐进式惩罚 [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
+    """
+    if character is None:
+        return 1.0
+    
     consecutive_trains = 0
+    # 添加None检查，避免TypeError
+    if character.action_records is None:
+        return 1.0
+    
     # 只取最近 10 条记录，避免全表遍历
     recent_records = sorted(character.action_records, key=lambda item: item.id, reverse=True)[:10]
     for record in recent_records:
         if record.action_type != "train" or not (record.result_json or {}).get("success"):
             break
         consecutive_trains += 1
-        if consecutive_trains >= 4:
+        if consecutive_trains >= 6:  # 调整为6次，匹配新的惩罚数组
             break
-    return [1.0, 0.8, 0.6, 0.4][consecutive_trains] if consecutive_trains < 4 else 0.2
+    # 渐进式惩罚：第1次1.0，第2次0.9，第3次0.8，第4次0.7，第5次0.6，第6次及以后0.5
+    penalty_array = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
+    return penalty_array[consecutive_trains] if consecutive_trains < 6 else 0.5
 
 
 def get_train_cultivation_bonus(character: Character) -> float:
+    """
+    获取修炼时的修为加成。
+    添加参数验证。
+    """
+    if character is None:
+        return 0.0
     return min(0.18, effect_value(character, "train_cultivation_bonus"))
 
 
 def get_breakthrough_rate(character: Character) -> float:
+    """
+    计算突破成功率。
+    添加参数验证。
+    """
+    if character is None:
+        return 0.02
+    
     config = current_realm_config(character)
     rate = config.breakthrough_rate
     rate += character.hidden_luck * BREAKTHROUGH_LUCK_FACTOR
+    # 心魔值降低突破率（BUG-004：实现影响机制）
     rate -= character.hidden_inner_demon * BREAKTHROUGH_INNER_DEMON_FACTOR
+    # 业力值降低突破率（BUG-004：实现影响机制）
+    rate -= character.hidden_karma * 0.02  # 每点业力降低2%突破率
     rate += _method_breakthrough_bonus(character)
     if character.realm == "结丹后期":
         rate -= 0.04
@@ -87,14 +152,33 @@ def get_breakthrough_rate(character: Character) -> float:
 
 
 def get_final_attack(character: Character) -> int:
+    """
+    计算最终攻击力（基础+功法+法宝）。
+    添加参数验证。
+    """
+    if character is None:
+        return 0
     return get_base_attack_by_realm(character) + _method_attack_bonus(character) + _artifact_attack_bonus(character)
 
 
 def get_final_defense(character: Character) -> int:
+    """
+    计算最终防御力（基础+功法+法宝）。
+    添加参数验证。
+    """
+    if character is None:
+        return 0
     return get_base_defense_by_realm(character) + _method_defense_bonus(character) + _artifact_defense_bonus(character)
 
 
 def get_action_mana_cost(character: Character, action_type: str) -> int:
+    """
+    计算行动法力消耗。
+    添加参数验证。
+    """
+    if character is None or action_type is None:
+        return 0
+    
     base = int(ACTION_CONFIGS.get(action_type, {}).get("mana_cost", 0))
     if action_type == "explore" and effect_value(character, "explore_mana_discount") > 0:
         return max(1, base - get_swift_talisman_mana_discount(character))
@@ -102,24 +186,54 @@ def get_action_mana_cost(character: Character, action_type: str) -> int:
 
 
 def get_life_skill_mana_cost(character: Character, recipe: dict) -> int:
+    """
+    计算生活技能法力消耗。
+    添加参数验证。
+    """
+    if character is None or recipe is None:
+        return 0
     _ = character
     return int(recipe.get("mana_cost", 0))
 
 
 def get_life_skill_success_rate(character: Character, recipe: dict) -> float:
+    """
+    计算生活技能成功率。
+    添加参数验证。
+    """
+    if character is None or recipe is None:
+        return 0.05
     _ = character
     return max(0.05, min(1.0, float(recipe.get("success_rate", 1.0))))
 
 
 def get_scout_talisman_luck_bonus(character: Character) -> int:
+    """
+    获取探查符运气加成。
+    添加参数验证。
+    """
+    if character is None:
+        return 0
     return int(1000 * effect_value(character, "explore_luck_bonus"))
 
 
 def get_guard_talisman_damage_reduction(character: Character) -> float:
+    """
+    获取护身符伤害减免。
+    添加参数验证。
+    """
+    if character is None:
+        return 0.0
     return min(0.5, effect_value(character, "explore_damage_reduction"))
 
 
 def get_swift_talisman_mana_discount(character: Character) -> int:
+    """
+    获取速行符法力折扣。
+    添加参数验证。
+    """
+    if character is None:
+        return 0
     return int(effect_value(character, "explore_mana_discount"))
 
 
@@ -156,6 +270,13 @@ def get_sect_reward_multiplier(
 
 
 def apply_item_effects(character: Character, effects: dict) -> dict:
+    """
+    应用物品效果到角色。
+    添加参数验证。
+    """
+    if character is None or effects is None:
+        return {}
+    
     applied: dict = {}
     if effects.get("recover_mana"):
         before = character.mana
@@ -197,12 +318,23 @@ def apply_item_effects(character: Character, effects: dict) -> dict:
 
 
 def scale_reward_value(value: int, multiplier: float) -> int:
-    if value <= 0:
+    """
+    缩放奖励数值。
+    添加参数验证。
+    """
+    if value <= 0 or multiplier <= 0:
         return 0
     return max(1, int(value * multiplier))
 
 
 def sync_base_and_caps(character: Character) -> None:
+    """
+    同步角色基础属性和上限值。
+    添加参数验证。
+    """
+    if character is None:
+        return
+    
     normalize_realm(character)
     character.base_attack = get_base_attack_by_realm(character)
     character.base_defense = get_base_defense_by_realm(character)
@@ -213,6 +345,13 @@ def sync_base_and_caps(character: Character) -> None:
 
 
 def derived_stats(character: Character) -> dict:
+    """
+    计算角色派生属性。
+    添加参数验证。
+    """
+    if character is None:
+        return {}
+    
     sync_base_and_caps(character)
     return {
         "final_attack": get_final_attack(character),
@@ -313,16 +452,37 @@ def _method_breakthrough_bonus(character: Character) -> float:
 
 
 def get_explore_reward_bonus(character: Character) -> float:
+    """
+    计算探索奖励加成。
+    添加参数验证。
+    业力值影响：每点业力降低1%探索收益（BUG-004）
+    """
+    if character is None:
+        return 0.0
+    
     total = 0.0
     for artifact in character.artifacts:
         if not artifact.equipped or not artifact.item_instance:
             continue
         config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
         total += float(config.get("explore_reward_bonus_per_level", 0)) * artifact.item_instance.level
-    return total + min(0.1, effect_value(character, "explore_reward_bonus"))
+    
+    # 基础加成
+    bonus = total + min(0.1, effect_value(character, "explore_reward_bonus"))
+    
+    # 业力值影响：每点业力降低1%探索收益
+    karma_penalty = character.hidden_karma * 0.01
+    return max(-0.5, bonus - karma_penalty)  # 最低不超过-50%
 
 
 def get_battle_power_bonus(character: Character) -> int:
+    """
+    计算战斗威力加成。
+    添加参数验证。
+    """
+    if character is None:
+        return 0
+    
     total = 0
     for artifact in character.artifacts:
         if not artifact.equipped or not artifact.item_instance:

@@ -21,15 +21,21 @@ METHOD_EFFECTS_BY_CODE = {
         "cultivation_speed_per_level": 0.04,
         "max_mana_per_level": 12,
         "breakthrough_rate_per_level": 0.01,
+        "attack_per_level": 2,
+        "defense_per_level": 1,
     },
     "mid_method": {
         "cultivation_speed_per_level": 0.06,
         "max_mana_per_level": 24,
         "breakthrough_rate_per_level": 0.014,
+        "attack_per_level": 5,
+        "defense_per_level": 3,
     },
     "high_method": {
         "cultivation_speed_per_level": 0.08,
         "max_mana_per_level": 40,
         "breakthrough_rate_per_level": 0.018,
+        "attack_per_level": 10,
+        "defense_per_level": 6,
     },
 }

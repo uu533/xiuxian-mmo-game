@@ -222,7 +222,13 @@ def derived_stats(character: Character) -> dict:
 
 
 def _method_attack_bonus(character: Character) -> int:
-    return 0
+    total = 0
+    for method in character.methods:
+        if not method.equipped:
+            continue
+        config = METHOD_EFFECTS_BY_CODE.get(method.method_code, {})
+        total += int(config.get("attack_per_level", 0) * method.level)
+    return total
 
 
 def _prefix_count(values: list[str], expected: str) -> int:
@@ -235,7 +241,13 @@ def _prefix_count(values: list[str], expected: str) -> int:
 
 
 def _method_defense_bonus(character: Character) -> int:
-    return 0
+    total = 0
+    for method in character.methods:
+        if not method.equipped:
+            continue
+        config = METHOD_EFFECTS_BY_CODE.get(method.method_code, {})
+        total += int(config.get("defense_per_level", 0) * method.level)
+    return total
 
 
 def _method_mana_bonus(character: Character) -> int:
@@ -269,7 +281,13 @@ def _artifact_defense_bonus(character: Character) -> int:
 
 
 def _artifact_mana_bonus(character: Character) -> int:
-    return 0
+    total = 0
+    for artifact in character.artifacts:
+        if not artifact.equipped or not artifact.item_instance:
+            continue
+        config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
+        total += int(config.get("max_mana_per_level", 0) * artifact.item_instance.level)
+    return total
 
 
 def _method_cultivation_speed_bonus(character: Character) -> float:

@@ -95,7 +95,6 @@ def get_cultivation_efficiency(character: Character) -> float:
     """
     计算连续修炼效率衰减。
     修复：添加参数验证和action_records的None检查。
-    调整：使用渐进式惩罚 [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
     """
     if character is None:
         return 1.0
@@ -111,11 +110,11 @@ def get_cultivation_efficiency(character: Character) -> float:
         if record.action_type != "train" or not (record.result_json or {}).get("success"):
             break
         consecutive_trains += 1
-        if consecutive_trains >= 6:  # 调整为6次，匹配新的惩罚数组
+        if consecutive_trains >= 5:  # 旧曲线只有5个元素
             break
-    # 渐进式惩罚：第1次1.0，第2次0.9，第3次0.8，第4次0.7，第5次0.6，第6次及以后0.5
-    penalty_array = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
-    return penalty_array[consecutive_trains] if consecutive_trains < 6 else 0.5
+    # 旧曲线：第1次1.0，第2次0.8，第3次0.6，第4次0.4，第5次及以后0.2
+    penalty_array = [1.0, 0.8, 0.6, 0.4, 0.2]
+    return penalty_array[consecutive_trains] if consecutive_trains < 5 else 0.2
 
 
 def get_train_cultivation_bonus(character: Character) -> float:
@@ -453,7 +452,6 @@ def get_explore_reward_bonus(character: Character) -> float:
     """
     计算探索奖励加成。
     添加参数验证。
-    业力值影响：每点业力降低1%探索收益（BUG-004）
     """
     if character is None:
         return 0.0

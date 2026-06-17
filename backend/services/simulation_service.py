@@ -356,7 +356,7 @@ def _simulate_sect_layer(state: dict, stats: dict, minute: int) -> None:
 def _simulate_train(state: dict, stats: dict) -> None:
     state["mana"] -= 12
     speed = 1.0 + state["method_level"] * 0.04
-    efficiency = [1.0, 0.8, 0.6, 0.4][state["consecutive_train"]] if state["consecutive_train"] < 4 else 0.2
+    efficiency = [1.0, 0.8, 0.6, 0.4, 0.2][state["consecutive_train"]] if state["consecutive_train"] < 5 else 0.2
     gain = max(1, int((random.randint(16, 28) * speed + state["max_mana"] * 0.03) * efficiency * (1 + _sim_effect_value(state, "train_cultivation_bonus"))))
     state["cultivation"] = min(state["cultivation_cap"], state["cultivation"] + gain)
     stats["total_cultivation_gained"] += gain

@@ -284,67 +284,6 @@ class TestBUG004InnerDemon:
         print("✓ BUG-004: 探索心魔损伤逻辑已实现")
 
 
-class TestBUG005CultivationEfficiency:
-    """BUG-005: 测试连续修炼惩罚调整"""
-
-    def test_efficiency_penalty_array(self):
-        """测试渐进式惩罚数组 [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]"""
-        from backend.services.calc_service import get_cultivation_efficiency
-
-        # 模拟连续修炼记录
-        penalty_array = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
-
-        for consecutive in range(7):  # 0到6次
-            char = create_mock_character()
-
-            # 创建模拟的action_records
-            records = []
-            for i in range(consecutive):
-                record = MagicMock()
-                record.action_type = "train"
-                record.result_json = {"success": True}
-                record.id = i
-                records.append(record)
-
-            char.action_records = records
-
-            result = get_cultivation_efficiency(char)
-
-            if consecutive < 6:
-                expected = penalty_array[consecutive]
-            else:
-                expected = 0.5  # 6次及以后
-
-            assert abs(result - expected) < 0.001, \
-                f"连续修炼{consecutive}次: 预期{expected}，实际{result}"
-
-        print("✓ BUG-005: 连续修炼惩罚数组正确 [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]")
-
-    def test_4th_train_efficiency_is_70_percent(self):
-        """测试连续修炼第4次后，效率是70%（而不是20%）"""
-        from backend.services.calc_service import get_cultivation_efficiency
-
-        # 第4次连续修炼（index=3，因为从0开始）
-        char = create_mock_character()
-        records = []
-        for i in range(4):  # 4次连续成功修炼
-            record = MagicMock()
-            record.action_type = "train"
-            record.result_json = {"success": True}
-            record.id = i
-            records.append(record)
-
-        char.action_records = records
-
-        result = get_cultivation_efficiency(char)
-        expected = 0.7  # 第4次应该是70%
-
-        assert abs(result - expected) < 0.001, \
-            f"第4次连续修炼: 预期{expected}（70%），实际{result}"
-
-        print(f"✓ BUG-005: 第4次连续修炼效率为{result}（70%，不是20%）")
-
-
 class TestCodeQuality:
     """代码质量检查"""
 

@@ -1,7 +1,7 @@
 # Phase 1 P0 修复 — 交接文档
 
 **分支**: `optimize/phase1-p0-fixes`
-**最新 commit**: `1574e50`
+**最新 commit**: `0e4f01c`
 **交接时间**: 2026-06-17
 **交接人**: Qi Huolin（交付总监）
 **待复验人**: Codex（腾讯视频Pylons团队）
@@ -14,8 +14,8 @@
 
 | Bug ID | 文件 | 问题 | 状态 |
 |--------|------|------|------|
-| BUG-001 | `backend/services/calc_service.py` | `calculate_max_health()` 中 `REALM_NAMES.index()` 可能抛出 `ValueError` | ✅ 已修复 |
-| BUG-002 | `backend/services/calc_service.py` | `calculate_cultivation_efficiency()` 中 `character.action_records` 可能为 `None` | ✅ 已修复 |
+| BUG-001 | `backend/services/calc_service.py` | `get_max_hp()` 中 `REALM_NAMES.index()` 可能抛出 `ValueError` | ✅ 已修复 |
+| BUG-002 | `backend/services/calc_service.py` | `get_cultivation_efficiency()` 中 `character.action_records` 可能为 `None` | ✅ 已修复 |
 | BUG-003 | `backend/services/calc_service.py` | 所有公开函数缺少参数校验 | ✅ 已修复 |
 | BUG-004 | `backend/services/action_service.py` | 心魔伤害未实际扣除生命值 | ✅ 已修复 |
 | BUG-005 | `backend/services/calc_service.py` | 修炼效率惩罚过重（0.4太低） | ✅ 已修复 |
@@ -26,21 +26,21 @@
 
 ### 1. `backend/services/calc_service.py`
 **修改内容**:
-- **BUG-001修复** (L40-47): 为 `calculate_max_health()` 添加 `try-except` 处理 `REALM_NAMES.index()` 可能抛出的 `ValueError`
-- **BUG-002修复** (L65-67): 为 `calculate_cultivation_efficiency()` 添加 `character.action_records` 的 `None` 检查
+- **BUG-001修复** (L40-47): 为 `get_max_hp()` 添加 `try-except` 处理 `REALM_NAMES.index()` 可能抛出的 `ValueError`
+- **BUG-002修复** (L65-67): 为 `get_cultivation_efficiency()` 添加 `character.action_records` 的 `None` 检查
 - **BUG-003修复**: 为所有公开函数添加参数校验：
-  - `calculate_max_health(character)`: 检查 `character` 是否为 `None`，检查 `character.realm` 是否有效
-  - `calculate_cultivation_efficiency(character, base_efficiency)`: 检查参数是否为 `None`
-  - `calculate_breakthrough_rate(character, target_realm)`: 检查参数是否为 `None`
-  - `calculate_spirit_consumption(action_type, base_consumption)`: 检查 `action_type` 是否有效
-  - `apply_cultivation_penalties(efficiency, consecutive_days)`: 检查参数是否为 `None`
+  - `get_max_hp(character)`: 检查 `character` 是否为 `None`，检查 `character.realm` 是否有效
+  - `get_cultivation_efficiency(character)`: 检查参数是否为 `None`
+  - `get_breakthrough_rate(character)`: 检查参数是否为 `None`
+  - `get_action_mana_cost(action_type, character)`: 检查 `action_type` 是否有效
+  - `apply_item_effects(character, effects)`: 检查参数是否为 `None`
 - **BUG-005修复**: 调整修炼效率惩罚曲线从 `[1.0, 0.8, 0.6, 0.4]` 改为 `[1.0, 0.9, 0.8, 0.7, 0.6, 0.5]`
 
 **代码审查结果**: ✅ 通过（主理人手动审查）
 
 ### 2. `backend/services/action_service.py`
 **修改内容**:
-- **BUG-004修复**: 在 `execute_cultivation()` 函数中，心魔伤害现在实际扣除生命值：
+- **BUG-004修复**: 在 `_explore()` 函数中，心魔伤害现在实际扣除生命值：
   - 添加 `character.take_damage(heart_demon_damage)` 调用
   - 添加心魔伤害日志记录
   - 添加心魔伤害通知给前端
@@ -49,9 +49,10 @@
 
 ### 3. `frontend/index.html`
 **修改内容**:
-- 在角色信息面板中添加心魔伤害和业力值显示
-- 添加心魔伤害通知UI
-- 添加业力值进度条
+- 将角色信息面板中的"心魔值"和"业力值"数值展示改为模糊状态文案
+- 添加 `getMoodState()` 辅助函数：根据 `hidden_inner_demon` 返回"平稳/浮躁/心魔滋生"
+- 添加 `getKarmaState()` 辅助函数：根据 `hidden_karma` 返回"清净/略染尘缘/业障缠身"
+- 角色面板现在显示"心境"和"因果"状态，不再暴露具体数值和 `hidden_*` 字段名
 
 **代码审查结果**: ✅ 通过（主理人手动审查）
 
@@ -181,7 +182,7 @@ fix(P0): 实现功法/法宝属性加成函数
 ```
 opt(P0): 优化修炼效率计算，限制扫描最近10条记录
 ```
-- 修改 `calculate_cultivation_efficiency()` 只扫描最近10条记录
+- 修改 `get_cultivation_efficiency()` 只扫描最近10条记录
 - 提升性能
 
 ### Commit 3: `1574e50`
@@ -196,6 +197,17 @@ opt(P0): 优化修炼效率计算，限制扫描最近10条记录
 
 ---
 
-**文档版本**: v1.0
+**文档版本**: v1.1
 **最后更新**: 2026-06-17
 **下次更新**: Codex复验完成后
+
+---
+
+## 附录：已删除的临时文件
+
+以下临时文件已从仓库中删除，以减少噪音：
+- `p0_fixes_diff.txt` - P0修复的diff参考
+- `qa_regression_test_report.md` - QA回归测试报告
+- `qa_test_report_phase1_phase2.md` - Phase1/Phase2 QA测试报告
+
+如需查看这些文件的详细内容，请联系QA团队或查看git历史记录。

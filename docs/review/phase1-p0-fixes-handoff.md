@@ -1,7 +1,7 @@
 # Phase 1 P0 修复 — 交接文档
 
 **分支**: `optimize/phase1-p0-fixes`
-**最新 commit**: `PENDING` (回修中)
+**最新 commit**: `fdf1b8c` (第二次回修完成)
 
 **回修内容（Codex 复验 d7751bd 后）**:
 1. ✅ 删除 `backend/services/calc_service.py` 中的 `hidden_karma` 引用（line 145, 474）
@@ -214,9 +214,9 @@ opt(P0): 优化修炼效率计算，限制扫描最近10条记录
 
 ---
 
-**文档版本**: v1.1
-**最后更新**: 2026-06-17
-**下次更新**: Codex复验完成后
+**文档版本**: v1.2
+**最后更新**: 2026-06-17 (第二次回修完成)
+**下次更新**: Codex复验通过后
 
 ---
 

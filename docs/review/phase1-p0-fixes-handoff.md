@@ -1,7 +1,16 @@
 # Phase 1 P0 修复 — 交接文档
 
 **分支**: `optimize/phase1-p0-fixes`
-**最新 commit**: `0e4f01c`
+**最新 commit**: `PENDING` (回修中)
+
+**回修内容（Codex 复验 c4c3359 后）**:
+1. ✅ 删除 `backend/services/calc_service.py` 中的 `hidden_karma` 引用（line 145, 474）
+2. ✅ 删除前端 `getKarmaState()` 函数，"因果"固定显示为"清净"
+3. ✅ 删除 `tests/test_p0_fixes_regression.py` 中的 `hidden_karma` 相关测试
+4. ✅ 清理 `backend/services/action_service.py`, `backend/services/calc_service.py`, `tests/test_p0_fixes_regression.py` 的 trailing whitespace
+5. ✅ 更新本文档，删除"业力值影响突破率/探索收益"说明
+
+**测试结果**: 待 Codex 复验（Python 环境已可用）
 **交接时间**: 2026-06-17
 **交接人**: Qi Huolin（交付总监）
 **待复验人**: Codex（腾讯视频Pylons团队）
@@ -49,10 +58,10 @@
 
 ### 3. `frontend/index.html`
 **修改内容**:
-- 将角色信息面板中的"心魔值"和"业力值"数值展示改为模糊状态文案
+- 将角色信息面板中的"心魔值"数值展示改为模糊状态文案
 - 添加 `getMoodState()` 辅助函数：根据 `hidden_inner_demon` 返回"平稳/浮躁/心魔滋生"
-- 添加 `getKarmaState()` 辅助函数：根据 `hidden_karma` 返回"清净/略染尘缘/业障缠身"
-- 角色面板现在显示"心境"和"因果"状态，不再暴露具体数值和 `hidden_*` 字段名
+- 角色面板现在显示"心境"状态，不再暴露具体数值和 `hidden_*` 字段名
+- "因果"固定显示为"清净"（本轮不实现业力系统）
 
 **代码审查结果**: ✅ 通过（主理人手动审查）
 

@@ -20,7 +20,7 @@ def get_base_attack_by_realm(character: Character) -> int:
     """
     if character is None:
         return 0
-    
+
     normalize_realm(character)
     realm_name = character.realm
     if realm_name.startswith("炼气"):
@@ -99,12 +99,12 @@ def get_cultivation_efficiency(character: Character) -> float:
     """
     if character is None:
         return 1.0
-    
+
     consecutive_trains = 0
     # 添加None检查，避免TypeError
     if character.action_records is None:
         return 1.0
-    
+
     # 只取最近 10 条记录，避免全表遍历
     recent_records = sorted(character.action_records, key=lambda item: item.id, reverse=True)[:10]
     for record in recent_records:
@@ -135,14 +135,12 @@ def get_breakthrough_rate(character: Character) -> float:
     """
     if character is None:
         return 0.02
-    
+
     config = current_realm_config(character)
     rate = config.breakthrough_rate
     rate += character.hidden_luck * BREAKTHROUGH_LUCK_FACTOR
     # 心魔值降低突破率（BUG-004：实现影响机制）
     rate -= character.hidden_inner_demon * BREAKTHROUGH_INNER_DEMON_FACTOR
-    # 业力值降低突破率（BUG-004：实现影响机制）
-    rate -= character.hidden_karma * 0.02  # 每点业力降低2%突破率
     rate += _method_breakthrough_bonus(character)
     if character.realm == "结丹后期":
         rate -= 0.04
@@ -178,7 +176,7 @@ def get_action_mana_cost(character: Character, action_type: str) -> int:
     """
     if character is None or action_type is None:
         return 0
-    
+
     base = int(ACTION_CONFIGS.get(action_type, {}).get("mana_cost", 0))
     if action_type == "explore" and effect_value(character, "explore_mana_discount") > 0:
         return max(1, base - get_swift_talisman_mana_discount(character))
@@ -276,7 +274,7 @@ def apply_item_effects(character: Character, effects: dict) -> dict:
     """
     if character is None or effects is None:
         return {}
-    
+
     applied: dict = {}
     if effects.get("recover_mana"):
         before = character.mana
@@ -334,7 +332,7 @@ def sync_base_and_caps(character: Character) -> None:
     """
     if character is None:
         return
-    
+
     normalize_realm(character)
     character.base_attack = get_base_attack_by_realm(character)
     character.base_defense = get_base_defense_by_realm(character)
@@ -351,7 +349,7 @@ def derived_stats(character: Character) -> dict:
     """
     if character is None:
         return {}
-    
+
     sync_base_and_caps(character)
     return {
         "final_attack": get_final_attack(character),
@@ -459,20 +457,18 @@ def get_explore_reward_bonus(character: Character) -> float:
     """
     if character is None:
         return 0.0
-    
+
     total = 0.0
     for artifact in character.artifacts:
         if not artifact.equipped or not artifact.item_instance:
             continue
         config = ARTIFACT_EFFECTS_BY_CODE.get(artifact.item_instance.template.code, {})
         total += float(config.get("explore_reward_bonus_per_level", 0)) * artifact.item_instance.level
-    
+
     # 基础加成
     bonus = total + min(0.1, effect_value(character, "explore_reward_bonus"))
-    
-    # 业力值影响：每点业力降低1%探索收益
-    karma_penalty = character.hidden_karma * 0.01
-    return max(-0.5, bonus - karma_penalty)  # 最低不超过-50%
+
+    return max(-0.5, bonus)  # 最低不超过-50%
 
 
 def get_battle_power_bonus(character: Character) -> int:
@@ -482,7 +478,7 @@ def get_battle_power_bonus(character: Character) -> int:
     """
     if character is None:
         return 0
-    
+
     total = 0
     for artifact in character.artifacts:
         if not artifact.equipped or not artifact.item_instance:

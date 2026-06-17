@@ -1071,12 +1071,6 @@ function getEffectTypeName(type) {
         return "心魔滋生";
       }
 
-      function getKarmaState(karma) {
-        if (karma <= 20) return "清净";
-        if (karma <= 50) return "略染尘缘";
-        return "业障缠身";
-      }
-
       async function request(path, options = {}) {
         const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
         const token = getToken();
@@ -1484,7 +1478,7 @@ function getEffectTypeName(type) {
           ["突破率", `${Math.round(c.breakthrough_rate * 100)}%`],
           ["灵石", c.spirit_stones],
           ["心境", getMoodState(c.hidden_inner_demon)],
-          ["因果", getKarmaState(c.hidden_karma)],
+          ["因果", "清净"],
         ];
         grid.innerHTML = stats.map(([label, value, hasHelp]) => {
           const valueHtml = hasHelp ? `<div class="root-line"><strong>${value}</strong><button class="help-btn" id="root-help-btn" title="查看灵根说明">?</button></div>` : `<strong>${value}</strong>`;

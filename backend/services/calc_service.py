@@ -58,7 +58,9 @@ def get_cultivation_speed(character: Character) -> float:
 
 def get_cultivation_efficiency(character: Character) -> float:
     consecutive_trains = 0
-    for record in sorted(character.action_records, key=lambda item: item.id, reverse=True):
+    # 只取最近 10 条记录，避免全表遍历
+    recent_records = sorted(character.action_records, key=lambda item: item.id, reverse=True)[:10]
+    for record in recent_records:
         if record.action_type != "train" or not (record.result_json or {}).get("success"):
             break
         consecutive_trains += 1

@@ -10,3 +10,23 @@ __pycache__/
 .venv/
 .vite/
 debug_logs/
+
+# 临时文件和截图
+temp/
+tmp/
+临时/
+screenshots/
+截图/
+
+# Python 嵌入式版本和安装文件
+python-runtime/
+python-embed/
+get-pip.py
+python-*.exe
+python-*.zip
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo

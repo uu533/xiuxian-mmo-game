@@ -2,9 +2,9 @@
 
 **分支**: `feature/narrative-content-v1`
 **基于**: `feature/auto-cultivation-mvp` (`d82c997`)
-**最新 commit**: `64478ed`
+**最新 commit**: `c9a644d`
 **提交时间**: 2026-06-18
-**负责人**: 齐活林（主理人）+ 寇豆码（工程师）
+**负责人**: 齐活林（主理人）+ 寇豆码（工程师）+ 严过关（QA工程师）
 
 ---
 

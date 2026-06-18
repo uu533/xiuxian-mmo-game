@@ -1282,6 +1282,7 @@ function getEffectTypeName(type) {
             _typewriterTimer = setTimeout(type, speed);
           } else {
             _typewriterTimer = null;
+            _typewriterDone = true;
             if (onComplete) onComplete();
           }
         }
@@ -1304,6 +1305,23 @@ function getEffectTypeName(type) {
           container.innerHTML = fullText.replace(/\n/g, "<br>");
         }
         _typewriterDone = true;
+      }
+
+      function closeNarrativePanel() {
+        document.getElementById("narrative-overlay").classList.add("hidden");
+        document.getElementById("narrative-fullscreen").classList.add("hidden");
+
+        // 恢复主UI操作
+        document.querySelectorAll("button").forEach(btn => {
+          btn.disabled = false;
+        });
+
+        // 执行回调
+        if (_narrativeCallback) {
+          const callback = _narrativeCallback;
+          _narrativeCallback = null;
+          callback();
+        }
       }
 
       // 叙事面板"继续"按钮点击事件

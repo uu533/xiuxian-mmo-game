@@ -20,6 +20,7 @@ class ActionResultResponse(BaseModel):
     sect: dict | None = None
     member: dict | None = None
     task: dict | None = None
+    narrative: str | None = None
 
 
 ActionResponse = ActionResultResponse

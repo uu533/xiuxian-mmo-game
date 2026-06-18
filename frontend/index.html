@@ -717,6 +717,117 @@
         font-size: 12px;
       }
 
+      /* ===== 叙事面板样式 ===== */
+      .narrative-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        background: rgba(3, 8, 7, 0.72);
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      .narrative-overlay.hidden {
+        display: none;
+      }
+
+      .narrative-card {
+        width: 90%;
+        max-width: 480px;
+        border: 1px solid rgba(204, 223, 202, 0.2);
+        border-radius: 12px;
+        padding: 24px 20px 18px;
+        background: rgba(8, 17, 15, 0.92);
+        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.6);
+        text-align: center;
+        animation: slideUp 0.4s ease-out;
+      }
+
+      .narrative-card .narrative-text {
+        color: #f6eed9;
+        font-size: 15px;
+        line-height: 1.6;
+        text-align: left;
+        min-height: 80px;
+        margin-bottom: 18px;
+        white-space: pre-wrap;
+      }
+
+      .narrative-card .narrative-continue {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 36px;
+        padding: 0 22px;
+        border: 0;
+        border-radius: 8px;
+        color: #17130c;
+        background: #e5c568;
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .narrative-card .narrative-continue:hover {
+        background: #f0d678;
+      }
+
+      /* 全屏叙事样式 */
+      .narrative-fullscreen {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        background: #08110f;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .narrative-fullscreen.hidden {
+        display: none;
+      }
+
+      .narrative-fullscreen .narrative-text {
+        color: #f6eed9;
+        font-size: 18px;
+        line-height: 1.8;
+        text-align: center;
+        max-width: 680px;
+        padding: 0 20px;
+        white-space: pre-wrap;
+      }
+
+      .narrative-fullscreen .narrative-continue {
+        position: fixed;
+        bottom: 42px;
+        right: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 40px;
+        padding: 0 24px;
+        border: 0;
+        border-radius: 8px;
+        color: #17130c;
+        background: #e5c568;
+        font-weight: 800;
+        font-size: 15px;
+        cursor: pointer;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
       @media (min-width: 720px) {
         .shell {
           border-left: 1px solid rgba(204, 223, 202, 0.1);
@@ -984,6 +1095,20 @@
           <button id="close-root-help">知道了</button>
         </div>
       </div>
+
+      <!-- 叙事面板 - 弹窗模式 -->
+      <div id="narrative-overlay" class="narrative-overlay hidden">
+        <div class="narrative-card">
+          <div class="narrative-text" id="narrative-text"></div>
+          <button class="narrative-continue" id="narrative-continue">继续</button>
+        </div>
+      </div>
+
+      <!-- 叙事面板 - 全屏模式 -->
+      <div id="narrative-fullscreen" class="narrative-fullscreen hidden">
+        <div class="narrative-text" id="narrative-fullscreen-text"></div>
+        <button class="narrative-continue" id="narrative-fullscreen-continue">继续</button>
+      </div>
     </main>
 
     <script>
@@ -1067,7 +1192,7 @@
         return ITEM_NAMES[code] || "未知物品";
       }
 
-      
+
       function _formatEffectValue(value) {
         if (typeof value !== "number") return String(value);
         if (value < 1 && value > 0) return (value * 100).toFixed(0) + "%";
@@ -1096,6 +1221,128 @@ function getEffectTypeName(type) {
         message.classList.toggle("hidden", !text);
         message.classList.toggle("success", isSuccess);
       }
+
+      // ========== 叙事面板功能 ==========
+      let _narrativeCallback = null;  // 叙事面板完成后的回调
+      let _typewriterTimer = null;  // 打字机效果的定时器
+
+      function showNarrativePanel(text, mode = "popup", onComplete = null) {
+        // 保存回调和状态
+        _narrativeCallback = onComplete;
+        _typewriterDone = false;
+        _currentNarrativeText = text;
+
+        const overlay = document.getElementById("narrative-overlay");
+        const fullscreen = document.getElementById("narrative-fullscreen");
+
+        // 隐藏所有面板
+        overlay.classList.add("hidden");
+        fullscreen.classList.add("hidden");
+
+        if (mode === "fullscreen") {
+          // 全屏模式
+          fullscreen.classList.remove("hidden");
+          _currentTextContainer = document.getElementById("narrative-fullscreen-text");
+        } else {
+          // 弹窗模式（默认）
+          overlay.classList.remove("hidden");
+          _currentTextContainer = document.getElementById("narrative-text");
+        }
+
+        // 重置容器并开始打字机效果
+        _currentTextContainer.innerHTML = "";
+        typewriterEffect(_currentTextContainer, text, 50);
+      }
+
+      /**
+       * 打字机效果展示文本
+       * @param {HTMLElement} container - 文本容器元素
+       * @param {string} text - 完整文本
+       * @param {number} speed - 每字间隔毫秒（默认50）
+       * @param {function} onComplete - 打字结束后的回调
+       */
+      function typewriterEffect(container, text, speed = 50, onComplete = null) {
+        if (_typewriterTimer) {
+          clearTimeout(_typewriterTimer);
+        }
+
+        let index = 0;
+        let outputHtml = "";
+        container.dataset.fullText = text;
+
+        function type() {
+          if (index < text.length) {
+            if (text[index] === "\n") {
+              outputHtml += "<br>";
+            } else {
+              outputHtml += text[index];
+            }
+            container.innerHTML = outputHtml;
+            index++;
+            _typewriterTimer = setTimeout(type, speed);
+          } else {
+            _typewriterTimer = null;
+            if (onComplete) onComplete();
+          }
+        }
+
+        type();
+      }
+
+      /**
+       * 跳过打字过程，立即显示完整文本
+       */
+      function skipTypewriter() {
+        if (_typewriterTimer) {
+          clearTimeout(_typewriterTimer);
+          _typewriterTimer = null;
+        }
+        // 显示完整文本
+        const container = _currentTextContainer || document.getElementById("narrative-text") || document.getElementById("narrative-fullscreen-text");
+        const fullText = container?.dataset.fullText || "";
+        if (container && fullText) {
+          container.innerHTML = fullText.replace(/\n/g, "<br>");
+        }
+        _typewriterDone = true;
+      }
+
+      // 叙事面板"继续"按钮点击事件
+      document.getElementById("narrative-continue")?.addEventListener("click", () => {
+        if (!_typewriterDone) {
+          // 打字未完成，跳过打字
+          skipTypewriter();
+        } else {
+          // 打字已完成，关闭面板
+          closeNarrativePanel();
+        }
+      });
+
+      document.getElementById("narrative-fullscreen-continue")?.addEventListener("click", () => {
+        if (!_typewriterDone) {
+          // 打字未完成，跳过打字
+          skipTypewriter();
+        } else {
+          // 打字已完成，关闭面板
+          closeNarrativePanel();
+        }
+      });
+
+      // 支持空格键跳过打字过程
+      document.addEventListener("keydown", (e) => {
+        if (e.code === "Space" || e.code === "Enter") {
+          const overlay = document.getElementById("narrative-overlay");
+          const fullscreen = document.getElementById("narrative-fullscreen");
+          if (!overlay.classList.contains("hidden") || !fullscreen.classList.contains("hidden")) {
+            e.preventDefault();
+            // 触发"继续"按钮点击
+            if (!overlay.classList.contains("hidden")) {
+              document.getElementById("narrative-continue")?.click();
+            } else {
+              document.getElementById("narrative-fullscreen-continue")?.click();
+            }
+          }
+        }
+      });
 
       async function request(path, options = {}) {
         const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
@@ -1755,6 +2002,17 @@ async function loadGoals() {
         showToast("");
         try {
           const data = await request("/action/execute", { method: "POST", body: JSON.stringify({ action_type: actionType, params }) });
+
+          // 检查是否有叙事文本
+          if (data.narrative) {
+            // 展示叙事面板，关闭后继续
+            await new Promise(resolve => {
+              showNarrativePanel(data.narrative, "popup", () => {
+                resolve();
+              });
+            });
+          }
+
           showToast(data.message, data.success);
           await loadMe();
         } catch (error) {

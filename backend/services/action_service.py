@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.configs.actions import ACTION_CONFIGS, MANA_HELP_TEXT
 from backend.configs.breakthrough_requirements import BREAKTHROUGH_REQUIREMENTS
+from backend.configs.narrative_texts import get_train_narrative
 from backend.models import User, utc_now
 from backend.services.calc_service import (
     apply_item_effects,
@@ -121,6 +122,14 @@ def _train(db: Session, user: User, params: dict) -> dict:
     character.updated_at = utc_now()
     suffix = "" if efficiency >= 1 else f"连续修炼效率降至 {int(efficiency * 100)}%。"
     message = f"打坐修炼消耗 {cost['mana']} 点法力，炼化灵气，修为增加 {gain}。{suffix}"
+
+    # 30% 概率触发叙事文本
+    data = {"cultivation_gain": gain, "base_cultivation_gain": base_gain, "efficiency": efficiency, "active_effects": effect_result}
+    if random.random() < 0.3:
+        narrative = get_train_narrative(character.realm)
+        if narrative:
+            data["narrative"] = narrative
+
     return _finalize(
         db,
         user,
@@ -129,7 +138,7 @@ def _train(db: Session, user: User, params: dict) -> dict:
         message,
         cost,
         [{"type": "cultivation", "quantity": gain}],
-        {"cultivation_gain": gain, "base_cultivation_gain": base_gain, "efficiency": efficiency, "active_effects": effect_result},
+        data,
     )
 
 
@@ -148,8 +157,15 @@ def _explore(db: Session, user: User, params: dict) -> dict:
     character.cultivation = min(character.cultivation_cap, character.cultivation + random.randint(4, 16))
     character.updated_at = utc_now()
     message = f"外出探索消耗 {cost['mana']} 点法力。{event_result['message']}"
-    event_result["data"]["active_effects"] = effect_result
-    return _finalize(db, user, True, "explore", message, cost, event_result["rewards"], event_result["data"], event_result.get("extra_logs", []))
+
+    # 读取事件的叙事文本
+    data = event_result["data"]
+    event_narrative = event_result.get("event", {}).get("narrative")
+    if event_narrative:
+        data["narrative"] = event_narrative
+
+    data["active_effects"] = effect_result
+    return _finalize(db, user, True, "explore", message, cost, event_result["rewards"], data, event_result.get("extra_logs", []))
 
 
 def _breakthrough(db: Session, user: User, params: dict) -> dict:
@@ -384,7 +400,7 @@ def _result(db: Session, user: User, success: bool, message: str, cost: dict, re
         "inventory": inventory_payload(db, user.character),
     }
     extra = data or {}
-    for key in ("sect", "member", "task", "auto_cultivation", "auto_report", "gains", "losses", "new_log"):
+    for key in ("sect", "member", "task", "auto_cultivation", "auto_report", "gains", "losses", "new_log", "narrative"):
         if key in extra:
             result[key] = extra[key]
     return result

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" href="data:," />
-    <title>太虚问道</title>
+    <title>太虚问道 — 沧澜修仙志</title>
     <style>
       :root {
         color-scheme: dark;
@@ -848,24 +848,24 @@
       <section class="hero">
         <div class="identity">
           <span id="hero-name">云游散修</span>
-          <h1 id="hero-realm">太虚问道</h1>
-          <p id="hero-subtitle">多人在线修仙文字游戏</p>
+          <h1 id="hero-realm">太虚历 6513年</h1>
+          <p id="hero-subtitle">沧澜大陆 · 灵气将竭之时</p>
         </div>
-        <div class="realm-pill" id="hero-pill">联网存档</div>
+        <div class="realm-pill" id="hero-pill">灵网连通</div>
       </section>
 
       <section id="auth-section" class="panel auth-card">
         <div class="panel-title">
-          <h2>登录 / 注册</h2>
-          <span>一人一档</span>
+          <h2>入道 / 开启</h2>
+          <span>一人一道，存档在云</span>
         </div>
-        <label for="username">用户名</label>
-        <input id="username" autocomplete="username" placeholder="至少 3 个字符" />
-        <label for="password">密码</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="至少 6 个字符" />
+        <label for="username">道号（登录名）</label>
+        <input id="username" autocomplete="username" placeholder="至少三字，此为你的道号" />
+        <label for="password">秘钥（密码）</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="至少六位，护好你的秘钥" />
         <div class="auth-actions">
-          <button id="register-btn">注册</button>
-          <button id="login-btn" class="secondary">登录</button>
+          <button id="register-btn">入道</button>
+          <button id="login-btn" class="secondary">开启</button>
         </div>
       </section>
 
@@ -873,17 +873,17 @@
         <section class="resource-strip">
           <div class="stat"><span>修为</span><strong id="res-cultivation">0 / 0</strong></div>
           <div class="stat"><span>灵石</span><strong id="res-stones">0</strong></div>
-          <div class="stat"><span>法力</span><strong id="res-mana">0 / 0</strong></div>
-          <div class="stat"><span>气血</span><strong id="res-hp">0</strong></div>
+          <div class="stat"><span title="神识之力，行动所需">法力</span><strong id="res-mana">0 / 0</strong></div>
+          <div class="stat"><span title="生命之本，归零则道消">气血</span><strong id="res-hp">0</strong></div>
         </section>
 
         <div id="goals-panel" class="hidden">
           <div class="goals-header">
             <div class="goals-title">
-              <h2>修行建议</h2>
-              <span class="goals-hint">仅作参考，可随时按自己的节奏修行</span>
+              <h2>道友指点</h2>
+              <span class="goals-hint">前辈经验之谈，修行路终归是你自己的</span>
             </div>
-            <button id="toggle-goals-btn" class="secondary">隐藏</button>
+            <button id="toggle-goals-btn" class="secondary">收起</button>
           </div>
           <div id="goals-content">
             <div id="goals-short-term" class="goals-section"></div>
@@ -891,7 +891,7 @@
           </div>
         </div>
         <div id="goals-hidden-entry" class="hidden">
-          <button id="show-goals-btn" class="secondary">修行建议已隐藏｜显示</button>
+          <button id="show-goals-btn" class="secondary">指点已收起 ｜ 展开</button>
         </div>
 
         <div id="message" class="toast hidden"></div>
@@ -901,35 +901,35 @@
             <!-- 洞府总览面板 -->
             <div class="panel" id="auto-cultivation-panel">
               <div class="panel-title">
-                <h2>洞府总览</h2>
-                <span id="auto-state-label">自动修行</span>
+                <h2>洞府</h2>
+                <span id="auto-state-label">洞府寂寂，灵气悠然</span>
               </div>
               <div id="auto-status-row" class="row" style="margin-bottom:8px">
                 <div>
                   <strong id="auto-state-name">未开启自动修行</strong>
-                  <span id="auto-strategy-name">选择策略开始挂机修行</span>
+                  <span id="auto-strategy-name">选定修行策略，开启你的问道之路</span>
                 </div>
               </div>
               <div id="auto-pending-matters" class="list" style="margin-bottom:8px"></div>
               <div id="auto-report-section" class="list" style="margin-bottom:10px"></div>
               <div id="strategy-selector" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px">
-                <button class="strategy-btn" data-strategy="steady">稳健</button>
-                <button class="strategy-btn" data-strategy="balanced">均衡</button>
-                <button class="strategy-btn" data-strategy="aggressive">激进</button>
+                <button class="strategy-btn" data-strategy="steady">稳进</button>
+                <button class="strategy-btn" data-strategy="balanced">中道</button>
+                <button class="strategy-btn" data-strategy="aggressive">锐进</button>
               </div>
               <div id="auto-control-btns" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
-                <button id="auto-start-btn">开启自动修行</button>
-                <button id="auto-settle-btn" class="secondary">领取离线收益</button>
-                <button id="auto-pause-btn" class="secondary">暂停修行</button>
-                <button id="auto-resume-btn" class="secondary">继续修行</button>
+                <button id="auto-start-btn">开始修行</button>
+                <button id="auto-settle-btn" class="secondary">结算收益</button>
+                <button id="auto-pause-btn" class="secondary">暂停</button>
+                <button id="auto-resume-btn" class="secondary">继续</button>
               </div>
             </div>
 
             <!-- 最近游历 -->
             <div class="panel">
               <div class="panel-title">
-                <h2>最近游历</h2>
-                <span>实时日志</span>
+                <h2>近日游历</h2>
+                <span>近日游历</span>
               </div>
               <div id="recent-logs" class="timeline"></div>
             </div>
@@ -941,14 +941,14 @@
                 <button id="toggle-temp-ops-btn" class="secondary" style="min-height:26px;padding:0 8px;font-size:11px">折叠</button>
               </div>
               <div id="temp-ops-content" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
-                <button id="train-btn">修炼-12</button>
-                <button id="explore-btn">探索-18</button>
-                <button id="breakthrough-btn">突破-35</button>
+                <button id="train-btn">吐纳-12</button>
+                <button id="explore-btn">游历-18</button>
+                <button id="breakthrough-btn">叩关-35</button>
               </div>
               <div id="temp-ops-recovery" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px" class="hidden">
                 <button id="meditate-btn" class="secondary">调息</button>
                 <button id="spirit-stone-btn" class="secondary">吸灵石</button>
-                <button id="pill-btn" class="secondary">服丹药</button>
+                <button id="pill-btn" class="secondary">服丹</button>
               </div>
             </div>
           </div>
@@ -956,13 +956,13 @@
           <div id="tab-character" class="tab-panel hidden">
             <div class="panel">
               <div class="panel-title">
-                <h2 id="player-title">角色</h2>
+                <h2 id="player-title">吾身</h2>
                 <button id="logout-btn" class="danger">退出</button>
               </div>
               <div class="title-editor">
                 <div>
                   <strong id="full-title-name">云游散修 师兄</strong>
-                  <span>称号随境界解锁，可随时更换</span>
+                  <span>境界提升可解锁新称号，择一而用</span>
                 </div>
                 <select id="title-select" title="选择称号"></select>
               </div>
@@ -977,20 +977,20 @@
             <div class="panel">
               <div class="panel-title">
                 <h2>功法</h2>
-                <span>主修影响修炼和突破</span>
+                <span>主修功法决定修炼效率与突破根基</span>
               </div>
               <div id="methods-list" class="list"></div>
             </div>
             <div class="panel">
               <div class="panel-title">
                 <h2>法宝</h2>
-                <span>装备影响攻防和探索</span>
+                <span>装备法宝影响斗法与游历生存</span>
               </div>
               <div id="artifacts-list" class="list"></div>
             </div>
             <div class="panel">
               <div class="panel-title">
-                <h2>当前临时效果</h2>
+                <h2>当前状态</h2>
                 <span id="effect-count">0 个有效</span>
               </div>
               <div id="active-effects-list" class="list"></div>
@@ -1000,8 +1000,8 @@
           <div id="tab-bag" class="tab-panel hidden">
             <div class="panel">
               <div class="panel-title">
-                <h2>背包</h2>
-                <span>探索所得</span>
+                <h2>行囊</h2>
+                <span>游历所得</span>
               </div>
               <div id="inventory" class="list"></div>
             </div>
@@ -1010,7 +1010,7 @@
           <div id="tab-life-skills" class="tab-panel hidden">
             <div class="panel">
               <div class="panel-title">
-                <h2>生活技能</h2>
+                <h2>营生技能</h2>
                 <span>资源转化</span>
               </div>
               <div class="life-skills-subtabs">
@@ -1023,7 +1023,7 @@
             </div>
             <div class="panel">
               <div class="panel-title">
-                <h2>当前临时效果</h2>
+                <h2>当前状态</h2>
                 <span id="skill-effect-count">0 个有效</span>
               </div>
               <div id="skill-effects-list" class="list"></div>
@@ -1040,22 +1040,22 @@
             </div>
             <div class="panel">
               <div class="panel-title">
-                <h2>宗门任务</h2>
-                <span>贡献与声望</span>
+                <h2>宗门差事</h2>
+                <span>宗门贡献 ｜ 各方声望</span>
               </div>
               <div id="sect-tasks" class="list"></div>
             </div>
             <div class="panel">
               <div class="panel-title">
-                <h2>宗门商店</h2>
-                <span>贡献兑换</span>
+                <h2>宗门藏宝阁</h2>
+                <span>贡献换宝</span>
               </div>
               <div id="sect-shop" class="list"></div>
             </div>
             <div class="panel">
               <div class="panel-title">
-                <h2>可拜入宗门</h2>
-                <span>势力阵营</span>
+                <h2>沧澜宗门录</h2>
+                <span>阵营</span>
               </div>
               <div id="sect-list" class="list"></div>
             </div>
@@ -1064,7 +1064,7 @@
           <div id="tab-logs" class="tab-panel hidden">
             <div class="panel">
               <div class="panel-title">
-                <h2>日志</h2>
+                <h2>修行游记</h2>
                 <button id="refresh-btn" class="secondary">刷新</button>
               </div>
               <div id="logs" class="timeline"></div>
@@ -1073,13 +1073,13 @@
         </section>
       </section>
 
-      <nav id="tabs" class="tabs hidden" aria-label="玩法导航">
+          <nav id="tabs" class="tabs hidden" aria-label="玩法导航">
         <button class="active" data-tab="cultivation"><span class="tab-icon">✦</span><span>洞府</span></button>
-        <button data-tab="character"><span class="tab-icon">◇</span><span>角色</span></button>
-        <button data-tab="bag"><span class="tab-icon">▣</span><span>背包</span></button>
-        <button data-tab="life-skills"><span class="tab-icon">☯</span><span>生活</span></button>
+        <button data-tab="character"><span class="tab-icon">☯</span><span>吾身</span></button>
+        <button data-tab="bag"><span class="tab-icon">🎒</span><span>行囊</span></button>
+        <button data-tab="life-skills"><span class="tab-icon">⚒</span><span>营生</span></button>
         <button data-tab="sect"><span class="tab-icon">▲</span><span>宗门</span></button>
-        <button data-tab="logs"><span class="tab-icon">☰</span><span>日志</span></button>
+        <button data-tab="logs"><span class="tab-icon">📖</span><span>游记</span></button>
       </nav>
 
       <div id="root-help" class="root-help hidden" role="dialog" aria-modal="true" aria-labelledby="root-help-title">
@@ -1192,6 +1192,69 @@
         return ITEM_NAMES[code] || "未知物品";
       }
 
+      // ========== 技能界面文案优化 ==========
+      const SKILL_TEXTS_OPTIMIZED = {
+        alchemy: {
+          tabName: "炼丹",
+          panelTitle: "丹房",
+          intro: "以灵草为引，以灵火为媒，\n将天地灵气炼入丹药之中。\n\n一颗好丹，可抵三年苦修。",
+          materialLabel: "药材",
+          outputLabel: "成丹",
+        },
+        talisman: {
+          tabName: "符箓",
+          panelTitle: "符阁",
+          intro: "以灵力为墨，以符纸为媒，\n将一丝天地法则封入方寸之间。\n\n一张好符，可救燃眉之急。",
+          materialLabel: "符材",
+          outputLabel: "成符",
+        },
+        crafting: {
+          tabName: "炼器",
+          panelTitle: "炼器室",
+          intro: "以天地矿物为骨，以灵火为魂，\n锻造出承载灵力的法器。\n\n一件好法宝，可伴你一生。",
+          materialLabel: "矿材",
+          outputLabel: "成器",
+        },
+        formation: {
+          tabName: "阵法",
+          panelTitle: "阵台",
+          intro: "以灵石为眼，以天地为盘，\n布下借天地之力的阵法。\n\n一座好阵，可护一方平安。",
+          materialLabel: "阵材",
+          outputLabel: "成阵",
+        },
+      };
+
+      // ========== 行动按钮提示优化 ==========
+      const ACTION_TOOLTIPS = {
+        train: {
+          name: "吐纳",
+          cost: "耗法力 12",
+          desc: "盘膝静坐，导引灵气入体，\n积累修为，夯实根基。",
+        },
+        explore: {
+          name: "游历",
+          cost: "耗法力 18",
+          desc: "踏入山野，探索机缘，\n也可能遭遇危险——\n修行路上，风险与机遇并存。",
+        },
+        breakthrough: {
+          name: "叩关",
+          cost: "耗法力 35",
+          desc: "以全部修为冲击当前境界的瓶颈。\n\n成功则境界突破，大道向前；\n失败则修为亏损，需重新积累。\n\n——叩关需谨慎。",
+        },
+        meditate: {
+          name: "调息",
+          desc: "不修炼，不探索，\n只是安静地呼吸，\n让法力慢慢恢复。",
+        },
+        "spirit-stone": {
+          name: "吸灵石",
+          desc: "消耗灵石，换取法力恢复。\n\n这是用'钱'换'时间'——\n富人常用，穷人慎用。",
+        },
+        pill: {
+          name: "服丹",
+          desc: "服用丹药恢复法力。\n\n比吸灵石温和，\n但丹药有限，需节约使用。",
+        },
+      };
+
 
       function _formatEffectValue(value) {
         if (typeof value !== "number") return String(value);
@@ -1217,9 +1280,52 @@ function getEffectTypeName(type) {
       }
 
       function showToast(text, isSuccess = false) {
-        message.textContent = text || "";
-        message.classList.toggle("hidden", !text);
+        // 自动将功能化提示转换为叙事性提示
+        const narrativeText = formatNarrativeToast(text);
+        message.textContent = narrativeText || "";
+        message.classList.toggle("hidden", !narrativeText);
         message.classList.toggle("success", isSuccess);
+      }
+
+      // ========== Toast 叙事性文本优化 ==========
+      function formatNarrativeToast(originalText, result = null) {
+        // 将后端返回的功能化提示转换为叙事性提示
+        if (!originalText) return originalText;
+
+        // 修炼成功
+        let match = originalText.match(/修炼成功[，,]修为\+(\d+)/);
+        if (match) {
+          return `你静坐吐纳，修为有所精进。（+${match[1]}）`;
+        }
+
+        // 探索成功
+        match = originalText.match(/探索成功[，,]获得灵石\s*x\s*(\d+)/);
+        if (match) {
+          const num = parseInt(match[1]);
+          const chineseNum = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][num] || num;
+          return `你在山石间有所发现，获得灵石${chineseNum}枚。`;
+        }
+
+        // 突破成功
+        match = originalText.match(/突破成功/);
+        if (match) {
+          return `灵气贯通，瓶颈已破。你感受到了境界的突破——大道向前！`;
+        }
+
+        // 突破失败
+        match = originalText.match(/突破失败[，,]修为-(\d+)%/);
+        if (match) {
+          return `突破未成，灵气反噬，修为有所亏损。（-${match[1]}%）`;
+        }
+
+        // 加入宗门成功
+        match = originalText.match(/加入宗门成功/);
+        if (match && result && result.sect_name) {
+          return `你正式拜入【${result.sect_name}】，从此有了依归。`;
+        }
+
+        // 如果没有匹配，返回原文本
+        return originalText;
       }
 
       // ========== 叙事面板功能 ==========

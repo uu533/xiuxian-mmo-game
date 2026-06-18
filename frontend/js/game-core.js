@@ -9,7 +9,7 @@ window.GameCore = (function() {
     const apiParams = new URLSearchParams(window.location.search);
     const configuredApiBase = apiParams.get("apiBase")
       || localStorage.getItem("xiuxian_api_base")
-      || "/api";
+      || "http://localhost:8000";
     if (apiParams.get("apiBase")) localStorage.setItem("xiuxian_api_base", apiParams.get("apiBase"));
     const legacyPort = localStorage.getItem("xiuxian_api_port");
     return legacyPort

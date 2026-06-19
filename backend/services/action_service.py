@@ -114,7 +114,7 @@ def _train(db: Session, user: User, params: dict) -> dict:
     efficiency = get_cultivation_efficiency(character)
     effect_bonus = get_train_cultivation_bonus(character)
     next_bonus = effect_value(character, "train_next_bonus")
-    base_gain = int(random.randint(16, 28) * character_payload(character)["cultivation_speed"] + character.max_mana * 0.03)
+    base_gain = int(random.randint(8, 16) * character_payload(character)["cultivation_speed"] + character.max_mana * 0.03)
     gain = max(1, int(base_gain * efficiency * (1 + effect_bonus) * (1 + next_bonus)))
     effect_result = consume_effects(db, user, ["train_cultivation_bonus", "train_next_bonus"])
     character.cultivation = min(character.cultivation_cap, character.cultivation + gain)

@@ -26,6 +26,7 @@ from backend.configs.auto_cultivation import (
     MAX_OFFLINE_HOURS,
 )
 from backend.configs.events import EXPLORE_EVENTS
+from backend.configs.narrative_texts import get_train_narrative
 from backend.models import Character, User, utc_now
 from backend.services.calc_service import get_guard_talisman_damage_reduction, sync_base_and_caps
 from backend.services.inventory_service import add_item_to_main_bag
@@ -328,6 +329,7 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
         items = result.get("drops", [])
         battle_count = result.get("battle_count", 0)
         sect_msg = result.get("sect_messages", [])
+        narrative = result.get("narrative", None)
 
         if hp_dmg > 0:
             add_log(report, f"【外出历练】你在野外遭遇敌人，损失气血 {hp_dmg} 点。")
@@ -343,6 +345,10 @@ def settle_auto_cultivation(db: Session, user: User) -> dict:
         # 宗门任务推进消息
         for msg in sect_msg[:2]:
             add_log(report, f"【宗门】{msg}")
+
+        # P0-5: 添加叙事文本到日志
+        if narrative:
+            add_log(report, f"【感悟】{narrative}")
 
         # 检查是否背包满
         if result.get("bag_full"):
@@ -610,6 +616,11 @@ def _do_adventure(db: Session, character: Character, user: User, report: dict, s
         bag_full = True
     drops = drop_result.get("drops", [])
 
+    # P0-5: 自动修行时叙事文本触发逻辑（30% 概率）
+    narrative = None
+    if random.random() < 0.3:
+        narrative = get_train_narrative(character.realm)
+
     # 更新报告
     report["actions"]["adventuring"] += 1
     report["gains"]["cultivation"] += cult_gain
@@ -625,6 +636,7 @@ def _do_adventure(db: Session, character: Character, user: User, report: dict, s
         "event_type": event_type,
         "stones": stones,
         "battle_count": 1 if event_type == "battle" else 0,
+        "narrative": narrative,
     }
 
 

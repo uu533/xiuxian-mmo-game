@@ -79,7 +79,7 @@ window.GameUI = (function() {
     }
 
     _currentTextContainer.innerHTML = "";
-    typewriterEffect(_currentTextContainer, text, 50);
+    typewriterEffect(_currentTextContainer, text, 80);
   }
 
   function typewriterEffect(container, text, speed = 50, onComplete = null) {
@@ -233,17 +233,18 @@ window.GameUI = (function() {
     tooltip.textContent = tooltipText;
     tooltip.style.cssText = `
       position: absolute;
-      background: rgba(0, 0, 0, 0.87);
-      color: #f6eed9;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0d5c1;
       padding: 8px 12px;
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 12px;
-      max-width: 300px;
-      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      z-index: 1000;
+      max-width: 200px;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.3s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     `;
     
     document.body.appendChild(tooltip);
